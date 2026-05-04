@@ -222,6 +222,11 @@ export class PrtgController {
     return this.prtgService.listSchedules();
   }
 
+  @Post('schedules/run-enabled')
+  runEnabledSchedules() {
+    return this.scheduler.dispatchEnabledSchedules();
+  }
+
   @Post('schedules')
   async createSchedule(@Body() body: Record<string, unknown>) {
     if (!body.cron || typeof body.cron !== 'string') {
@@ -270,6 +275,11 @@ export class PrtgController {
     const schedule = await this.prtgService.updateSchedule(id, payload);
     await this.scheduler.syncSchedules();
     return schedule;
+  }
+
+  @Post('schedules/:id/run')
+  runSchedule(@Param('id', ParseIntPipe) id: number) {
+    return this.scheduler.dispatchSchedule(id);
   }
 
   @Delete('schedules/:id')

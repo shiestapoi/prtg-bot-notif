@@ -69,3 +69,11 @@ export interface DispatchSummary {
   sentConfigs: number;
   sentRecipients: number;
 }
+
+export interface ScheduleDispatchSummary {
+  scheduleId: number;
+  scheduleName: string;
+  groupName: string | null;
+  targetMode: 'all' | 'group_only' | 'personal_only';
+  result: DispatchSummary;
+}

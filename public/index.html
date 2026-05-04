@@ -759,7 +759,18 @@
               <!-- Schedules -->
               <div class="card bg-base-200 shadow-sm xl:col-span-3">
                 <div class="card-body p-3 sm:p-5 gap-3">
-                  <h3 class="font-semibold">Schedules</h3>
+                  <div
+                    class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <h3 class="font-semibold">Schedules</h3>
+                    <button
+                      id="schedule-run-enabled"
+                      class="btn btn-sm btn-secondary w-full sm:w-auto"
+                      type="button"
+                    >
+                      Run Enabled
+                    </button>
+                  </div>
                   <form
                     id="schedule-form"
                     class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2"

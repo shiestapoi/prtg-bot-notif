@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrtgSchedulerService } from '../../prtg/prtg.scheduler.service';
 import { PrtgService } from '../../prtg/prtg.service';
-import type { PrtgRecipientDto } from '../../prtg/prtg.types';
+import type {
+  PrtgRecipientDto,
+  ScheduleDispatchSummary,
+} from '../../prtg/prtg.types';
 import type { WhatsappPlugin, WhatsappPluginContext } from './whatsapp-plugin';
 
 function splitArgs(value: string) {
@@ -487,6 +490,24 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
       return this.listSchedules();
     }
 
+    const scheduleRunAll = command.match(
+      /^schedules?\s+(run|send|dispatch|start)\s+all$/i,
+    );
+    if (scheduleRunAll) {
+      const result = await this.scheduler.dispatchEnabledSchedules();
+      return this.formatScheduleDispatchResults(result);
+    }
+
+    const scheduleRun = command.match(
+      /^schedules?\s+(run|send|dispatch|start)\s+(\d+)$/i,
+    );
+    if (scheduleRun) {
+      const result = await this.scheduler.dispatchSchedule(
+        parseId(scheduleRun[2], 'schedule id'),
+      );
+      return this.formatScheduleDispatchResults([result]);
+    }
+
     if (/^schedules?\s+(add|create)\s+/i.test(command)) {
       const parts = splitArgs(
         command.replace(/^schedules?\s+(add|create)\s+/i, ''),
@@ -560,10 +581,10 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
     );
     if (scheduleDelete) {
       await this.prtgService.deleteSchedule(
-        parseId(scheduleDelete[3], 'schedule id'),
+        parseId(scheduleDelete[2], 'schedule id'),
       );
       await this.scheduler.syncSchedules();
-      return `Schedule dihapus: ${scheduleDelete[3]}`;
+      return `Schedule dihapus: ${scheduleDelete[2]}`;
     }
 
     const scheduleDetail = command.match(
@@ -612,6 +633,8 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
       '/prtg schedule create <nama> | <group/ALL> | <cron> | <all/group_only/personal_only>',
       '/prtg schedule update <id> | name=<nama> | group=<group/ALL> | cron=<cron> | target=<target> | enabled=<on/off>',
       '/prtg schedule on|off <id>',
+      '/prtg schedule run <id>',
+      '/prtg schedule run all',
       '/prtg schedule delete <id>',
       '',
       '*Cookies*',
@@ -669,6 +692,28 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
           )
           .join('\n')
       : 'Belum ada schedule.';
+  }
+
+  private formatScheduleDispatchResults(results: ScheduleDispatchSummary[]) {
+    const lines = results.map((item) => {
+      const group = item.groupName || 'ALL';
+      return `${item.scheduleId}. ${item.scheduleName} [${group}, ${item.targetMode}] -> ${item.result.sentConfigs} config, ${item.result.sentRecipients} receipt`;
+    });
+    const sentConfigs = results.reduce(
+      (total, item) => total + item.result.sentConfigs,
+      0,
+    );
+    const sentRecipients = results.reduce(
+      (total, item) => total + item.result.sentRecipients,
+      0,
+    );
+
+    return [
+      '*Schedule dispatch selesai*',
+      ...lines,
+      '',
+      `Total: ${results.length} schedule, ${sentConfigs} config, ${sentRecipients} receipt.`,
+    ].join('\n');
   }
 
   private formatRecipient(recipient: PrtgRecipientDto) {

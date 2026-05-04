@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
+  NotFoundException,
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
@@ -8,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import cron, { type ScheduledTask } from 'node-cron';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrtgService } from './prtg.service';
+import type { ScheduleDispatchSummary } from './prtg.types';
 
 interface ScheduledEntry {
   cron: string;
@@ -19,6 +22,7 @@ interface ScheduledEntry {
 export class PrtgSchedulerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrtgSchedulerService.name);
   private readonly tasks = new Map<number, ScheduledEntry>();
+  private readonly runningSchedules = new Set<number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -37,9 +41,13 @@ export class PrtgSchedulerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async syncSchedules() {
-    let schedules: Prisma.PrtgScheduleGetPayload<object>[];
+    let schedules: Prisma.PrtgScheduleGetPayload<{
+      include: { group: true };
+    }>[];
     try {
-      schedules = await this.prisma.prtgSchedule.findMany();
+      schedules = await this.prisma.prtgSchedule.findMany({
+        include: { group: true },
+      });
     } catch (error) {
       if (this.isMissingScheduleTableError(error)) {
         this.logger.warn(
@@ -85,10 +93,7 @@ export class PrtgSchedulerService implements OnModuleInit, OnModuleDestroy {
 
       const task = cron.schedule(schedule.cron, async () => {
         try {
-          await this.prtgService.dispatchGroup(
-            schedule.groupId ?? 'ALL',
-            schedule.targetMode,
-          );
+          await this.dispatchScheduleRecord(schedule, 'cron');
           this.logger.log(`PRTG schedule ${schedule.name} dispatched.`);
         } catch (error) {
           this.logger.error(
@@ -102,6 +107,72 @@ export class PrtgSchedulerService implements OnModuleInit, OnModuleDestroy {
         targetMode: schedule.targetMode,
         task,
       });
+    }
+  }
+
+  async dispatchSchedule(id: number): Promise<ScheduleDispatchSummary> {
+    const schedule = await this.prisma.prtgSchedule.findUnique({
+      where: { id },
+      include: { group: true },
+    });
+    if (!schedule) {
+      throw new NotFoundException('PRTG schedule not found.');
+    }
+    if (!schedule.enabled) {
+      throw new BadRequestException(
+        `PRTG schedule "${schedule.name}" is disabled.`,
+      );
+    }
+
+    return this.dispatchScheduleRecord(schedule, 'manual');
+  }
+
+  async dispatchEnabledSchedules(): Promise<ScheduleDispatchSummary[]> {
+    const schedules = await this.prisma.prtgSchedule.findMany({
+      where: { enabled: true },
+      include: { group: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (schedules.length === 0) {
+      throw new NotFoundException('No enabled PRTG schedules found.');
+    }
+
+    const results: ScheduleDispatchSummary[] = [];
+    for (const schedule of schedules) {
+      results.push(await this.dispatchScheduleRecord(schedule, 'manual'));
+    }
+
+    return results;
+  }
+
+  private async dispatchScheduleRecord(
+    schedule: Prisma.PrtgScheduleGetPayload<{ include: { group: true } }>,
+    source: 'cron' | 'manual',
+  ): Promise<ScheduleDispatchSummary> {
+    if (this.runningSchedules.has(schedule.id)) {
+      throw new BadRequestException(
+        `PRTG schedule "${schedule.name}" is already running.`,
+      );
+    }
+
+    this.runningSchedules.add(schedule.id);
+    try {
+      const result = await this.prtgService.dispatchGroup(
+        schedule.groupId ?? 'ALL',
+        schedule.targetMode,
+      );
+      this.logger.log(
+        `PRTG schedule ${schedule.name} dispatched by ${source}.`,
+      );
+      return {
+        scheduleId: schedule.id,
+        scheduleName: schedule.name,
+        groupName: schedule.group?.name ?? null,
+        targetMode: schedule.targetMode,
+        result,
+      };
+    } finally {
+      this.runningSchedules.delete(schedule.id);
     }
   }
 

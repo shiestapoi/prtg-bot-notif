@@ -119,6 +119,7 @@ const receiptFilter = document.getElementById('receipt-filter');
 const scheduleForm = document.getElementById('schedule-form');
 const scheduleList = document.getElementById('schedule-list');
 const scheduleClear = document.getElementById('schedule-clear');
+const scheduleRunEnabledBtn = document.getElementById('schedule-run-enabled');
 const groupSendBtn = document.getElementById('group-send-btn');
 const groupSendSelect = document.getElementById('group-send-select');
 const groupForm = document.getElementById('group-form');
@@ -1238,6 +1239,21 @@ function renderSchedules() {
     const actions = document.createElement('div');
     actions.className = 'flex gap-1 shrink-0';
 
+    const runBtn = document.createElement('button');
+    runBtn.type = 'button';
+    runBtn.textContent = 'Run';
+    runBtn.className = 'btn btn-xs btn-secondary';
+    runBtn.disabled = !schedule.enabled;
+    runBtn.addEventListener('click', async () => {
+      try {
+        await runSchedule(schedule.id, runBtn);
+      } catch (error) {
+        showToast(
+          error instanceof Error ? error.message : 'Gagal menjalankan schedule.',
+        );
+      }
+    });
+
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
     editBtn.textContent = 'Edit';
@@ -1250,7 +1266,7 @@ function renderSchedules() {
     deleteBtn.className = 'btn btn-xs btn-ghost text-error';
     deleteBtn.addEventListener('click', () => deleteSchedule(schedule.id));
 
-    actions.append(editBtn, deleteBtn);
+    actions.append(runBtn, editBtn, deleteBtn);
     item.append(info, actions);
     scheduleList.appendChild(item);
   });
@@ -1455,6 +1471,70 @@ async function saveSchedule(payload) {
 async function deleteSchedule(id) {
   await apiFetch(`/api/prtg/schedules/${id}`, { method: 'DELETE' });
   await loadPrtgData();
+}
+
+function formatScheduleRunResult(result) {
+  if (Array.isArray(result)) {
+    const sentConfigs = result.reduce(
+      (total, item) => total + (item.result?.sentConfigs || 0),
+      0,
+    );
+    const sentRecipients = result.reduce(
+      (total, item) => total + (item.result?.sentRecipients || 0),
+      0,
+    );
+    return `${result.length} schedule, ${sentConfigs} config, ${sentRecipients} receipt terkirim.`;
+  }
+
+  return `${result.scheduleName}: ${result.result?.sentConfigs || 0} config, ${result.result?.sentRecipients || 0} receipt terkirim.`;
+}
+
+async function runSchedule(id, button) {
+  if (!id) {
+    return;
+  }
+
+  const originalText = button?.textContent;
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Running';
+  }
+
+  try {
+    const response = await apiFetch(`/api/prtg/schedules/${id}/run`, {
+      method: 'POST',
+    });
+    const result = await response.json();
+    pushActivity(`Schedule ${id} dispatched`, 'sent');
+    showToast(formatScheduleRunResult(result), 'success');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText || 'Run';
+    }
+  }
+}
+
+async function runEnabledSchedules(button) {
+  const originalText = button?.textContent;
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Running';
+  }
+
+  try {
+    const response = await apiFetch('/api/prtg/schedules/run-enabled', {
+      method: 'POST',
+    });
+    const result = await response.json();
+    pushActivity('Enabled schedules dispatched', 'sent');
+    showToast(formatScheduleRunResult(result), 'success');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalText || 'Run Enabled';
+    }
+  }
 }
 
 async function sendGroup(id) {
@@ -1839,6 +1919,16 @@ scheduleForm?.addEventListener('submit', async (event) => {
 });
 
 scheduleClear?.addEventListener('click', () => clearForm(scheduleForm));
+
+scheduleRunEnabledBtn?.addEventListener('click', async () => {
+  try {
+    await runEnabledSchedules(scheduleRunEnabledBtn);
+  } catch (error) {
+    showToast(
+      error instanceof Error ? error.message : 'Gagal menjalankan schedule.',
+    );
+  }
+});
 
 groupSendBtn?.addEventListener('click', async () => {
   const id = groupSendSelect?.value || 'ALL';
