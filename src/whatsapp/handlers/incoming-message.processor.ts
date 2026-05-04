@@ -86,12 +86,7 @@ export async function processIncomingMessage({
     const isAuthorized = await isCommandAuthorized(context);
     if (!isAuthorized) {
       logger.warn(
-        `Blocked WhatsApp command ${plugin.name} from ${senderJid} in ${remoteJid}`,
-      );
-      await sendMessage(
-        remoteJid,
-        { text: 'Forbidden. Anda tidak memiliki akses terhadap perintah bot.' },
-        { quoted: message },
+        `Ignored unauthorized WhatsApp command ${plugin.name} from ${senderJid} in ${remoteJid}`,
       );
       continue;
     }

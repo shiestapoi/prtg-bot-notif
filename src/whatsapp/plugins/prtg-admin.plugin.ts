@@ -100,14 +100,6 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
     );
 
     if (!isAdmin) {
-      const attempted = command ? `/prtg ${command}` : '/prtg';
-      await context.sendMessage(
-        context.remoteJid,
-        {
-          text: `Forbidden. Anda tidak memiliki akses terhadap perintah ${attempted}.`,
-        },
-        { quoted: context.message },
-      );
       return;
     }
 
