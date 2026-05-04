@@ -97,6 +97,7 @@ const allowedScheduleTargetModes = [
 type ScheduleTargetMode = (typeof allowedScheduleTargetModes)[number];
 const defaultPrtgImageScale = 2;
 const defaultPrtgRenderViewport = { width: 1366, height: 768 };
+const defaultPrtgCaptureConcurrency = 3;
 const defaultPrtgLoginUrl = 'http://prtg.r1net.id/index.htm';
 const defaultMessageTemplate = '{title}\nGroup: {groupname}';
 const prtgUsernameXPath =
@@ -184,6 +185,28 @@ function ensureHttpUrl(value: string, fieldName = 'requestUrl') {
       `${fieldName} must be a valid HTTP/HTTPS URL.`,
     );
   }
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+) {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
+  }
+
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+
+  return results;
 }
 
 // ─── Inline shape for configs that include the group relation ─────────────────
@@ -1251,56 +1274,55 @@ export class PrtgService {
       );
     }
 
-    const captures: {
-      buffer: Buffer;
-      privateCaption: string;
-      groupCaption: string;
-      privateRecipients: string[];
-      groupRecipients: string[];
-    }[] = [];
+    const captures = await mapWithConcurrency(
+      configs,
+      this.getPrtgCaptureConcurrency(),
+      async (config) => {
+        const imageBuffer = await this.fetchPrtgImage(
+          config.requestUrl,
+          cookie,
+        );
+        const values = {
+          title: config.title,
+          groupname: config.group.name,
+          url: config.requestUrl,
+        };
+        const recipients = this.getRecipientsForConfig(
+          recipientPool,
+          dispatchGroupId,
+          config.groupId,
+        );
+        const privateRecipients = recipients
+          .filter(
+            (recipient) =>
+              targetMode !== 'group_only' &&
+              this.isPrivateRecipient(recipient.targetType),
+          )
+          .map((recipient) => recipient.phoneNumber);
+        const groupRecipients = recipients
+          .filter(
+            (recipient) =>
+              targetMode !== 'personal_only' &&
+              !this.isPrivateRecipient(recipient.targetType),
+          )
+          .map((recipient) => recipient.phoneNumber);
+
+        return {
+          buffer: imageBuffer,
+          privateCaption: this.renderMessageTemplate(
+            settings.privateMessageTemplate || settings.messageTemplate,
+            values,
+          ),
+          groupCaption: this.renderMessageTemplate(
+            settings.groupMessageTemplate || settings.messageTemplate,
+            values,
+          ),
+          privateRecipients,
+          groupRecipients,
+        };
+      },
+    );
     let sentRecipients = 0;
-
-    for (const config of configs) {
-      const imageBuffer = await this.fetchPrtgImage(config.requestUrl, cookie);
-      const values = {
-        title: config.title,
-        groupname: config.group.name,
-        url: config.requestUrl,
-      };
-      const recipients = this.getRecipientsForConfig(
-        recipientPool,
-        dispatchGroupId,
-        config.groupId,
-      );
-      const privateRecipients = recipients
-        .filter(
-          (recipient) =>
-            targetMode !== 'group_only' &&
-            this.isPrivateRecipient(recipient.targetType),
-        )
-        .map((recipient) => recipient.phoneNumber);
-      const groupRecipients = recipients
-        .filter(
-          (recipient) =>
-            targetMode !== 'personal_only' &&
-            !this.isPrivateRecipient(recipient.targetType),
-        )
-        .map((recipient) => recipient.phoneNumber);
-
-      captures.push({
-        buffer: imageBuffer,
-        privateCaption: this.renderMessageTemplate(
-          settings.privateMessageTemplate || settings.messageTemplate,
-          values,
-        ),
-        groupCaption: this.renderMessageTemplate(
-          settings.groupMessageTemplate || settings.messageTemplate,
-          values,
-        ),
-        privateRecipients,
-        groupRecipients,
-      });
-    }
 
     for (const capture of captures) {
       if (capture.privateRecipients.length > 0) {
@@ -1644,6 +1666,17 @@ export class PrtgService {
     }
 
     return Math.min(Math.round(scale), 4);
+  }
+
+  private getPrtgCaptureConcurrency() {
+    const concurrency = Number(
+      process.env.PRTG_CAPTURE_CONCURRENCY ?? defaultPrtgCaptureConcurrency,
+    );
+    if (!Number.isFinite(concurrency) || concurrency < 1) {
+      return defaultPrtgCaptureConcurrency;
+    }
+
+    return Math.min(Math.round(concurrency), 6);
   }
 
   private getPrtgRenderViewport() {
