@@ -1,0 +1,102 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model PrtgCookie {
+  id        Int          @id @default(autoincrement())
+  label     String?
+  value     String
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  configs   PrtgConfig[]
+}
+
+model PrtgSetting {
+  id                     Int      @id @default(1)
+  loginUrl               String   @default("http://prtg.r1net.id/index.htm")
+  loginUsername          String?
+  loginPassword          String?
+  messageTemplate        String   @default("{title}\nGroup: {groupname}")
+  privateMessageTemplate String   @default("{title}\nGroup: {groupname}")
+  groupMessageTemplate   String   @default("{title}\nGroup: {groupname}")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+/// Logical grouping of PRTG charts. PrtgConfig and PrtgSchedule reference this.
+model PrtgGroup {
+  id         Int             @id @default(autoincrement())
+  name       String          @unique
+  enabled    Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  configs    PrtgConfig[]
+  schedules  PrtgSchedule[]
+  recipients PrtgRecipient[]
+}
+
+model PrtgConfig {
+  id         Int         @id @default(autoincrement())
+  title      String
+  requestUrl String      @unique
+  groupId    Int
+  group      PrtgGroup   @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  enabled    Boolean     @default(true)
+  cookieId   Int?
+  cookie     PrtgCookie? @relation(fields: [cookieId], references: [id], onDelete: SetNull)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model PrtgRecipient {
+  id          Int                 @id @default(autoincrement())
+  label       String?
+  phoneNumber String
+  targetType  RecipientTargetType @default(manual)
+  enabled     Boolean             @default(true)
+  isAdmin     Boolean             @default(false)
+  /// null = applies to ALL groups (sent with every dispatch)
+  groupId     Int?
+  group       PrtgGroup?          @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+enum RecipientTargetType {
+  contact
+  group
+  channel
+  manual
+}
+
+enum ScheduleTargetMode {
+  all
+  group_only
+  personal_only
+}
+
+/// groupId nullable: null means "dispatch ALL enabled groups".
+model PrtgSchedule {
+  id         Int                @id @default(autoincrement())
+  name       String
+  groupId    Int?
+  group      PrtgGroup?         @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  cron       String
+  targetMode ScheduleTargetMode @default(all)
+  enabled    Boolean            @default(true)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+}

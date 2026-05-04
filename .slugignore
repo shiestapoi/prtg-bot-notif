@@ -1,0 +1,11 @@
+coverage/
+dist/
+node_modules/
+playwright/
+test/
+test-results/
+.playwright-mcp/
+prisma/dev.db
+prtg.sql
+storage/
+*.log
