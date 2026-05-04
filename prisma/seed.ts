@@ -3,8 +3,9 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 import 'dotenv/config';
 import { Pool } from 'pg';
+import { createPostgresPoolConfig } from '../src/prisma/postgres-options';
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool(createPostgresPoolConfig(process.env.DATABASE_URL));
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
