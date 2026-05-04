@@ -1,0 +1,11 @@
+build:
+  docker:
+    web: Dockerfile
+
+release:
+  image: web
+  command:
+    - npm run db:deploy
+
+run:
+  web: npm run start:prod
