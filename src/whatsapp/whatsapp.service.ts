@@ -147,7 +147,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
       },
       version,
       printQRInTerminal: this.printQrInTerminal,
-      browser: Browsers.macOS('Chrome'),
+      browser: Browsers.ubuntu('PRTG BOT'),
     });
 
     this.socket = socket;
