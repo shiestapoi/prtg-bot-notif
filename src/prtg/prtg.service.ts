@@ -911,6 +911,17 @@ export class PrtgService {
   }
 
   async isAdminRecipient(senderJid: string | string[]) {
+    return this.isAuthorizedWhatsappCommander(senderJid, false);
+  }
+
+  async isAuthorizedWhatsappCommander(
+    senderJid: string | string[],
+    isFromMe: boolean,
+  ) {
+    if (isFromMe) {
+      return true;
+    }
+
     const senderCandidates = (
       Array.isArray(senderJid) ? senderJid : [senderJid]
     )
@@ -922,7 +933,11 @@ export class PrtgService {
     }
 
     const recipients = await this.prisma.prtgRecipient.findMany({
-      where: { enabled: true, isAdmin: true },
+      where: {
+        enabled: true,
+        isAdmin: true,
+        targetType: { in: ['contact', 'manual'] },
+      },
       select: { phoneNumber: true },
     });
 

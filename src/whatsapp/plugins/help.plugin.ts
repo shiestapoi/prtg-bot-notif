@@ -13,7 +13,10 @@ export class HelpPlugin implements WhatsappPlugin {
   }
 
   async handle(context: WhatsappPluginContext) {
-    const isAdmin = await this.prtgService.isAdminRecipient(context.senderJids);
+    const isAdmin = await this.prtgService.isAuthorizedWhatsappCommander(
+      context.senderJids,
+      context.isFromMe,
+    );
     const lines = [
       '*Haruyaki Ops Help*',
       '',

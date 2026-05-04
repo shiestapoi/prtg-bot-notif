@@ -94,7 +94,10 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
   async handle(context: WhatsappPluginContext) {
     const rawText = context.text?.trim() ?? '';
     const command = cleanCommand(rawText.replace(/^\/prtg\b/i, ''));
-    const isAdmin = await this.prtgService.isAdminRecipient(context.senderJids);
+    const isAdmin = await this.prtgService.isAuthorizedWhatsappCommander(
+      context.senderJids,
+      context.isFromMe,
+    );
 
     if (!isAdmin) {
       const attempted = command ? `/prtg ${command}` : '/prtg';

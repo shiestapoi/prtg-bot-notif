@@ -12,6 +12,7 @@ export interface WhatsappPluginContext {
   remoteJid: string;
   senderJid: string;
   senderJids: string[];
+  isFromMe: boolean;
   sendMessage: (
     remoteJid: string,
     content: Parameters<WASocket['sendMessage']>[1],

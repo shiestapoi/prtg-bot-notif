@@ -4,7 +4,10 @@ import type {
   ExtractedMediaInfo,
   StructuredWhatsappMessageContent,
 } from '../lib';
-import type { WhatsappPlugin } from '../plugins/whatsapp-plugin';
+import type {
+  WhatsappPlugin,
+  WhatsappPluginContext,
+} from '../plugins/whatsapp-plugin';
 
 export interface IncomingMessageProcessorParams {
   sessionName: string;
@@ -13,10 +16,12 @@ export interface IncomingMessageProcessorParams {
   remoteJid: string;
   senderJid: string;
   senderJids: string[];
+  isFromMe: boolean;
   text: string | null;
   media: ExtractedMediaInfo;
   structured: StructuredWhatsappMessageContent | null;
   plugins: WhatsappPlugin[];
+  isCommandAuthorized: (context: WhatsappPluginContext) => Promise<boolean>;
   logger: Logger;
 }
 
@@ -27,10 +32,12 @@ export async function processIncomingMessage({
   remoteJid,
   senderJid,
   senderJids,
+  isFromMe,
   text,
   media,
   structured,
   plugins,
+  isCommandAuthorized,
   logger,
 }: IncomingMessageProcessorParams): Promise<void> {
   const sendMessage = async (
@@ -52,6 +59,7 @@ export async function processIncomingMessage({
     remoteJid,
     senderJid,
     senderJids,
+    isFromMe,
     sendMessage,
     text,
     media,
@@ -72,6 +80,19 @@ export async function processIncomingMessage({
     }
 
     if (!canHandle) {
+      continue;
+    }
+
+    const isAuthorized = await isCommandAuthorized(context);
+    if (!isAuthorized) {
+      logger.warn(
+        `Blocked WhatsApp command ${plugin.name} from ${senderJid} in ${remoteJid}`,
+      );
+      await sendMessage(
+        remoteJid,
+        { text: 'Forbidden. Anda tidak memiliki akses terhadap perintah bot.' },
+        { quoted: message },
+      );
       continue;
     }
 

@@ -7,7 +7,7 @@ import {
 } from '../lib';
 import type { WhatsappPlugin } from '../plugins/whatsapp-plugin';
 import {
-  isIncomingMessage,
+  isProcessableMessage,
   resolveIncomingChatJid,
 } from '../utils/message-utils';
 import { processIncomingMessage } from './incoming-message.processor';
@@ -34,6 +34,10 @@ export interface MessagesUpsertHandlerParams {
   type: MessageUpsertType;
   plugins: WhatsappPlugin[];
   sendReceipt: boolean;
+  isCommandAuthorized: (
+    senderJids: string[],
+    isFromMe: boolean,
+  ) => Promise<boolean>;
 }
 
 export async function handleMessagesUpsert({
@@ -44,6 +48,7 @@ export async function handleMessagesUpsert({
   type,
   plugins,
   sendReceipt,
+  isCommandAuthorized,
 }: MessagesUpsertHandlerParams): Promise<void> {
   logger.debug(
     `Session ${sessionName} received messages.upsert event (${type}) with ${messages.length} message(s)`,
@@ -56,7 +61,7 @@ export async function handleMessagesUpsert({
   for (const message of messages) {
     const remoteJid = resolveIncomingChatJid(message);
 
-    if (!isIncomingMessage(message, remoteJid)) {
+    if (!isProcessableMessage(message, remoteJid)) {
       continue;
     }
 
@@ -77,13 +82,16 @@ export async function handleMessagesUpsert({
     const media = extractMediaInfo(message);
     const text = extractMessageText(message);
     const structured = extractStructuredMessageContent(message);
+    const isFromMe = Boolean(message.key.fromMe);
     const senderJids = uniqueValues([
+      isFromMe ? socket.user?.id : null,
       message.key.participant,
       message.key.participantAlt,
       message.key.remoteJid,
       message.key.remoteJidAlt,
     ]);
     const senderJid =
+      (isFromMe ? socket.user?.id : null) ??
       message.key.participant ??
       message.key.participantAlt ??
       message.key.remoteJid ??
@@ -98,6 +106,7 @@ export async function handleMessagesUpsert({
         message.key.addressingMode
           ? `mode=${message.key.addressingMode}`
           : null,
+        isFromMe ? 'fromMe=true' : null,
         `candidates=${senderJids.join(',') || '-'}`,
         `text="${previewText(text)}"`,
       ]
@@ -112,10 +121,13 @@ export async function handleMessagesUpsert({
       remoteJid,
       senderJid,
       senderJids,
+      isFromMe,
       text,
       media,
       structured,
       plugins,
+      isCommandAuthorized: (context) =>
+        isCommandAuthorized(context.senderJids, context.isFromMe),
       logger,
     });
   }

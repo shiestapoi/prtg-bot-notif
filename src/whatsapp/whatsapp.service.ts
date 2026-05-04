@@ -1,6 +1,8 @@
 import {
   Injectable,
+  Inject,
   Logger,
+  forwardRef,
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
@@ -17,6 +19,7 @@ import type { KeyvBaileysAuthState } from './auth/whatsapp-auth';
 import { clearAuthState, createAuthState } from './auth/whatsapp-auth';
 import { handleConnectionUpdate } from './handlers/connection.handler';
 import { handleMessagesUpsert } from './handlers/messages-upsert.handler';
+import { PrtgService } from '../prtg/prtg.service';
 import { helloPlugin } from './plugins/hello.plugin';
 import { HelpPlugin } from './plugins/help.plugin';
 import { pingPlugin } from './plugins/ping.plugin';
@@ -63,7 +66,7 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
   };
   private readonly sendReceiptEnabled = getBooleanEnv(
     'WHATSAPP_MESSAGE_SEND_RECEIPT',
-    true,
+    false,
   );
   private readonly printQrInTerminal = getBooleanEnv(
     'WHATSAPP_PRINT_QR',
@@ -85,6 +88,8 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     private readonly statusPlugin: StatusPlugin,
     private readonly prtgAdminPlugin: PrtgAdminPlugin,
     private readonly prtgGroupPlugin: PrtgGroupPlugin,
+    @Inject(forwardRef(() => PrtgService))
+    private readonly prtgService: PrtgService,
   ) {}
 
   async onModuleInit() {
@@ -256,6 +261,8 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
         type,
         plugins,
         sendReceipt: this.sendReceiptEnabled,
+        isCommandAuthorized: (senderJids, isFromMe) =>
+          this.prtgService.isAuthorizedWhatsappCommander(senderJids, isFromMe),
       });
     });
 

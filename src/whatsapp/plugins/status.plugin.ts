@@ -23,7 +23,10 @@ export class StatusPlugin implements WhatsappPlugin {
   async handle(context: WhatsappPluginContext) {
     const [isAdmin, groups, configs, recipients, schedules] = await Promise.all(
       [
-        this.prtgService.isAdminRecipient(context.senderJids),
+        this.prtgService.isAuthorizedWhatsappCommander(
+          context.senderJids,
+          context.isFromMe,
+        ),
         this.prtgService.listGroups(),
         this.prtgService.listConfigs(),
         this.prtgService.listRecipients(),
