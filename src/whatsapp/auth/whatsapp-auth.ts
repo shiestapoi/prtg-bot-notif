@@ -2,6 +2,7 @@ import { makeKeyvAuthState } from '@rodrigogs/baileys-store';
 import KeyvPostgres from '@keyv/postgres';
 import Keyv from 'keyv';
 import type { AuthenticationState } from 'baileys';
+import { createPostgresPoolConfig } from '../../prisma/postgres-options';
 
 export type KeyvBaileysAuthState = {
   clearState: () => Promise<void>;
@@ -28,7 +29,10 @@ function getKeyvStore() {
     );
   }
 
-  const store = new KeyvPostgres(postgresUrl);
+  const store = new KeyvPostgres({
+    uri: postgresUrl,
+    ...createPostgresPoolConfig(postgresUrl),
+  });
   keyvInstance = new Keyv({ store, namespace: 'baileys' });
   return keyvInstance;
 }

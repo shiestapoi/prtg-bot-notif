@@ -9,7 +9,7 @@ import {
   UseGuards,
   type MessageEvent,
 } from '@nestjs/common';
-import { map, type Observable } from 'rxjs';
+import { interval, map, merge, type Observable } from 'rxjs';
 import { AuthGuard } from '../auth/auth.guard';
 import type {
   WhatsappHealthResponse,
@@ -68,6 +68,16 @@ export class WhatsappController {
 
   @Sse('stream')
   stream(): Observable<MessageEvent> {
-    return this.realtime.getStatusStream().pipe(map((status) => ({ data: status })));
+    const statusEvents = this.realtime
+      .getStatusStream()
+      .pipe(map((status) => ({ data: status })));
+    const heartbeatEvents = interval(25000).pipe(
+      map(() => ({
+        type: 'heartbeat',
+        data: { at: new Date().toISOString() },
+      })),
+    );
+
+    return merge(statusEvents, heartbeatEvents);
   }
 }

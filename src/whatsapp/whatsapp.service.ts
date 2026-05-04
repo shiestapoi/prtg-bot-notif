@@ -148,7 +148,15 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     this.socket = socket;
     this.socketStore.setSocket(socket);
 
-    socket.ev.on('creds.update', authState.saveCreds);
+    socket.ev.on('creds.update', () => {
+      void Promise.resolve(authState.saveCreds()).catch((error: unknown) => {
+        this.logger.error(
+          `Failed to save WhatsApp credentials: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      });
+    });
     socket.ev.on('contacts.upsert', (contacts) => {
       for (const contact of contacts) {
         this.upsertContactTarget({
