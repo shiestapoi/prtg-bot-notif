@@ -11,6 +11,7 @@ import {
   Settings,
   MessageCircle,
   LogOut,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -40,6 +41,7 @@ const settingsNavItems: NavItem[] = [
   { label: 'Cookie Vault', href: '/settings/cookie-vault', icon: Cookie },
   { label: 'PRTG Setting', href: '/settings/prtg', icon: Settings },
   { label: 'WhatsApp', href: '/settings/whatsapp', icon: MessageCircle },
+  { label: 'Akun', href: '/settings/account', icon: User },
 ];
 
 function NavSection({

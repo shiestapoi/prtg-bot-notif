@@ -25,7 +25,7 @@ async function main() {
     await prisma.prtgSetting.create({
       data: {
         id: 1,
-        loginUrl: 'http://prtg.r1net.id/index.htm',
+        loginUrl: process.env.PRTG_LOGIN_URL ?? 'http://prtg.r1net.id/index.htm',
         loginUsername: process.env.PRTG_USERNAME ?? 'noc',
         loginPassword: process.env.PRTG_PASSWORD ?? '',
         messageTemplate: '*{title}*\n🏢 _{groupname}_\n⏰ {time}\n📊 Traffic: ```{bitrate}```',
@@ -57,7 +57,17 @@ async function main() {
     });
     console.log('✓ PrtgSetting created');
   } else {
-    console.log('  PrtgSetting already exists, skipping');
+    // Update credentials from env if provided
+    const updates: Record<string, string> = {};
+    if (process.env.PRTG_USERNAME) updates.loginUsername = process.env.PRTG_USERNAME;
+    if (process.env.PRTG_PASSWORD) updates.loginPassword = process.env.PRTG_PASSWORD;
+    if (process.env.PRTG_LOGIN_URL) updates.loginUrl = process.env.PRTG_LOGIN_URL;
+    if (Object.keys(updates).length > 0) {
+      await prisma.prtgSetting.update({ where: { id: 1 }, data: updates });
+      console.log('✓ PrtgSetting credentials updated from env');
+    } else {
+      console.log('  PrtgSetting already exists, skipping');
+    }
   }
 
   // ─── Default admin user ───────────────────────────────────────────────────

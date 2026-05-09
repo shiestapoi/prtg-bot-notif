@@ -12,6 +12,7 @@ import NocHistoryPage from '@/pages/noc/history';
 import CookieVaultPage from '@/pages/settings/cookie-vault';
 import PrtgSettingPage from '@/pages/settings/prtg-setting';
 import WhatsappPage from '@/pages/settings/whatsapp';
+import AccountPage from '@/pages/settings/account';
 
 export const router = createBrowserRouter([
   {
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
       { path: 'settings/cookie-vault', element: <CookieVaultPage /> },
       { path: 'settings/prtg', element: <PrtgSettingPage /> },
       { path: 'settings/whatsapp', element: <WhatsappPage /> },
+      { path: 'settings/account', element: <AccountPage /> },
       // Catch-all redirect
       { path: '*', element: <Navigate to="/" replace /> },
     ],
