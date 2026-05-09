@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Save, User } from 'lucide-react';
+import { Save } from 'lucide-react';
 
 export default function AccountPage() {
   const { user } = useAuth();

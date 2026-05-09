@@ -225,6 +225,9 @@ export const prtgScheduleApi = {
 
   remove: (id: number) =>
     api.delete(`/api/prtg/schedules/${id}`).then((r) => r.data),
+
+  run: (id: number) =>
+    api.post(`/api/prtg/schedules/${id}/run`).then((r) => r.data),
 };
 
 // ─── PRTG Report Recipients API ─────────────────────────────────────────────

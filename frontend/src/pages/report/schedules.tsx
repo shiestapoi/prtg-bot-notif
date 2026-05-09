@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Play } from 'lucide-react';
 
 interface ScheduleForm {
   name: string;
@@ -39,8 +39,11 @@ export default function ReportSchedulesPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [runDialogOpen, setRunDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [runningId, setRunningId] = useState<number | null>(null);
+  const [runningInProgress, setRunningInProgress] = useState(false);
   const [form, setForm] = useState<ScheduleForm>(emptyForm);
 
   // Search
@@ -84,6 +87,23 @@ export default function ReportSchedulesPage() {
     setDialogOpen(true);
   };
   const openDelete = (id: number) => { setDeletingId(id); setDeleteDialogOpen(true); };
+  const openRun = (id: number) => { setRunningId(id); setRunDialogOpen(true); };
+
+  const handleRun = async () => {
+    if (!runningId) return;
+    setRunningInProgress(true);
+    try {
+      await prtgScheduleApi.run(runningId);
+      setRunDialogOpen(false);
+      setRunningId(null);
+      toast.success('Schedule berhasil di-trigger, report sedang dikirim');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Terjadi kesalahan';
+      toast.error('Gagal menjalankan schedule: ' + message);
+    } finally {
+      setRunningInProgress(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,7 +170,7 @@ export default function ReportSchedulesPage() {
               <TableHead>Cron</TableHead>
               <TableHead>Send To</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              <TableHead className="w-[120px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -176,6 +196,7 @@ export default function ReportSchedulesPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button variant="ghost" size="icon-xs" onClick={() => openRun(schedule.id)} title="Run sekarang"><Play /></Button>
                       <Button variant="ghost" size="icon-xs" onClick={() => openEdit(schedule)}><Pencil /></Button>
                       <Button variant="ghost" size="icon-xs" onClick={() => openDelete(schedule.id)}><Trash2 /></Button>
                     </div>
@@ -257,6 +278,23 @@ export default function ReportSchedulesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Run Confirmation Dialog */}
+      <Dialog open={runDialogOpen} onOpenChange={setRunDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Jalankan Schedule</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Trigger schedule ini sekarang? Report akan langsung dikirim ke semua recipient yang aktif.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRunDialogOpen(false)}>Batal</Button>
+            <Button onClick={handleRun} disabled={runningInProgress}>
+              <Play className="h-4 w-4" />
+              {runningInProgress ? 'Mengirim...' : 'Jalankan'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
