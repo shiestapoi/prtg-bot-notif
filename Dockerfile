@@ -39,7 +39,8 @@ COPY --from=build /ms-playwright /ms-playwright
 COPY --from=build /app/src/prisma ./src/prisma
 COPY tsconfig.json ./
 
-RUN node node_modules/playwright/cli.js install --with-deps chromium \
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/* \
+  && node node_modules/playwright/cli.js install --with-deps chromium \
   && npm cache clean --force
 
 CMD ["npm", "run", "start:prod"]
