@@ -16,6 +16,7 @@ COPY src ./src
 COPY frontend ./frontend
 COPY public ./public
 
+RUN cd frontend && npm ci
 RUN npm run db:generate
 RUN npm run build
 RUN npm prune --omit=dev --legacy-peer-deps
