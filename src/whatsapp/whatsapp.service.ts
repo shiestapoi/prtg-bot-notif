@@ -19,7 +19,7 @@ import type { KeyvBaileysAuthState } from './auth/whatsapp-auth';
 import { clearAuthState, createAuthState } from './auth/whatsapp-auth';
 import { handleConnectionUpdate } from './handlers/connection.handler';
 import { handleMessagesUpsert } from './handlers/messages-upsert.handler';
-import { PrtgService } from '../prtg/prtg.service';
+import { PrtgReportService } from '../prtg-report/prtg-report.service';
 import { helloPlugin } from './plugins/hello.plugin';
 import { HelpPlugin } from './plugins/help.plugin';
 import { pingPlugin } from './plugins/ping.plugin';
@@ -88,8 +88,8 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     private readonly statusPlugin: StatusPlugin,
     private readonly prtgAdminPlugin: PrtgAdminPlugin,
     private readonly prtgGroupPlugin: PrtgGroupPlugin,
-    @Inject(forwardRef(() => PrtgService))
-    private readonly prtgService: PrtgService,
+    @Inject(forwardRef(() => PrtgReportService))
+    private readonly prtgService: PrtgReportService,
   ) {}
 
   async onModuleInit() {
@@ -267,6 +267,24 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.realtime.publish(this.getStatus());
+  }
+
+  async logout() {
+    if (!this.socket) {
+      throw new Error('WhatsApp socket is not connected.');
+    }
+
+    try {
+      await this.socket.logout();
+    } catch (error) {
+      this.logger.warn(
+        `Error during WhatsApp logout: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    // handleLoggedOut will be triggered by the connection.update event,
+    // but we also call it explicitly in case the event doesn't fire
+    await this.handleLoggedOut();
   }
 
   isServiceEnabled() {

@@ -4,6 +4,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Post,
   Query,
   Sse,
   UseGuards,
@@ -19,7 +20,7 @@ import type {
 import { WhatsappRealtimeService } from './whatsapp-realtime.service';
 import { WhatsappService } from './whatsapp.service';
 
-@Controller('whatsapp')
+@Controller('api/whatsapp')
 @UseGuards(AuthGuard)
 export class WhatsappController {
   constructor(
@@ -54,6 +55,13 @@ export class WhatsappController {
   getTargets() {
     this.ensureServiceEnabledOrThrow();
     return this.whatsappService.listTargets();
+  }
+
+  @Post('logout')
+  async logout() {
+    this.ensureServiceEnabledOrThrow();
+    await this.whatsappService.logout();
+    return { success: true, message: 'WhatsApp session logged out.' };
   }
 
   @Get('channels/metadata')

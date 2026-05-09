@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PrtgSchedulerService } from '../../prtg/prtg.scheduler.service';
-import { PrtgService } from '../../prtg/prtg.service';
+import { PrtgReportSchedulerService } from '../../prtg-report/prtg-report-scheduler.service';
+import { PrtgReportService } from '../../prtg-report/prtg-report.service';
 import type {
   PrtgRecipientDto,
   ScheduleDispatchSummary,
-} from '../../prtg/prtg.types';
+} from '../../prtg-report/prtg-report.types';
 import type { WhatsappPlugin, WhatsappPluginContext } from './whatsapp-plugin';
 
 function splitArgs(value: string) {
@@ -83,8 +83,8 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
   name = 'prtg-admin-plugin';
 
   constructor(
-    private readonly prtgService: PrtgService,
-    private readonly scheduler: PrtgSchedulerService,
+    private readonly prtgService: PrtgReportService,
+    private readonly scheduler: PrtgReportSchedulerService,
   ) {}
 
   canHandle({ text }: WhatsappPluginContext) {
@@ -206,15 +206,15 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
       );
       if (parts.length < 3) {
         throw new Error(
-          'Format: /prtg config add <group> | <title> | <url/curl>',
+          'Format: /prtg config add <group> | <title> | <sensorId>',
         );
       }
       const group = await this.resolveGroup(parts[0]);
+      const sensorId = parseId(parts[2], 'sensor ID');
       const config = await this.prtgService.createConfig({
         groupId: group.id,
         title: parts[1],
-        requestUrl: parts[2],
-        curlCommand: parts[2],
+        sensorId,
         enabled: true,
       });
       return `Config dibuat: ${config.id}. ${config.title}`;
@@ -234,19 +234,18 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
       const fields = parseFields(configUpdate[3]);
       const groupName = readField(fields, ['group', 'groupname', 'group_name']);
       const group = groupName ? await this.resolveGroup(groupName) : null;
-      const requestValue = readField(fields, [
-        'url',
-        'requesturl',
-        'request_url',
-        'curl',
+      const sensorIdValue = readField(fields, [
+        'sensorid',
+        'sensor_id',
+        'sensor',
+        'id',
       ]);
       const config = await this.prtgService.updateConfig(
         parseId(configUpdate[2], 'config id'),
         {
           groupId: group?.id,
           title: readField(fields, ['title', 'name', 'nama']),
-          requestUrl: requestValue,
-          curlCommand: requestValue,
+          sensorId: sensorIdValue ? parseId(sensorIdValue, 'sensor ID') : undefined,
           enabled: parseOptionalOnOff(readField(fields, ['enabled', 'status'])),
         },
       );
@@ -589,6 +588,19 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
       return this.getScheduleDetail(parseId(scheduleDetail[2], 'schedule id'));
     }
 
+    // ─── Monitoring Commands ──────────────────────────────────────────────
+
+    const sendNotif = command.match(/^send\s+(\d+)$/i);
+    if (sendNotif) {
+      const configId = parseId(sendNotif[1], 'config id');
+      const result = await this.prtgService.dispatchConfig(configId);
+      return `Notif terkirim: ${result.sentConfigs} config, ${result.sentRecipients} receipt.`;
+    }
+
+    if (lower === 'status' || lower === 'monitoring' || lower === 'mon') {
+      return this.getMonitoringStatus();
+    }
+
     return 'Command tidak dikenal. Ketik /prtg help atau /help.';
   }
 
@@ -607,8 +619,8 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
       '*Configs*',
       '/prtg config list',
       '/prtg config get <id>',
-      '/prtg config create <group> | <title> | <url/curl>',
-      '/prtg config update <id> | group=<group> | title=<title> | url=<url/curl> | enabled=<on/off>',
+      '/prtg config create <group> | <title> | <sensorId>',
+      '/prtg config update <id> | group=<group> | title=<title> | sensorid=<id> | enabled=<on/off>',
       '/prtg config on|off <id>',
       '/prtg config delete <id>',
       '',
@@ -639,6 +651,10 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
       '/prtg cookie update <id> | label=<label> | value=<cookie/curl> | active=<on/off>',
       '/prtg cookie on|off <id>',
       '/prtg cookie delete <id>',
+      '',
+      '*Monitoring*',
+      '/prtg send <configId> — kirim notif manual (gambar+status)',
+      '/prtg status — lihat status monitoring semua config',
       '',
       'Semua command /prtg adalah admin-only. Gunakan | untuk memisahkan field panjang.',
     ].join('\n');
@@ -736,7 +752,7 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
   private formatConfigDetail(config: {
     id: number;
     title: string;
-    requestUrl: string;
+    sensorId: number;
     groupId: number;
     groupName: string;
     groupEnabled: boolean;
@@ -748,10 +764,10 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
     return [
       `ID: ${config.id}`,
       `Title: ${config.title}`,
+      `Sensor ID: ${config.sensorId}`,
       `Group: ${config.groupName} (#${config.groupId}, ${config.groupEnabled ? 'on' : 'off'})`,
       `Status: ${config.enabled ? 'on' : 'off'}`,
       `Cookie ID: ${config.cookieId ?? '-'}`,
-      `URL: ${config.requestUrl}`,
       config.createdAt ? `Created: ${config.createdAt}` : null,
       config.updatedAt ? `Updated: ${config.updatedAt}` : null,
     ]
@@ -856,6 +872,25 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
     }
 
     return this.formatScheduleDetail(schedule);
+  }
+
+  private async getMonitoringStatus() {
+    const configs = await this.prtgService.listConfigs();
+    const monitored = configs.filter((c) => c.monitoringEnabled);
+
+    if (monitored.length === 0) {
+      return 'Tidak ada config dengan monitoring aktif.';
+    }
+
+    const lines = monitored.map((c) => {
+      const statusIcon = c.lastStatus === 'NORMAL' ? '🟢' :
+        c.lastStatus === 'DOWN' ? '🔴' :
+        c.lastStatus === 'NO_TRAFFIC' ? '🟠' :
+        c.lastStatus === 'LOW_TRAFFIC' ? '🟡' : '⚪';
+      return `${statusIcon} ${c.title} [${c.groupName}] — ${c.lastStatus}`;
+    });
+
+    return ['*Monitoring Status*', '', ...lines].join('\n');
   }
 
   private async resolveGroup(value: string) {

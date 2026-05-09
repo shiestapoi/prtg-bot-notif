@@ -5,7 +5,9 @@ build:
 release:
   image: web
   command:
-    - npm run db:deploy
+    - sh
+    - -c
+    - "npm run db:deploy && npx tsx prisma/seed-deploy.ts"
 
 run:
   web: npm run start:prod

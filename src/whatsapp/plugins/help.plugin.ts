@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrtgService } from '../../prtg/prtg.service';
+import { PrtgReportService } from '../../prtg-report/prtg-report.service';
 import type { WhatsappPlugin, WhatsappPluginContext } from './whatsapp-plugin';
 
 @Injectable()
 export class HelpPlugin implements WhatsappPlugin {
   name = 'help-plugin';
 
-  constructor(private readonly prtgService: PrtgService) {}
+  constructor(private readonly prtgService: PrtgReportService) {}
 
   canHandle({ text }: WhatsappPluginContext) {
     return text?.trim().toLowerCase() === '/help';

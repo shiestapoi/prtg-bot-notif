@@ -1,0 +1,42 @@
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { Shell } from '@/components/layout';
+
+import DashboardPage from '@/pages/dashboard';
+import LoginPage from '@/pages/login';
+import ReportGroupsPage from '@/pages/report/groups';
+import ReportConfigsPage from '@/pages/report/configs';
+import ReportSchedulesPage from '@/pages/report/schedules';
+import ReportRecipientsPage from '@/pages/report/recipients';
+import NocDashboardPage from '@/pages/noc/dashboard';
+import NocHistoryPage from '@/pages/noc/history';
+import CookieVaultPage from '@/pages/settings/cookie-vault';
+import PrtgSettingPage from '@/pages/settings/prtg-setting';
+import WhatsappPage from '@/pages/settings/whatsapp';
+
+export const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/',
+    element: <Shell />,
+    children: [
+      { index: true, element: <DashboardPage /> },
+      // Report section
+      { path: 'report/groups', element: <ReportGroupsPage /> },
+      { path: 'report/configs', element: <ReportConfigsPage /> },
+      { path: 'report/schedules', element: <ReportSchedulesPage /> },
+      { path: 'report/recipients', element: <ReportRecipientsPage /> },
+      // NOC section
+      { path: 'noc/dashboard', element: <NocDashboardPage /> },
+      { path: 'noc/history', element: <NocHistoryPage /> },
+      // Settings section
+      { path: 'settings/cookie-vault', element: <CookieVaultPage /> },
+      { path: 'settings/prtg', element: <PrtgSettingPage /> },
+      { path: 'settings/whatsapp', element: <WhatsappPage /> },
+      // Catch-all redirect
+      { path: '*', element: <Navigate to="/" replace /> },
+    ],
+  },
+]);

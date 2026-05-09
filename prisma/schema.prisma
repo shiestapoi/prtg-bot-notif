@@ -30,8 +30,8 @@ model PrtgSetting {
   loginUsername          String?
   loginPassword          String?
   messageTemplate        String   @default("{title}\nGroup: {groupname}")
-  privateMessageTemplate String   @default("{title}\nGroup: {groupname}")
-  groupMessageTemplate   String   @default("{title}\nGroup: {groupname}")
+  alertMessageTemplate   String   @default("⚠️ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}")
+  recoveryMessageTemplate String  @default("✅ Pulih — {title}\nGroup: {groupName}\nWaktu: {time}")
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -51,14 +51,36 @@ model PrtgGroup {
 model PrtgConfig {
   id         Int         @id @default(autoincrement())
   title      String
-  requestUrl String      @unique
+  sensorId   Int         @unique
   groupId    Int
   group      PrtgGroup   @relation(fields: [groupId], references: [id], onDelete: Restrict)
   enabled    Boolean     @default(true)
   cookieId   Int?
   cookie     PrtgCookie? @relation(fields: [cookieId], references: [id], onDelete: SetNull)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+
+  // ─── Monitoring Fields ───
+  monitoringEnabled Boolean        @default(false)
+  pollingInterval   Int            @default(60)     // seconds, min 30
+  thresholdLow      Float          @default(30.0)   // % below rolling avg
+  thresholdHigh     Float          @default(90.0)   // utilization %
+  sensitivity       NocSensitivity @default(MEDIUM)
+  cooldownInterval  Int            @default(300)    // seconds
+  noTrafficCount    Int            @default(3)      // consecutive intervals
+  flappingWindow    Int            @default(600)    // seconds
+  flappingCount     Int            @default(4)      // transitions in window
+  downCount         Int            @default(3)      // consecutive errors
+  rollingWindowSize Int            @default(10)     // number of samples
+  notifyDown        Boolean        @default(true)
+  notifyNoTraffic   Boolean        @default(true)
+  notifyLowTraffic  Boolean        @default(true)
+  notifyFlapping    Boolean        @default(true)
+  notifyRecovery    Boolean        @default(true)
+  lastPolledAt      DateTime?
+  lastStatus        NocStatus      @default(NORMAL)
+
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  history    MonitoringHistory[]
 }
 
 model PrtgRecipient {
@@ -99,4 +121,50 @@ model PrtgSchedule {
   enabled    Boolean            @default(true)
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
+}
+
+// ─── NOC Domain Models ───────────────────────────────────────────────────────
+
+enum NocStatus {
+  NORMAL
+  LOW_TRAFFIC
+  NO_TRAFFIC
+  HIGH_UTILIZATION
+  POSSIBLE_FLAPPING
+  DOWN
+}
+
+enum NocSensitivity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+
+
+// ─── Unified Monitoring History ──────────────────────────────────────────────
+
+/// Monitoring history linked to PrtgConfig (replaces NocHistory linkage to NocMonitoredItem)
+model MonitoringHistory {
+  id                  Int        @id @default(autoincrement())
+  configId            Int
+  config              PrtgConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  timestamp           DateTime
+  status              NocStatus
+  totalTrafficBytes   Float?
+  totalTrafficBitrate Float?
+  inboundBytes        Float?
+  inboundBitrate      Float?
+  outboundBytes       Float?
+  outboundBitrate     Float?
+  errorPercent        Float?
+  coveragePercent     Float?
+  rawInboundBitrate   Float?
+  rawOutboundBitrate  Float?
+  errorMessage        String?
+  rawResponse         String?    // Raw JSON response from PRTG (first entry only)
+  createdAt           DateTime   @default(now())
+
+  @@index([configId, timestamp])
+  @@index([status])
 }

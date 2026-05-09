@@ -3,8 +3,8 @@ import type {
   PrtgConfigDto,
   PrtgRecipientDto,
   PrtgScheduleDto,
-} from '../../prtg/prtg.types';
-import { PrtgService } from '../../prtg/prtg.service';
+} from '../../prtg-report/prtg-report.types';
+import { PrtgReportService } from '../../prtg-report/prtg-report.service';
 import type { WhatsappPlugin, WhatsappPluginContext } from './whatsapp-plugin';
 
 type ScheduleBucketKey = 'all' | 'group_only' | 'personal_only' | 'no_receipt';
@@ -13,7 +13,7 @@ type ScheduleBucketKey = 'all' | 'group_only' | 'personal_only' | 'no_receipt';
 export class StatusPlugin implements WhatsappPlugin {
   name = 'status-plugin';
 
-  constructor(private readonly prtgService: PrtgService) {}
+  constructor(private readonly prtgService: PrtgReportService) {}
 
   canHandle({ text }: WhatsappPluginContext) {
     const command = text?.trim().toLowerCase();
