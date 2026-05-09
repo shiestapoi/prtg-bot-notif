@@ -153,13 +153,13 @@ export default function ReportConfigsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [testLoading, setTestLoading] = useState(false);
-  const [testResult, setTestResult] = useState<{
+  const [testResults, setTestResults] = useState<Array<{
+    configId: number;
     title: string;
     sensorId: number;
-    metrics: Record<string, unknown> | null;
-    screenshotBase64: string | null;
-    error: string | null;
-  } | null>(null);
+    status: 'pending' | 'ok' | 'error';
+    error?: string;
+  }>>([]);
   const [form, setForm] = useState<ConfigForm>(emptyForm);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
@@ -238,22 +238,24 @@ export default function ReportConfigsPage() {
 
   const openDelete = (id: number) => { setDeletingId(id); setDeleteDialogOpen(true); };
 
-  const handleTestSample = async (id: number) => {
+  const handleTestSample = async () => {
     setTestLoading(true);
-    setTestResult(null);
+    setTestResults(configs.map(c => ({ configId: c.id, title: c.title, sensorId: c.sensorId, status: 'pending' as const })));
     setTestDialogOpen(true);
-    try {
-      const res = await api.post(`/api/monitoring/configs/${id}/test-sample`);
-      setTestResult(res.data);
-      toast.success('Test sample berhasil');
-    } catch (err: unknown) {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        || (err instanceof Error ? err.message : 'Gagal mengambil sample');
-      toast.error(message);
-      setTestResult({ title: '', sensorId: 0, metrics: null, screenshotBase64: null, error: message });
-    } finally {
-      setTestLoading(false);
+
+    for (let i = 0; i < configs.length; i++) {
+      const config = configs[i];
+      try {
+        await api.post(`/api/monitoring/configs/${config.id}/test-sample`);
+        setTestResults(prev => prev.map(r => r.configId === config.id ? { ...r, status: 'ok' as const } : r));
+      } catch (err: unknown) {
+        const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+          || (err instanceof Error ? err.message : 'Gagal');
+        setTestResults(prev => prev.map(r => r.configId === config.id ? { ...r, status: 'error' as const, error: message } : r));
+      }
     }
+    setTestLoading(false);
+    toast.success('Test sample selesai');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -335,7 +337,12 @@ export default function ReportConfigsPage() {
           <h1 className="text-2xl font-bold">Report Configs</h1>
           <p className="text-sm text-muted-foreground">Manage PRTG chart configurations.</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4" /> Add Config</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleTestSample} disabled={testLoading || configs.length === 0}>
+            <FlaskConical className="h-4 w-4" /> Test All
+          </Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Add Config</Button>
+        </div>
       </div>
 
       {/* Search & Filter */}
@@ -374,7 +381,7 @@ export default function ReportConfigsPage() {
               <TableHead>Status</TableHead>
               <TableHead>Monitoring</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-[130px]">Actions</TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -399,7 +406,6 @@ export default function ReportConfigsPage() {
                   <TableCell>{new Date(config.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon-xs" onClick={() => handleTestSample(config.id)} title="Test Sample"><FlaskConical /></Button>
                       <Button variant="ghost" size="icon-xs" onClick={() => openEdit(config)}><Pencil /></Button>
                       <Button variant="ghost" size="icon-xs" onClick={() => openDelete(config.id)}><Trash2 /></Button>
                     </div>
@@ -688,42 +694,40 @@ export default function ReportConfigsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Test Sample Dialog */}
+      {/* Test Sample All Dialog */}
       <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Test Sample {testResult?.title ? `— ${testResult.title}` : ''}</DialogTitle></DialogHeader>
-          {testLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <p className="text-muted-foreground">Mengambil data dan screenshot...</p>
-            </div>
-          ) : testResult ? (
-            <div className="space-y-4">
-              {testResult.error && (
-                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{testResult.error}</div>
-              )}
-              {testResult.screenshotBase64 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Screenshot (upscaled):</p>
-                  <img
-                    src={`data:image/png;base64,${testResult.screenshotBase64}`}
-                    alt="PRTG Screenshot"
-                    className="w-full rounded-md border"
-                  />
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Test Sample — Semua Config</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            {testResults.map((r) => (
+              <div key={r.configId} className="flex items-center justify-between rounded-md border px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{r.title}</span>
+                  <span className="text-xs text-muted-foreground">#{r.sensorId}</span>
                 </div>
-              )}
-              {testResult.metrics && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Parsed Metrics:</p>
-                  <pre className="max-h-60 overflow-auto rounded-md bg-muted p-3 text-xs">
-                    {JSON.stringify(testResult.metrics, null, 2)}
-                  </pre>
+                <div>
+                  {r.status === 'pending' && <Badge variant="secondary">Pending...</Badge>}
+                  {r.status === 'ok' && <Badge variant="default" className="bg-green-600">OK</Badge>}
+                  {r.status === 'error' && (
+                    <Badge variant="destructive" title={r.error}>Error</Badge>
+                  )}
                 </div>
-              )}
-              {!testResult.screenshotBase64 && !testResult.metrics && !testResult.error && (
-                <p className="text-sm text-muted-foreground">Tidak ada data yang diterima.</p>
-              )}
-            </div>
-          ) : null}
+              </div>
+            ))}
+            {testLoading && (
+              <p className="text-center text-sm text-muted-foreground pt-2">
+                Sedang memproses {testResults.filter(r => r.status === 'pending').length} config tersisa...
+              </p>
+            )}
+            {!testLoading && testResults.length > 0 && (
+              <p className="text-center text-sm text-muted-foreground pt-2">
+                ✅ {testResults.filter(r => r.status === 'ok').length} OK
+                {testResults.filter(r => r.status === 'error').length > 0 && (
+                  <> · ❌ {testResults.filter(r => r.status === 'error').length} Error</>
+                )}
+              </p>
+            )}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTestDialogOpen(false)}>Tutup</Button>
           </DialogFooter>
