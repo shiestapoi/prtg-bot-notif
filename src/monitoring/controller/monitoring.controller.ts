@@ -15,6 +15,8 @@ import axios from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MonitoringSchedulerService } from '../scheduler/monitoring-scheduler.service';
 import { AlertDispatcherService } from '../dispatcher/alert-dispatcher.service';
+import { ScreenshotService } from '../dispatcher/screenshot.service';
+import { MetricParserService } from '../parser/metric-parser.service';
 import { CookieVaultService } from '../../cookie-vault/cookie-vault.service';
 import { PrtgSettingService } from '../../prtg-setting/prtg-setting.service';
 import { PrtgReportService } from '../../prtg-report/prtg-report.service';
@@ -37,6 +39,8 @@ export class MonitoringController {
     private readonly prisma: PrismaService,
     private readonly schedulerService: MonitoringSchedulerService,
     private readonly dispatcher: AlertDispatcherService,
+    private readonly screenshotService: ScreenshotService,
+    private readonly metricParser: MetricParserService,
     private readonly prtgReportService: PrtgReportService,
     private readonly cookieVault: CookieVaultService,
     private readonly prtgSetting: PrtgSettingService,
@@ -108,6 +112,94 @@ export class MonitoringController {
       message: `Notifikasi terkirim ke ${result.sentRecipients} recipient untuk "${config.title}" (${config.lastStatus})`,
       configId: id,
       status: config.lastStatus,
+    };
+  }
+
+  /**
+   * Test sample: fetches PRTG data + takes screenshot for a config.
+   * Does NOT send to WhatsApp. Returns parsed metrics + screenshot base64.
+   * POST /api/monitoring/configs/:id/test-sample
+   */
+  @Post('configs/:id/test-sample')
+  @HttpCode(HttpStatus.OK)
+  async testSample(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{
+    configId: number;
+    title: string;
+    sensorId: number;
+    metrics: Record<string, unknown> | null;
+    screenshotBase64: string | null;
+    error: string | null;
+  }> {
+    const config = await this.prisma.prtgConfig.findUnique({
+      where: { id },
+      include: { group: true },
+    });
+
+    if (!config) {
+      throw new NotFoundException(`Config with ID ${id} not found`);
+    }
+
+    let metrics: Record<string, unknown> | null = null;
+    let metricsError: string | null = null;
+
+    // 1. Fetch PRTG API data (same as monitoring poll)
+    try {
+      const settings = await this.prtgSetting.getSettingRaw();
+      const baseUrl = new URL(settings.loginUrl);
+      const cookie = await this.cookieVault.getActiveCookie();
+
+      const now = new Date();
+      const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      const formatDate = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}-${String(d.getSeconds()).padStart(2, '0')}`;
+
+      const monitoringUrl = `${baseUrl.protocol}//${baseUrl.host}/api/historicdata.json?id=${config.sensorId}&avg=0&sdate=${formatDate(fiveMinAgo)}&edate=${formatDate(now)}&usecaption=1`;
+
+      const response = await axios.get(monitoringUrl, {
+        headers: { Cookie: cookie },
+        timeout: 15000,
+        validateStatus: () => true,
+      });
+
+      if (response.status === 200 && response.data) {
+        const rawText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        const parsed = this.metricParser.normalize(rawText, config.sensorId);
+        metrics = {
+          raw: response.data,
+          parsed,
+          monitoringUrl,
+        };
+      } else {
+        metricsError = `PRTG API returned status ${response.status}`;
+      }
+    } catch (error) {
+      metricsError = error instanceof Error ? error.message : String(error);
+    }
+
+    // 2. Take screenshot (with upscale via Playwright)
+    let screenshotBase64: string | null = null;
+    try {
+      const screenshotUrl = `http://prtg.r1net.id/graphzoom.htm?id=${config.sensorId}&graphid=1&clgid=&dynamicgraph=1`;
+      const buffer = await this.screenshotService.capture(screenshotUrl);
+      if (buffer) {
+        screenshotBase64 = buffer.toString('base64');
+      }
+    } catch (error) {
+      // Screenshot failure is non-blocking
+      if (!metricsError) {
+        metricsError = `Screenshot failed: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    }
+
+    return {
+      configId: config.id,
+      title: config.title,
+      sensorId: config.sensorId,
+      metrics,
+      screenshotBase64,
+      error: metricsError,
     };
   }
 

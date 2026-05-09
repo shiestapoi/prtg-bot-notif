@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { prtgConfigApi, prtgGroupApi, cookieVaultApi } from '@/lib/api';
+import api from '@/lib/api';
 import type { PrtgConfig, PrtgGroup, PrtgCookie, NocSensitivity } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, FlaskConical } from 'lucide-react';
 
 // ─── Form Types ─────────────────────────────────────────────────────────────
 
@@ -148,8 +149,17 @@ export default function ReportConfigsPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    title: string;
+    sensorId: number;
+    metrics: Record<string, unknown> | null;
+    screenshotBase64: string | null;
+    error: string | null;
+  } | null>(null);
   const [form, setForm] = useState<ConfigForm>(emptyForm);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
@@ -227,6 +237,24 @@ export default function ReportConfigsPage() {
   };
 
   const openDelete = (id: number) => { setDeletingId(id); setDeleteDialogOpen(true); };
+
+  const handleTestSample = async (id: number) => {
+    setTestLoading(true);
+    setTestResult(null);
+    setTestDialogOpen(true);
+    try {
+      const res = await api.post(`/api/monitoring/configs/${id}/test-sample`);
+      setTestResult(res.data);
+      toast.success('Test sample berhasil');
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        || (err instanceof Error ? err.message : 'Gagal mengambil sample');
+      toast.error(message);
+      setTestResult({ title: '', sensorId: 0, metrics: null, screenshotBase64: null, error: message });
+    } finally {
+      setTestLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -346,7 +374,7 @@ export default function ReportConfigsPage() {
               <TableHead>Status</TableHead>
               <TableHead>Monitoring</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              <TableHead className="w-[130px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -371,6 +399,7 @@ export default function ReportConfigsPage() {
                   <TableCell>{new Date(config.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button variant="ghost" size="icon-xs" onClick={() => handleTestSample(config.id)} title="Test Sample"><FlaskConical /></Button>
                       <Button variant="ghost" size="icon-xs" onClick={() => openEdit(config)}><Pencil /></Button>
                       <Button variant="ghost" size="icon-xs" onClick={() => openDelete(config.id)}><Trash2 /></Button>
                     </div>
@@ -656,6 +685,48 @@ export default function ReportConfigsPage() {
           <DialogHeader><DialogTitle>Delete Config</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Are you sure? This action cannot be undone.</p>
           <DialogFooter><Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button><Button variant="destructive" onClick={handleDelete}>Delete</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Test Sample Dialog */}
+      <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Test Sample {testResult?.title ? `— ${testResult.title}` : ''}</DialogTitle></DialogHeader>
+          {testLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <p className="text-muted-foreground">Mengambil data dan screenshot...</p>
+            </div>
+          ) : testResult ? (
+            <div className="space-y-4">
+              {testResult.error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{testResult.error}</div>
+              )}
+              {testResult.screenshotBase64 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Screenshot (upscaled):</p>
+                  <img
+                    src={`data:image/png;base64,${testResult.screenshotBase64}`}
+                    alt="PRTG Screenshot"
+                    className="w-full rounded-md border"
+                  />
+                </div>
+              )}
+              {testResult.metrics && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Parsed Metrics:</p>
+                  <pre className="max-h-60 overflow-auto rounded-md bg-muted p-3 text-xs">
+                    {JSON.stringify(testResult.metrics, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {!testResult.screenshotBase64 && !testResult.metrics && !testResult.error && (
+                <p className="text-sm text-muted-foreground">Tidak ada data yang diterima.</p>
+              )}
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTestDialogOpen(false)}>Tutup</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
