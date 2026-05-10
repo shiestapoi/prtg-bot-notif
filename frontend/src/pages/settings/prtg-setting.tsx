@@ -19,6 +19,8 @@ export default function PrtgSettingPage() {
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [hasLoginPassword, setHasLoginPassword] = useState(false);
+  const [loginPasshash, setLoginPasshash] = useState('');
+  const [hasLoginPasshash, setHasLoginPasshash] = useState(false);
   const [messageTemplate, setMessageTemplate] = useState('');
   const [alertMessageTemplate, setAlertMessageTemplate] = useState('');
   const [recoveryMessageTemplate, setRecoveryMessageTemplate] = useState('');
@@ -34,6 +36,7 @@ export default function PrtgSettingPage() {
       setLoginUrl(data.loginUrl || '');
       setLoginUsername(data.loginUsername || '');
       setHasLoginPassword(data.hasLoginPassword);
+      setHasLoginPasshash(data.hasLoginPasshash);
       setMessageTemplate(data.messageTemplate || '');
       setAlertMessageTemplate(data.alertMessageTemplate || '');
       setRecoveryMessageTemplate(data.recoveryMessageTemplate || '');
@@ -67,10 +70,17 @@ export default function PrtgSettingPage() {
         payload.loginPassword = loginPassword;
       }
 
+      // Only include passhash if user typed a new one
+      if (loginPasshash) {
+        payload.loginPasshash = loginPasshash;
+      }
+
       await prtgSettingApi.update(payload);
       toast.success('Pengaturan berhasil disimpan');
       setHasLoginPassword(true);
+      setHasLoginPasshash(loginPasshash ? true : hasLoginPasshash);
       setLoginPassword('');
+      setLoginPasshash('');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Gagal menyimpan pengaturan';
       toast.error(message);
@@ -158,6 +168,26 @@ export default function PrtgSettingPage() {
                 password.
               </p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="login-passhash">Passhash (untuk auth tanpa cookie)</Label>
+            <Input
+              id="login-passhash"
+              type="password"
+              placeholder={
+                hasLoginPasshash
+                  ? '••••••••  (kosongkan untuk tetap pakai yang ada)'
+                  : 'Masukkan passhash dari PRTG'
+              }
+              value={loginPasshash}
+              onChange={(e) => setLoginPasshash(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {hasLoginPasshash
+                ? 'Passhash sudah di-set. Jika ada passhash, monitoring akan pakai &username&passhash (tanpa cookie).'
+                : 'Opsional. Dapatkan dari PRTG: Setup → Account Settings → Show Passhash. Jika diisi, monitoring tidak perlu cookie.'}
+            </p>
           </div>
         </fieldset>
 

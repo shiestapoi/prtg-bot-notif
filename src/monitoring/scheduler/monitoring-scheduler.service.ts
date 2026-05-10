@@ -411,38 +411,46 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
     let metric: NormalizedMetric | null = null;
     let errorMessage: string | null = null;
 
-    // Step 1: Fetch active cookie
-    let cookie: string;
-    try {
-      cookie = await this.cookieVault.getActiveCookie();
-    } catch {
-      // No active cookie → try to login and get one
-      this.logger.warn(
-        `Config ${configId} (${config.title}): No active cookie, attempting auto-login`,
-      );
+    // Step 1: Determine auth method — passhash (URL params) or cookie
+    const settings = await this.prtgSetting.getSettingRaw();
+    const usePasshashAuth = Boolean(settings.loginUsername && settings.loginPasshash);
+
+    let cookie: string | null = null;
+    if (!usePasshashAuth) {
+      // Fallback to cookie-based auth
       try {
-        cookie = await this.performPrtgLogin();
-      } catch (loginErr) {
-        this.logger.error(
-          `Config ${configId} (${config.title}): Auto-login failed: ${loginErr instanceof Error ? loginErr.message : String(loginErr)}`,
+        cookie = await this.cookieVault.getActiveCookie();
+      } catch {
+        this.logger.warn(
+          `Config ${configId} (${config.title}): No active cookie, attempting auto-login`,
         );
-        return;
+        try {
+          cookie = await this.performPrtgLogin();
+        } catch (loginErr) {
+          this.logger.error(
+            `Config ${configId} (${config.title}): Auto-login failed: ${loginErr instanceof Error ? loginErr.message : String(loginErr)}`,
+          );
+          return;
+        }
       }
     }
 
     // Step 2: HTTP GET monitoring URL (readonly, Req 12.1, 12.2)
-    // Build the monitoring URL from the sensor ID
+    // Build the monitoring URL from the sensor ID (includes &username&passhash if configured)
     const pollUrl = await this.buildMonitoringUrl(config.sensorId);
     let rawResponseText: string | null = null;
     try {
+      const headers: Record<string, string> = {};
+      if (cookie) headers.Cookie = cookie;
+
       let response = await axios.get(pollUrl, {
-        headers: { Cookie: cookie },
+        headers,
         timeout: 30000,
         validateStatus: () => true, // Accept all status codes to detect 401
       });
 
-      // Handle 401 Unauthorized — attempt auto-login and retry
-      if (response.status === 401) {
+      // Handle 401 Unauthorized — attempt auto-login and retry (only for cookie auth)
+      if (response.status === 401 && !usePasshashAuth) {
         this.logger.warn(
           `Config ${configId} (${config.title}): Got 401 Unauthorized, attempting auto-login`,
         );
@@ -727,7 +735,14 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
     const sdate = formatDate(fiveMinAgo);
     const edate = formatDate(now);
 
-    return `${baseUrl.protocol}//${baseUrl.host}/api/historicdata.json?id=${sensorId}&avg=0&sdate=${sdate}&edate=${edate}&usecaption=1`;
+    let url = `${baseUrl.protocol}//${baseUrl.host}/api/historicdata.json?id=${sensorId}&avg=0&sdate=${sdate}&edate=${edate}&usecaption=1`;
+
+    // Use URL-based auth (username + passhash) if configured — no cookie needed
+    if (settings.loginUsername && settings.loginPasshash) {
+      url += `&username=${encodeURIComponent(settings.loginUsername)}&passhash=${encodeURIComponent(settings.loginPasshash)}`;
+    }
+
+    return url;
   }
 
   /**

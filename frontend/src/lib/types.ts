@@ -158,6 +158,7 @@ export interface PrtgSetting {
   loginUrl: string;
   loginUsername: string;
   hasLoginPassword: boolean;
+  hasLoginPasshash: boolean;
   messageTemplate: string;
   alertMessageTemplate: string;
   recoveryMessageTemplate: string;

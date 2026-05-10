@@ -631,6 +631,7 @@ export class PrtgReportService {
     loginUrl?: string;
     loginUsername?: string | null;
     loginPassword?: string | null;
+    loginPasshash?: string | null;
     messageTemplate?: string;
     alertMessageTemplate?: string;
     recoveryMessageTemplate?: string;

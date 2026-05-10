@@ -6,6 +6,7 @@ export interface PrtgSettingDto {
   loginUrl: string;
   loginUsername: string | null;
   hasLoginPassword: boolean;
+  hasLoginPasshash: boolean;
   messageTemplate: string;
   alertMessageTemplate: string;
   recoveryMessageTemplate: string;
@@ -34,6 +35,7 @@ export class PrtgSettingService {
       loginUrl: settings.loginUrl,
       loginUsername: settings.loginUsername,
       hasLoginPassword: Boolean(settings.loginPassword),
+      hasLoginPasshash: Boolean(settings.loginPasshash),
       messageTemplate: settings.messageTemplate,
       alertMessageTemplate: settings.alertMessageTemplate,
       recoveryMessageTemplate: settings.recoveryMessageTemplate,
@@ -58,6 +60,7 @@ export class PrtgSettingService {
       loginUrl: string;
       loginUsername: string | null;
       loginPassword?: string | null;
+      loginPasshash?: string | null;
       messageTemplate: string;
       alertMessageTemplate: string;
       recoveryMessageTemplate: string;
@@ -76,6 +79,13 @@ export class PrtgSettingService {
       data.loginPassword = current.loginPassword;
     }
 
+    if ((dto as any).loginPasshash !== undefined) {
+      const passhash = normalizeInput((dto as any).loginPasshash);
+      data.loginPasshash = passhash || null;
+    } else {
+      data.loginPasshash = current.loginPasshash;
+    }
+
     const updated = await this.prisma.prtgSetting.update({
       where: { id: 1 },
       data,
@@ -85,6 +95,7 @@ export class PrtgSettingService {
       loginUrl: updated.loginUrl,
       loginUsername: updated.loginUsername,
       hasLoginPassword: Boolean(updated.loginPassword),
+      hasLoginPasshash: Boolean(updated.loginPasshash),
       messageTemplate: updated.messageTemplate,
       alertMessageTemplate: updated.alertMessageTemplate,
       recoveryMessageTemplate: updated.recoveryMessageTemplate,

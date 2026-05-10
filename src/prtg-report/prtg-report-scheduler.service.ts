@@ -150,9 +150,25 @@ export class PrtgReportSchedulerService implements OnModuleInit, OnModuleDestroy
     source: 'cron' | 'manual',
   ): Promise<ScheduleDispatchSummary> {
     if (this.runningSchedules.has(schedule.id)) {
-      throw new BadRequestException(
-        `PRTG schedule "${schedule.name}" is already running.`,
-      );
+      // If triggered manually while cron is running, just skip with info message
+      if (source === 'manual') {
+        return {
+          scheduleId: schedule.id,
+          scheduleName: schedule.name,
+          groupName: schedule.group?.name ?? null,
+          targetMode: schedule.targetMode,
+          result: { sentRecipients: 0, totalConfigs: 0, skippedConfigs: 0 } as any,
+        };
+      }
+      // Cron trigger while already running — skip silently
+      this.logger.warn(`Schedule "${schedule.name}" skipped (already running)`);
+      return {
+        scheduleId: schedule.id,
+        scheduleName: schedule.name,
+        groupName: schedule.group?.name ?? null,
+        targetMode: schedule.targetMode,
+        result: { sentRecipients: 0, totalConfigs: 0, skippedConfigs: 0 } as any,
+      };
     }
 
     this.runningSchedules.add(schedule.id);

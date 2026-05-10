@@ -29,6 +29,7 @@ model PrtgSetting {
   loginUrl               String   @default("http://prtg.r1net.id/index.htm")
   loginUsername          String?
   loginPassword          String?
+  loginPasshash          String?
   messageTemplate        String   @default("{title}\nGroup: {groupname}")
   alertMessageTemplate   String   @default("⚠️ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}")
   recoveryMessageTemplate String  @default("✅ Pulih — {title}\nGroup: {groupName}\nWaktu: {time}")
