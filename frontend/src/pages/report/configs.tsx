@@ -655,12 +655,8 @@ export default function ReportConfigsPage() {
                     <p className="text-xs font-medium text-muted-foreground">Kirim notifikasi untuk status:</p>
                     <div className="grid grid-cols-2 gap-2">
                       <label className="flex items-center gap-2 text-xs">
-                        <input type="checkbox" checked={form.notifyDown} onChange={(e) => setForm({ ...form, notifyDown: e.target.checked })} className="size-3.5" />
-                        🔴 Down
-                      </label>
-                      <label className="flex items-center gap-2 text-xs">
-                        <input type="checkbox" checked={form.notifyNoTraffic} onChange={(e) => setForm({ ...form, notifyNoTraffic: e.target.checked })} className="size-3.5" />
-                        🟠 No Traffic
+                        <input type="checkbox" checked={form.notifyDown} onChange={(e) => setForm({ ...form, notifyDown: e.target.checked, notifyNoTraffic: e.target.checked })} className="size-3.5" />
+                        🔴 Down / No Traffic
                       </label>
                       <label className="flex items-center gap-2 text-xs">
                         <input type="checkbox" checked={form.notifyLowTraffic} onChange={(e) => setForm({ ...form, notifyLowTraffic: e.target.checked })} className="size-3.5" />
