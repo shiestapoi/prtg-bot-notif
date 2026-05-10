@@ -136,12 +136,16 @@ export class AnomalyEngineService {
       };
     }
 
-    // Priority 2: LOW_TRAFFIC — sudden drop > 50% from rolling average
+    // Priority 2: LOW_TRAFFIC — sudden drop > thresholdLow% from rolling average
+    const thresholdFraction = config.thresholdLow / 100;
     const rollingAvgIn = this.calculateInboundRollingAverage(recentHistory, config.rollingWindowSize);
-    if (rollingAvgIn > 0 && inboundBitrateMbps < rollingAvgIn * 0.5) {
-      // Get previous Traffic In value for display (not avg)
-      const prevInbound = recentHistory.length > 0 && recentHistory[0].inboundBitrate
-        ? (recentHistory[0].inboundBitrate / 1_000_000).toFixed(2)
+    if (rollingAvgIn > 0 && inboundBitrateMbps < rollingAvgIn * (1 - thresholdFraction)) {
+      // Get previous NORMAL Traffic In value for display (not current, not avg)
+      const prevNormal = recentHistory.find(
+        (h) => h.status === NocStatus.NORMAL && h.inboundBitrate !== null && h.inboundBitrate > 0,
+      );
+      const prevInbound = prevNormal
+        ? (prevNormal.inboundBitrate! / 1_000_000).toFixed(2)
         : rollingAvgIn.toFixed(2);
       const dropPercent = ((1 - inboundBitrateMbps / rollingAvgIn) * 100).toFixed(0);
       return {
