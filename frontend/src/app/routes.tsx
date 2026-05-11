@@ -9,7 +9,7 @@ import ReportSchedulesPage from '@/pages/report/schedules';
 import ReportRecipientsPage from '@/pages/report/recipients';
 import NocDashboardPage from '@/pages/noc/dashboard';
 import NocHistoryPage from '@/pages/noc/history';
-import CookieVaultPage from '@/pages/settings/cookie-vault';
+import MonitoringRecipientsPage from '@/pages/monitoring/recipients';
 import PrtgSettingPage from '@/pages/settings/prtg-setting';
 import WhatsappPage from '@/pages/settings/whatsapp';
 import AccountPage from '@/pages/settings/account';
@@ -32,8 +32,9 @@ export const router = createBrowserRouter([
       // NOC section
       { path: 'noc/dashboard', element: <NocDashboardPage /> },
       { path: 'noc/history', element: <NocHistoryPage /> },
+      // Monitoring section
+      { path: 'monitoring/recipients', element: <MonitoringRecipientsPage /> },
       // Settings section
-      { path: 'settings/cookie-vault', element: <CookieVaultPage /> },
       { path: 'settings/prtg', element: <PrtgSettingPage /> },
       { path: 'settings/whatsapp', element: <WhatsappPage /> },
       { path: 'settings/account', element: <AccountPage /> },

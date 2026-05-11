@@ -12,6 +12,11 @@ import { CookieVaultService } from './cookie-vault.service';
 import { CreateCookieDto } from './dto/create-cookie.dto';
 import { UpdateCookieDto } from './dto/update-cookie.dto';
 
+/**
+ * DEPRECATED: Cookie tidak dipakai lagi untuk auth ke PRTG.
+ * Auth sekarang menggunakan username/passhash query params.
+ * Endpoint ini tetap ada untuk backward compatibility tapi tidak berpengaruh ke auth PRTG.
+ */
 @Controller('api/cookie-vault')
 export class CookieVaultController {
   constructor(private readonly cookieVaultService: CookieVaultService) {}

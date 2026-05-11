@@ -98,7 +98,6 @@ export interface PrtgConfig {
   sensorId: number;
   groupId: number;
   enabled: boolean;
-  cookieId: number;
   // Monitoring fields
   monitoringEnabled: boolean;
   pollingInterval: number;
@@ -145,20 +144,10 @@ export interface PrtgSchedule {
   updatedAt: string;
 }
 
-export interface PrtgCookie {
-  id: number;
-  label: string;
-  value: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface PrtgSetting {
   loginUrl: string;
   loginUsername: string;
   hasLoginPassword: boolean;
-  hasLoginPasshash: boolean;
   messageTemplate: string;
   alertMessageTemplate: string;
   recoveryMessageTemplate: string;

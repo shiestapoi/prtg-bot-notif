@@ -133,10 +133,6 @@ export class PrtgReportController {
         'loginPassword' in body && typeof body.loginPassword === 'string'
           ? body.loginPassword
           : undefined,
-      loginPasshash:
-        'loginPasshash' in body && typeof body.loginPasshash === 'string'
-          ? body.loginPasshash
-          : undefined,
       messageTemplate: body.messageTemplate as string | undefined,
       alertMessageTemplate: body.alertMessageTemplate as string | undefined,
       recoveryMessageTemplate: body.recoveryMessageTemplate as string | undefined,

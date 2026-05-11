@@ -7,7 +7,7 @@ import {
   Layers,
   Monitor,
   History,
-  Cookie,
+  Bell,
   Settings,
   MessageCircle,
   LogOut,
@@ -35,10 +35,10 @@ const reportNavItems: NavItem[] = [
 const nocNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/noc/dashboard', icon: LayoutDashboard },
   { label: 'History', href: '/noc/history', icon: History },
+  { label: 'Alert Recipients', href: '/monitoring/recipients', icon: Bell },
 ];
 
 const settingsNavItems: NavItem[] = [
-  { label: 'Cookie Vault', href: '/settings/cookie-vault', icon: Cookie },
   { label: 'PRTG Setting', href: '/settings/prtg', icon: Settings },
   { label: 'WhatsApp', href: '/settings/whatsapp', icon: MessageCircle },
   { label: 'Akun', href: '/settings/account', icon: User },

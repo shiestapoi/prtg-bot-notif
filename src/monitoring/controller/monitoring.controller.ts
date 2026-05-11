@@ -17,7 +17,8 @@ import { MonitoringSchedulerService } from '../scheduler/monitoring-scheduler.se
 import { AlertDispatcherService } from '../dispatcher/alert-dispatcher.service';
 import { ScreenshotService } from '../dispatcher/screenshot.service';
 import { MetricParserService } from '../parser/metric-parser.service';
-import { CookieVaultService } from '../../cookie-vault/cookie-vault.service';
+// Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
+// import { CookieVaultService } from '../../cookie-vault/cookie-vault.service';
 import { PrtgSettingService } from '../../prtg-setting/prtg-setting.service';
 import { PrtgReportService } from '../../prtg-report/prtg-report.service';
 
@@ -42,9 +43,10 @@ export class MonitoringController {
     private readonly screenshotService: ScreenshotService,
     private readonly metricParser: MetricParserService,
     private readonly prtgReportService: PrtgReportService,
-    private readonly cookieVault: CookieVaultService,
+    // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
+    // private readonly cookieVault: CookieVaultService,
     private readonly prtgSetting: PrtgSettingService,
-  ) { }
+  ) {}
 
   /**
    * Manually triggers a poll for a specific monitoring-enabled PrtgConfig.
@@ -100,9 +102,7 @@ export class MonitoringController {
     }
 
     if (!config.monitoringEnabled) {
-      throw new BadRequestException(
-        `Config ${id} is not monitoring-enabled`,
-      );
+      throw new BadRequestException(`Config ${id} is not monitoring-enabled`);
     }
 
     // Use the same dispatch logic as schedule — captures Playwright screenshot + sends
@@ -122,9 +122,7 @@ export class MonitoringController {
    */
   @Post('configs/:id/test-sample')
   @HttpCode(HttpStatus.OK)
-  async testSample(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<{
+  async testSample(@Param('id', ParseIntPipe) id: number): Promise<{
     configId: number;
     title: string;
     sensorId: number;
@@ -148,23 +146,24 @@ export class MonitoringController {
     try {
       const settings = await this.prtgSetting.getSettingRaw();
       const baseUrl = new URL(settings.loginUrl);
-      const cookie = await this.cookieVault.getActiveCookie();
 
       const now = new Date();
       const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
       const formatDate = (d: Date) =>
         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}-${String(d.getSeconds()).padStart(2, '0')}`;
 
-      const monitoringUrl = `${baseUrl.protocol}//${baseUrl.host}/api/historicdata.json?id=${config.sensorId}&avg=0&sdate=${formatDate(fiveMinAgo)}&edate=${formatDate(now)}&usecaption=1`;
+      const monitoringUrl = `${baseUrl.protocol}//${baseUrl.host}/api/historicdata.json?id=${config.sensorId}&avg=0&sdate=${formatDate(fiveMinAgo)}&edate=${formatDate(now)}&usecaption=1&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
 
       const response = await axios.get(monitoringUrl, {
-        headers: { Cookie: cookie },
         timeout: 15000,
         validateStatus: () => true,
       });
 
       if (response.status === 200 && response.data) {
-        const rawText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        const rawText =
+          typeof response.data === 'string'
+            ? response.data
+            : JSON.stringify(response.data);
         const parsed = this.metricParser.normalize(rawText, config.sensorId);
         metrics = {
           raw: response.data,
@@ -213,22 +212,13 @@ export class MonitoringController {
     @Param('sensorId', ParseIntPipe) sensorId: number,
     @Res() res: express.Response,
   ): Promise<void> {
-    let cookie: string;
-    try {
-      cookie = await this.cookieVault.getActiveCookie();
-    } catch {
-      res.status(503).send('No active PRTG cookie available');
-      return;
-    }
-
     const settings = await this.prtgSetting.getSettingRaw();
     const baseUrl = new URL(settings.loginUrl);
-    const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?type=graph&graphid=0&graphtitle=%40%40notitle%40%40&width=925&height=300&bgcolor=%23f3f2f2&graphstylefile=graphstyling.htm&animationandinteraction=1&datastylefile=graphdatastyling.htm&animationstylefile=graphanimationstyling.htm&graphstyling=baseFontSize%3D%2710%27%20showLegend%3D%270%27&tooltexts=1&datastyling=drawAnchors%3D%271%27%20anchorRadius%3D%271%27%20lineThickness%3D%272%27&refreshable=true&columns=datetime%2Cvalue_%2Ccoverage&_=1778313214275&myid=03298781&hide=NaN&id=${sensorId}`;
-    // const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?type=graph&width=850&height=270&graphid=3&id=${sensorId}`;
+    const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?type=graph&graphid=0&graphtitle=%40%40notitle%40%40&width=925&height=300&bgcolor=%23f3f2f2&graphstylefile=graphstyling.htm&animationandinteraction=1&datastylefile=graphdatastyling.htm&animationstylefile=graphanimationstyling.htm&graphstyling=baseFontSize%3D%2710%27%20showLegend%3D%270%27&tooltexts=1&datastyling=drawAnchors%3D%271%27%20anchorRadius%3D%271%27%20lineThickness%3D%272%27&refreshable=true&columns=datetime%2Cvalue_%2Ccoverage&_=1778313214275&myid=03298781&hide=NaN&id=${sensorId}&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
 
     try {
       const response = await axios.get(chartUrl, {
-        headers: { Cookie: cookie },
+        // headers: { Cookie: cookie },
         responseType: 'arraybuffer',
         timeout: 15000,
         validateStatus: () => true,

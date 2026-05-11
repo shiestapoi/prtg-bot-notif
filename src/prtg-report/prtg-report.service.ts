@@ -8,9 +8,10 @@ import axios from 'axios';
 import https from 'node:https';
 import cron from 'node-cron';
 import { chromium } from 'playwright';
-import type { BrowserContext, Page } from 'playwright';
+import type { Page } from 'playwright';
 import sharp from 'sharp';
-import { CookieVaultService } from '../cookie-vault/cookie-vault.service';
+// Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
+// import { CookieVaultService } from '../cookie-vault/cookie-vault.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrtgSettingService } from '../prtg-setting/prtg-setting.service';
 import { WhatsappSenderService } from '../whatsapp/whatsapp-sender.service';
@@ -26,13 +27,14 @@ function normalizeInput(value: string | undefined | null) {
   return value?.trim() ?? '';
 }
 
-function normalizeCookieValue(value: string | undefined | null) {
-  const input = normalizeInput(value);
-  if (!input) {
-    return '';
-  }
-  return input;
-}
+// Cookie tidak dipakai lagi — normalizeCookieValue tidak diperlukan
+// function normalizeCookieValue(value: string | undefined | null) {
+//   const input = normalizeInput(value);
+//   if (!input) {
+//     return '';
+//   }
+//   return input;
+// }
 
 const allowedTargetTypes = ['contact', 'group', 'channel', 'manual'] as const;
 type RecipientTargetType = (typeof allowedTargetTypes)[number];
@@ -148,10 +150,11 @@ type ConfigWithGroup = {
   lastStatus: string;
 };
 
-type ActiveCookie = {
-  id: number;
-  value: string;
-};
+// Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
+// type ActiveCookie = {
+//   id: number;
+//   value: string;
+// };
 
 const prtgUsernameXPath =
   '/html/body/div/div[2]/div/table/tbody/tr[1]/td[1]/form/input[2]';
@@ -163,7 +166,8 @@ export class PrtgReportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappSender: WhatsappSenderService,
-    private readonly cookieVault: CookieVaultService,
+    // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
+    // private readonly cookieVault: CookieVaultService,
     private readonly prtgSetting: PrtgSettingService,
   ) {}
 
@@ -589,11 +593,23 @@ export class PrtgReportService {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // Cookies (delegated to CookieVaultService for shared access)
+  // Cookies — DEPRECATED: Cookie tidak dipakai lagi, auth via username/passhash query params
+  // Fungsi-fungsi ini tetap ada untuk backward compatibility (WhatsApp plugin, controller)
+  // tapi secara internal tidak lagi digunakan untuk auth ke PRTG.
   // ──────────────────────────────────────────────────────────────────────────
 
   async listCookies() {
-    return this.cookieVault.findAll();
+    const cookies = await this.prisma.prtgCookie.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return cookies.map((cookie) => ({
+      id: cookie.id,
+      label: cookie.label,
+      value: cookie.value,
+      isActive: cookie.isActive,
+      createdAt: cookie.createdAt.toISOString(),
+      updatedAt: cookie.updatedAt.toISOString(),
+    }));
   }
 
   async createCookie(payload: {
@@ -601,22 +617,60 @@ export class PrtgReportService {
     value?: string;
     isActive?: boolean;
   }) {
-    return this.cookieVault.create({
-      label: payload.label,
-      value: payload.value ?? '',
-      isActive: payload.isActive,
+    const isActive = payload.isActive ?? true;
+    if (isActive) {
+      await this.prisma.prtgCookie.updateMany({ data: { isActive: false } });
+    }
+    const created = await this.prisma.prtgCookie.create({
+      data: {
+        label: payload.label?.trim() || null,
+        value: payload.value?.trim() ?? '',
+        isActive,
+      },
     });
+    return {
+      id: created.id,
+      label: created.label,
+      value: created.value,
+      isActive: created.isActive,
+      createdAt: created.createdAt.toISOString(),
+      updatedAt: created.updatedAt.toISOString(),
+    };
   }
 
   async updateCookie(
     id: number,
     payload: { label?: string; value?: string; isActive?: boolean },
   ) {
-    return this.cookieVault.update(id, payload);
+    const cookie = await this.prisma.prtgCookie.findUnique({ where: { id } });
+    if (!cookie) {
+      throw new NotFoundException('PRTG cookie not found.');
+    }
+    const isActive = payload.isActive ?? cookie.isActive;
+    if (isActive && !cookie.isActive) {
+      await this.prisma.prtgCookie.updateMany({ data: { isActive: false } });
+    }
+    const updated = await this.prisma.prtgCookie.update({
+      where: { id },
+      data: {
+        label: payload.label?.trim() ?? cookie.label,
+        value: payload.value?.trim() ?? cookie.value,
+        isActive,
+      },
+    });
+    return {
+      id: updated.id,
+      label: updated.label,
+      value: updated.value,
+      isActive: updated.isActive,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    };
   }
 
   async deleteCookie(id: number) {
-    return this.cookieVault.remove(id);
+    await this.prisma.prtgCookie.delete({ where: { id } });
+    return { id };
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -631,7 +685,6 @@ export class PrtgReportService {
     loginUrl?: string;
     loginUsername?: string | null;
     loginPassword?: string | null;
-    loginPasshash?: string | null;
     messageTemplate?: string;
     alertMessageTemplate?: string;
     recoveryMessageTemplate?: string;
@@ -1124,7 +1177,6 @@ export class PrtgReportService {
     dispatchGroupId: number | null = null,
     targetMode: ScheduleTargetMode = 'all',
   ): Promise<DispatchSummary> {
-    const cookie = await this.getActiveCookie();
     const settings = await this.prtgSetting.getSettingRaw();
 
     const recipientPool = await this.prisma.prtgRecipient.findMany({
@@ -1135,10 +1187,6 @@ export class PrtgReportService {
           : {}),
       },
     });
-
-    if (!cookie) {
-      throw new BadRequestException('Active PRTG cookie is not configured.');
-    }
 
     if (recipientPool.length === 0) {
       throw new BadRequestException(
@@ -1153,7 +1201,7 @@ export class PrtgReportService {
         const requestUrl = `http://prtg.r1net.id/graphzoom.htm?id=${config.sensorId}&graphid=1&clgid=&dynamicgraph=1`;
         const imageBuffer = await this.fetchPrtgImage(
           requestUrl,
-          cookie,
+          settings,
         );
 
         // Check if config is in anomaly state — use monitoring alert template instead
@@ -1285,12 +1333,13 @@ export class PrtgReportService {
     return targetType === 'contact' || targetType === 'manual';
   }
 
-  private async getActiveCookie(): Promise<ActiveCookie | null> {
-    return this.prisma.prtgCookie.findFirst({
-      where: { isActive: true },
-      orderBy: { updatedAt: 'desc' },
-    });
-  }
+  // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
+  // private async getActiveCookie(): Promise<ActiveCookie | null> {
+  //   return this.prisma.prtgCookie.findFirst({
+  //     where: { isActive: true },
+  //     orderBy: { updatedAt: 'desc' },
+  //   });
+  // }
 
   private renderMessageTemplate(
     template: string,
@@ -1302,52 +1351,54 @@ export class PrtgReportService {
     });
   }
 
-  private async saveSingleActiveCookie(cookie: string, labelHint: string) {
-    const value = normalizeCookieValue(cookie);
-    if (!value) {
-      return null;
-    }
+  // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
+  // private async saveSingleActiveCookie(cookie: string, labelHint: string) {
+  //   const value = normalizeCookieValue(cookie);
+  //   if (!value) {
+  //     return null;
+  //   }
+  //
+  //   await this.prisma.prtgCookie.updateMany({ data: { isActive: false } });
+  //
+  //   const existing = await this.prisma.prtgCookie.findFirst({
+  //     where: { value },
+  //     orderBy: { updatedAt: 'desc' },
+  //   });
+  //
+  //   if (existing) {
+  //     const updated = await this.prisma.prtgCookie.update({
+  //       where: { id: existing.id },
+  //       data: {
+  //         label: existing.label || `Cookie ${labelHint}`,
+  //         isActive: true,
+  //       },
+  //     });
+  //     return updated.id;
+  //   }
+  //
+  //   const created = await this.prisma.prtgCookie.create({
+  //     data: {
+  //       label: `Cookie ${labelHint}`,
+  //       value,
+  //       isActive: true,
+  //     },
+  //   });
+  //
+  //   return created.id;
+  // }
 
-    await this.prisma.prtgCookie.updateMany({ data: { isActive: false } });
-
-    const existing = await this.prisma.prtgCookie.findFirst({
-      where: { value },
-      orderBy: { updatedAt: 'desc' },
-    });
-
-    if (existing) {
-      const updated = await this.prisma.prtgCookie.update({
-        where: { id: existing.id },
-        data: {
-          label: existing.label || `Cookie ${labelHint}`,
-          isActive: true,
-        },
-      });
-      return updated.id;
-    }
-
-    const created = await this.prisma.prtgCookie.create({
-      data: {
-        label: `Cookie ${labelHint}`,
-        value,
-        isActive: true,
-      },
-    });
-
-    return created.id;
-  }
-
-  private async fetchSvg(url: string, cookie: ActiveCookie) {
+  private async fetchSvg(url: string, settings: { loginUrl: string; loginUsername: string | null; loginPassword: string | null }) {
+    const authUrl = this.appendAuthParams(url, settings);
     const isHttps = url.startsWith('https://');
     const httpsAgent = isHttps
       ? new https.Agent({ rejectUnauthorized: false })
       : undefined;
 
-    const response = await axios.get(url, {
+    const response = await axios.get(authUrl, {
       responseType: 'arraybuffer',
       maxRedirects: 5,
       headers: {
-        Cookie: cookie.value,
+        // Cookie tidak dipakai lagi — auth via username/passhash query params
         Accept: 'image/svg+xml, text/plain, */*',
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
@@ -1362,25 +1413,24 @@ export class PrtgReportService {
     ).toLowerCase();
     const finalUrl =
       response.request?.res?.responseUrl ?? response.request?.path ?? url;
-    const settings = await this.prtgSetting.getSettingRaw();
 
     if (
       contentType.includes('text/html') ||
       this.isPrtgLoginUrl(finalUrl, settings.loginUrl) ||
       this.looksLikeHtml(buffer)
     ) {
-      return this.renderPrtgPageToPng(url, cookie);
+      return this.renderPrtgPageToPng(url, settings);
     }
 
     return buffer;
   }
 
-  private async fetchPrtgImage(url: string, cookie: ActiveCookie) {
+  private async fetchPrtgImage(url: string, settings: { loginUrl: string; loginUsername: string | null; loginPassword: string | null }) {
     if (this.shouldRenderPrtgPage(url)) {
-      return this.renderPrtgPageToPng(url, cookie);
+      return this.renderPrtgPageToPng(url, settings);
     }
 
-    const svgBuffer = await this.fetchSvg(url, cookie);
+    const svgBuffer = await this.fetchSvg(url, settings);
     if (this.isPngBuffer(svgBuffer)) {
       return svgBuffer;
     }
@@ -1398,7 +1448,8 @@ export class PrtgReportService {
     }
   }
 
-  private async renderPrtgPageToPng(url: string, cookie: ActiveCookie) {
+  private async renderPrtgPageToPng(url: string, settings: { loginUrl: string; loginUsername: string | null; loginPassword: string | null }) {
+    const authUrl = this.appendAuthParams(url, settings);
     const browser = await chromium.launch({ headless: true });
 
     try {
@@ -1407,7 +1458,7 @@ export class PrtgReportService {
         viewport: this.getPrtgRenderViewport(),
         deviceScaleFactor: this.getPrtgImageScale(),
         extraHTTPHeaders: {
-          Cookie: cookie.value,
+          // Cookie tidak dipakai lagi — auth via username/passhash query params
           'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
@@ -1415,22 +1466,12 @@ export class PrtgReportService {
       });
 
       const page = await context.newPage();
-      const settings = await this.prtgSetting.getSettingRaw();
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
+      await page.goto(authUrl, { waitUntil: 'networkidle', timeout: 45000 });
       await page.waitForTimeout(1500);
 
       if (await this.isPrtgLoginPage(page, settings.loginUrl)) {
-        cookie.value = await this.loginAndRefreshCookie(
-          page,
-          context,
-          url,
-          cookie.id,
-        );
-      }
-
-      if (await this.isPrtgLoginPage(page, settings.loginUrl)) {
         throw new BadRequestException(
-          'PRTG masih menampilkan halaman login; screenshot dibatalkan.',
+          'PRTG masih menampilkan halaman login; screenshot dibatalkan. Periksa username/passhash di pengaturan.',
         );
       }
 
@@ -1443,80 +1484,82 @@ export class PrtgReportService {
     }
   }
 
-  private async loginAndRefreshCookie(
-    page: Page,
-    context: BrowserContext,
-    originalUrl: string,
-    cookieId: number,
-  ) {
-    const settings = await this.prtgSetting.getSettingRaw();
-    if (!settings.loginUsername || !settings.loginPassword) {
-      throw new BadRequestException(
-        'PRTG auto-login credentials are not configured.',
-      );
-    }
-
-    await page
-      .locator(`xpath=${prtgUsernameXPath}`)
-      .fill(settings.loginUsername, { timeout: 10000 });
-    await page
-      .locator(`xpath=${prtgPasswordXPath}`)
-      .fill(settings.loginPassword, { timeout: 10000 });
-
-    await Promise.all([
-      page
-        .waitForURL(
-          (targetUrl) =>
-            !this.isPrtgLoginUrl(targetUrl.toString(), settings.loginUrl),
-          { timeout: 45000 },
-        )
-        .catch(() => undefined),
-      page.keyboard.press('Enter'),
-    ]);
-    await page
-      .waitForLoadState('networkidle', { timeout: 45000 })
-      .catch(() => undefined);
-    await page.waitForTimeout(1500);
-
-    const cookies = await context.cookies(originalUrl);
-    const cookieValue = cookies
-      .filter((cookie) => cookie.name && cookie.value)
-      .map((cookie) => `${cookie.name}=${cookie.value}`)
-      .join('; ');
-
-    if (!cookieValue) {
-      throw new BadRequestException(
-        'PRTG login succeeded but returned no cookies.',
-      );
-    }
-
-    await this.prisma.prtgCookie.update({
-      where: { id: cookieId },
-      data: {
-        value: cookieValue,
-        isActive: true,
-        label: `Auto login ${new Date().toISOString()}`,
-      },
-    });
-
-    await context.setExtraHTTPHeaders({
-      Cookie: cookieValue,
-      'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
-    });
-
-    await page.goto(originalUrl, { waitUntil: 'networkidle', timeout: 45000 });
-    await page.waitForTimeout(1500);
-
-    if (await this.isPrtgLoginPage(page, settings.loginUrl)) {
-      throw new BadRequestException(
-        'PRTG auto-login did not reach the target URL.',
-      );
-    }
-
-    return cookieValue;
-  }
+  // Cookie tidak dipakai lagi — loginAndRefreshCookie tidak diperlukan
+  // Auth sekarang menggunakan username/passhash query params
+  // private async loginAndRefreshCookie(
+  //   page: Page,
+  //   context: BrowserContext,
+  //   originalUrl: string,
+  //   cookieId: number,
+  // ) {
+  //   const settings = await this.prtgSetting.getSettingRaw();
+  //   if (!settings.loginUsername || !settings.loginPassword) {
+  //     throw new BadRequestException(
+  //       'PRTG auto-login credentials are not configured.',
+  //     );
+  //   }
+  //
+  //   await page
+  //     .locator(`xpath=${prtgUsernameXPath}`)
+  //     .fill(settings.loginUsername, { timeout: 10000 });
+  //   await page
+  //     .locator(`xpath=${prtgPasswordXPath}`)
+  //     .fill(settings.loginPassword, { timeout: 10000 });
+  //
+  //   await Promise.all([
+  //     page
+  //       .waitForURL(
+  //         (targetUrl) =>
+  //           !this.isPrtgLoginUrl(targetUrl.toString(), settings.loginUrl),
+  //         { timeout: 45000 },
+  //       )
+  //       .catch(() => undefined),
+  //     page.keyboard.press('Enter'),
+  //   ]);
+  //   await page
+  //     .waitForLoadState('networkidle', { timeout: 45000 })
+  //     .catch(() => undefined);
+  //   await page.waitForTimeout(1500);
+  //
+  //   const cookies = await context.cookies(originalUrl);
+  //   const cookieValue = cookies
+  //     .filter((cookie) => cookie.name && cookie.value)
+  //     .map((cookie) => `${cookie.name}=${cookie.value}`)
+  //     .join('; ');
+  //
+  //   if (!cookieValue) {
+  //     throw new BadRequestException(
+  //       'PRTG login succeeded but returned no cookies.',
+  //     );
+  //   }
+  //
+  //   await this.prisma.prtgCookie.update({
+  //     where: { id: cookieId },
+  //     data: {
+  //       value: cookieValue,
+  //       isActive: true,
+  //       label: `Auto login ${new Date().toISOString()}`,
+  //     },
+  //   });
+  //
+  //   await context.setExtraHTTPHeaders({
+  //     Cookie: cookieValue,
+  //     'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+  //     'User-Agent':
+  //       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+  //   });
+  //
+  //   await page.goto(originalUrl, { waitUntil: 'networkidle', timeout: 45000 });
+  //   await page.waitForTimeout(1500);
+  //
+  //   if (await this.isPrtgLoginPage(page, settings.loginUrl)) {
+  //     throw new BadRequestException(
+  //       'PRTG auto-login did not reach the target URL.',
+  //     );
+  //   }
+  //
+  //   return cookieValue;
+  // }
 
   private async isPrtgLoginPage(page: Page, configuredLoginUrl: string) {
     if (this.isPrtgLoginUrl(page.url(), configuredLoginUrl)) {
@@ -1558,6 +1601,17 @@ export class PrtgReportService {
     } catch {
       return value.toLowerCase().includes('prtg.r1net.id/index.htm');
     }
+  }
+
+  /**
+   * Appends username/passhash query params to the given URL for PRTG auth.
+   */
+  private appendAuthParams(
+    url: string,
+    settings: { loginUsername: string | null; loginPassword: string | null },
+  ): string {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
   }
 
   private looksLikeHtml(buffer: Buffer) {

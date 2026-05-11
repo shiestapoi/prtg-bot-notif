@@ -38,14 +38,15 @@ model PrtgSetting {
 
 /// Logical grouping of PRTG charts. PrtgConfig and PrtgSchedule reference this.
 model PrtgGroup {
-  id         Int             @id @default(autoincrement())
-  name       String          @unique
-  enabled    Boolean         @default(true)
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  configs    PrtgConfig[]
-  schedules  PrtgSchedule[]
-  recipients PrtgRecipient[]
+  id                   Int                    @id @default(autoincrement())
+  name                 String                 @unique
+  enabled              Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  configs              PrtgConfig[]
+  schedules            PrtgSchedule[]
+  recipients           PrtgRecipient[]
+  monitoringRecipients MonitoringRecipient[]
 }
 
 model PrtgConfig {
@@ -91,6 +92,21 @@ model PrtgRecipient {
   enabled     Boolean             @default(true)
   isAdmin     Boolean             @default(false)
   /// null = applies to ALL groups (sent with every dispatch)
+  groupId     Int?
+  group       PrtgGroup?          @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+/// Monitoring-specific recipients — hanya menerima notifikasi alert monitoring (DOWN, recovery, dll)
+/// Terpisah dari PrtgRecipient yang digunakan untuk report schedule.
+model MonitoringRecipient {
+  id          Int                 @id @default(autoincrement())
+  label       String?
+  phoneNumber String
+  targetType  RecipientTargetType @default(manual)
+  enabled     Boolean             @default(true)
+  /// null = applies to ALL groups (receives alerts for all monitoring configs)
   groupId     Int?
   group       PrtgGroup?          @relation(fields: [groupId], references: [id], onDelete: SetNull)
   createdAt   DateTime            @default(now())

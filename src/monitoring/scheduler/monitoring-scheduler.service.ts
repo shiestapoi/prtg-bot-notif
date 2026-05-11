@@ -7,7 +7,6 @@ import {
 import axios from 'axios';
 import { NocStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CookieVaultService } from '../../cookie-vault/cookie-vault.service';
 import { PrtgSettingService } from '../../prtg-setting/prtg-setting.service';
 import {
   MetricParserService,
@@ -17,7 +16,6 @@ import {
 import { AnomalyEngineService } from '../anomaly-engine/anomaly-engine.service';
 import type { MonitoringEligibleConfig } from '../anomaly-engine/anomaly-engine.service';
 import { AlertDispatcherService } from '../dispatcher/alert-dispatcher.service';
-import { BrowserPoolService } from '../dispatcher/browser-pool.service';
 import { MonitoringEventService } from './monitoring-event.service';
 import { MonitoringHistoryService } from '../service/monitoring-history.service';
 
@@ -49,6 +47,9 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
   /** Tracks when a config first became NORMAL after an anomaly (for recovery grace period) */
   private readonly recoveryStartedAt: Map<number, Date> = new Map();
 
+  /** Prevents concurrent polls for the same config (race condition guard) */
+  private readonly pollInProgress: Set<number> = new Set();
+
   /** Recovery grace period in ms — must be NORMAL for this long before sending recovery notif */
   private readonly RECOVERY_GRACE_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -66,12 +67,10 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cookieVault: CookieVaultService,
     private readonly prtgSetting: PrtgSettingService,
     private readonly metricParser: MetricParserService,
     private readonly anomalyEngine: AnomalyEngineService,
     private readonly dispatcher: AlertDispatcherService,
-    private readonly browserPool: BrowserPoolService,
     private readonly eventService: MonitoringEventService,
     private readonly historyService: MonitoringHistoryService,
   ) {
@@ -249,6 +248,7 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
     this.intervals.clear();
     this.consecutiveErrors.clear();
     this.lastNotifiedAt.clear();
+    this.pollInProgress.clear();
     this.activePollCount = 0;
     this.pollQueue.length = 0;
     this.logger.log('All polling intervals stopped');
@@ -356,8 +356,8 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
 
   /**
    * Core polling flow for a single monitoring-enabled PrtgConfig:
-   * 1. Fetch active cookie from CookieVaultService
-   * 2. HTTP GET the monitoring URL (built from sensor ID) with the cookie (readonly, Req 12.1)
+   * 1. Validate PRTG username/passhash settings
+   * 2. HTTP GET the monitoring URL (built from sensor ID) with username/passhash params (readonly, Req 12.1)
    * 3. Parse response with MetricParserService.normalize()
    * 4. Classify with AnomalyEngineService.classify()
    * 5. Persist history record via MonitoringHistoryService
@@ -366,6 +366,21 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
    * 8. Update PrtgConfig.lastPolledAt and lastStatus
    */
   private async doPoll(configId: number): Promise<void> {
+    // Guard: prevent concurrent polls for the same config (race condition)
+    if (this.pollInProgress.has(configId)) {
+      this.logger.debug(`Config ${configId}: Poll already in progress, skipping`);
+      return;
+    }
+    this.pollInProgress.add(configId);
+
+    try {
+      await this.doPollInternal(configId);
+    } finally {
+      this.pollInProgress.delete(configId);
+    }
+  }
+
+  private async doPollInternal(configId: number): Promise<void> {
     // Re-fetch config to get latest state (may have been updated)
     const configRecord = await this.prisma.prtgConfig.findUnique({
       where: { id: configId },
@@ -411,65 +426,25 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
     let metric: NormalizedMetric | null = null;
     let errorMessage: string | null = null;
 
-    // Step 1: Determine auth method — passhash (URL params) or cookie
+    // Step 1: Validate URL-based username/passhash auth.
     const settings = await this.prtgSetting.getSettingRaw();
-    const usePasshashAuth = Boolean(settings.loginUsername && settings.loginPasshash);
-
-    let cookie: string | null = null;
-    if (!usePasshashAuth) {
-      // Fallback to cookie-based auth
-      try {
-        cookie = await this.cookieVault.getActiveCookie();
-      } catch {
-        this.logger.warn(
-          `Config ${configId} (${config.title}): No active cookie, attempting auto-login`,
-        );
-        try {
-          cookie = await this.performPrtgLogin();
-        } catch (loginErr) {
-          this.logger.error(
-            `Config ${configId} (${config.title}): Auto-login failed: ${loginErr instanceof Error ? loginErr.message : String(loginErr)}`,
-          );
-          return;
-        }
-      }
+    if (!settings.loginUsername || !settings.loginPassword) {
+      this.logger.warn(
+        `Config ${configId} (${config.title}): PRTG username/passhash is not configured; polling skipped.`,
+      );
+      return;
     }
 
     // Step 2: HTTP GET monitoring URL (readonly, Req 12.1, 12.2)
-    // Build the monitoring URL from the sensor ID (includes &username&passhash if configured)
+    // Build the monitoring URL from the sensor ID (always includes &username&passhash)
     const pollUrl = await this.buildMonitoringUrl(config.sensorId);
     let rawResponseText: string | null = null;
     try {
-      const headers: Record<string, string> = {};
-      if (cookie) headers.Cookie = cookie;
-
-      let response = await axios.get(pollUrl, {
-        headers,
+      const response = await axios.get(pollUrl, {
         timeout: 30000,
-        validateStatus: () => true, // Accept all status codes to detect 401
+        validateStatus: () => true,
       });
 
-      // Handle 401 Unauthorized — attempt auto-login and retry (only for cookie auth)
-      if (response.status === 401 && !usePasshashAuth) {
-        this.logger.warn(
-          `Config ${configId} (${config.title}): Got 401 Unauthorized, attempting auto-login`,
-        );
-        try {
-          cookie = await this.performPrtgLogin();
-          // Retry with new cookie
-          response = await axios.get(pollUrl, {
-            headers: { Cookie: cookie },
-            timeout: 30000,
-            validateStatus: () => true,
-          });
-        } catch (loginErr) {
-          throw new Error(
-            `Auto-login failed after 401: ${loginErr instanceof Error ? loginErr.message : String(loginErr)}`,
-          );
-        }
-      }
-
-      // After 401 handling, reject any remaining HTTP errors BEFORE parsing
       if (response.status >= 400) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -644,30 +619,43 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
         this.logger.debug(`Config ${configId}: Notification for ${classification.status} disabled, skipping dispatch`);
       }
     } else if (!isRecovering && classification.status !== NocStatus.NORMAL) {
-      // Anomaly detected — check if notification is enabled for this status
+      // Anomaly detected — only notify on FIRST transition from NORMAL → anomaly
+      // Once notified, do NOT re-notify while status remains the same anomaly state.
+      // Only notify again if:
+      //   1. Status was NORMAL before (first occurrence)
+      //   2. Status escalated to a DIFFERENT anomaly (e.g., LOW_TRAFFIC → DOWN)
       if (this.isNotifyEnabledForStatus(classification.status, config)) {
-        // Send notification immediately on first occurrence
-        const shouldForceNotify = previousStatus === NocStatus.NORMAL; // First transition
+        const isFirstTransition = previousStatus === NocStatus.NORMAL;
+        const isStatusEscalation = previousStatus !== NocStatus.NORMAL
+          && previousStatus !== classification.status;
 
-        const dispatchResult = await this.dispatcher.dispatch({
-          configId: config.id,
-          title: config.title,
-          requestUrl,
-          previousStatus,
-          currentStatus: classification.status,
-          bitrate: metric?.totalTrafficBitrate ?? null,
-          inboundBitrate: metric?.inboundBitrate ?? null,
-          outboundBitrate: metric?.outboundBitrate ?? null,
-          timestamp: now,
-          reason: classification.reason,
-          lastNotifiedAt: shouldForceNotify ? null : (this.lastNotifiedAt.get(configId) ?? null),
-          cooldownInterval: shouldForceNotify ? 0 : config.cooldownInterval,
-          groupId: config.groupId,
-          groupName: configRecord.group.name,
-        });
+        if (isFirstTransition || isStatusEscalation) {
+          // First time DOWN or status changed (escalation) — send immediately
+          const dispatchResult = await this.dispatcher.dispatch({
+            configId: config.id,
+            title: config.title,
+            requestUrl,
+            previousStatus,
+            currentStatus: classification.status,
+            bitrate: metric?.totalTrafficBitrate ?? null,
+            inboundBitrate: metric?.inboundBitrate ?? null,
+            outboundBitrate: metric?.outboundBitrate ?? null,
+            timestamp: now,
+            reason: classification.reason,
+            lastNotifiedAt: null, // Bypass cooldown for first/escalation
+            cooldownInterval: 0,
+            groupId: config.groupId,
+            groupName: configRecord.group.name,
+          });
 
-        if (dispatchResult.shouldNotify) {
-          this.lastNotifiedAt.set(configId, now);
+          if (dispatchResult.shouldNotify) {
+            this.lastNotifiedAt.set(configId, now);
+          }
+        } else {
+          // Same anomaly status as before (e.g., DOWN → DOWN) — suppress notification
+          this.logger.debug(
+            `Config ${configId} (${config.title}): Still ${classification.status}, suppressing duplicate notification`,
+          );
         }
       } else {
         this.logger.debug(`Config ${configId}: Notification for ${classification.status} disabled, skipping dispatch`);
@@ -737,105 +725,9 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
 
     let url = `${baseUrl.protocol}//${baseUrl.host}/api/historicdata.json?id=${sensorId}&avg=0&sdate=${sdate}&edate=${edate}&usecaption=1`;
 
-    // Use URL-based auth (username + passhash) if configured — no cookie needed
-    if (settings.loginUsername && settings.loginPasshash) {
-      url += `&username=${encodeURIComponent(settings.loginUsername)}&passhash=${encodeURIComponent(settings.loginPasshash)}`;
-    }
+    url += `&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
 
     return url;
-  }
-
-  /**
-   * Performs a Playwright-based login to PRTG, extracts the session cookie,
-   * saves it to the database, and returns the cookie string.
-   * Used when the current cookie is expired (401 Unauthorized).
-   */
-  private async performPrtgLogin(): Promise<string> {
-    const settings = await this.prtgSetting.getSettingRaw();
-    if (!settings.loginUsername || !settings.loginPassword) {
-      throw new Error('PRTG auto-login credentials are not configured in settings.');
-    }
-
-    const loginUrl = settings.loginUrl || 'http://prtg.r1net.id/index.htm';
-    let context: import('playwright').BrowserContext | null = null;
-
-    try {
-      context = await this.browserPool.createContext();
-      const page = await context.newPage();
-
-      // Navigate to PRTG login page
-      await page.goto(loginUrl, { waitUntil: 'networkidle', timeout: 45000 });
-      await page.waitForTimeout(1000);
-
-      // Fill login form
-      const usernameXPath = '/html/body/div/div[2]/div/table/tbody/tr[1]/td[1]/form/input[2]';
-      const passwordXPath = '/html/body/div/div[2]/div/table/tbody/tr[1]/td[1]/form/input[3]';
-
-      await page.locator(`xpath=${usernameXPath}`).fill(settings.loginUsername, { timeout: 10000 });
-      await page.locator(`xpath=${passwordXPath}`).fill(settings.loginPassword, { timeout: 10000 });
-
-      // Submit and wait for redirect away from login page
-      await Promise.all([
-        page.waitForURL(
-          (url) => {
-            try {
-              const current = new URL(url.toString());
-              const login = new URL(loginUrl);
-              return current.pathname.toLowerCase() !== login.pathname.toLowerCase();
-            } catch {
-              return false;
-            }
-          },
-          { timeout: 45000 },
-        ).catch(() => undefined),
-        page.keyboard.press('Enter'),
-      ]);
-
-      await page.waitForLoadState('networkidle', { timeout: 45000 }).catch(() => undefined);
-      await page.waitForTimeout(1500);
-
-      // Extract cookies
-      const cookies = await context.cookies();
-      const cookieValue = cookies
-        .filter((c) => c.name && c.value)
-        .map((c) => `${c.name}=${c.value}`)
-        .join('; ');
-
-      if (!cookieValue) {
-        throw new Error('PRTG login succeeded but returned no cookies.');
-      }
-
-      // Save the new cookie to database (deactivate old ones, create/update active)
-      await this.prisma.prtgCookie.updateMany({ data: { isActive: false } });
-
-      const existingCookie = await this.prisma.prtgCookie.findFirst({
-        orderBy: { updatedAt: 'desc' },
-      });
-
-      if (existingCookie) {
-        await this.prisma.prtgCookie.update({
-          where: { id: existingCookie.id },
-          data: {
-            value: cookieValue,
-            isActive: true,
-            label: `Auto login ${new Date().toISOString()}`,
-          },
-        });
-      } else {
-        await this.prisma.prtgCookie.create({
-          data: {
-            value: cookieValue,
-            isActive: true,
-            label: `Auto login ${new Date().toISOString()}`,
-          },
-        });
-      }
-
-      this.logger.log('PRTG auto-login successful, cookie refreshed');
-      return cookieValue;
-    } finally {
-      await context?.close();
-    }
   }
 
   /**

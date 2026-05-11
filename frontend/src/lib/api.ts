@@ -7,7 +7,6 @@ import type {
   NocItemRecipient,
   MonitoringHistory,
   MonitoringSummaryItem,
-  PrtgCookie,
   PrtgSetting,
   PrtgGroup,
   PrtgConfig,
@@ -41,23 +40,8 @@ api.interceptors.response.use(
   },
 );
 
-// ─── Cookie Vault API ───────────────────────────────────────────────────────
-
-export const cookieVaultApi = {
-  getAll: () => api.get<PrtgCookie[]>('/api/cookie-vault').then((r) => r.data),
-
-  getActive: () =>
-    api.get<{ value: string }>('/api/cookie-vault/active').then((r) => r.data),
-
-  create: (data: { label: string; value: string; isActive?: boolean }) =>
-    api.post<PrtgCookie>('/api/cookie-vault', data).then((r) => r.data),
-
-  update: (id: number, data: Partial<{ label: string; value: string; isActive: boolean }>) =>
-    api.patch<PrtgCookie>(`/api/cookie-vault/${id}`, data).then((r) => r.data),
-
-  remove: (id: number) =>
-    api.delete(`/api/cookie-vault/${id}`).then((r) => r.data),
-};
+// ─── Cookie Vault API (DEPRECATED — tidak dipakai lagi untuk auth PRTG) ─────
+// cookieVaultApi dihapus dari frontend karena auth sekarang via username/passhash
 
 
 // ─── PRTG Setting API ───────────────────────────────────────────────────────
@@ -179,7 +163,6 @@ export interface PrtgConfigPayload {
   title: string;
   sensorId: number;
   groupId: number;
-  cookieId?: number;
   enabled?: boolean;
   monitoringEnabled?: boolean;
   pollingInterval?: number;
@@ -282,6 +265,34 @@ export const monitoringApi = {
 
   forceNotify: (configId: number) =>
     api.post<{ message: string; configId: number; status: string }>(`/api/monitoring/configs/${configId}/notify`).then((r) => r.data),
+};
+
+// ─── Monitoring Recipients API ──────────────────────────────────────────────
+
+export interface MonitoringRecipient {
+  id: number;
+  label: string | null;
+  phoneNumber: string;
+  targetType: string;
+  enabled: boolean;
+  groupId: number | null;
+  groupName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const monitoringRecipientApi = {
+  getAll: () =>
+    api.get<MonitoringRecipient[]>('/api/monitoring/recipients').then((r) => r.data),
+
+  create: (data: { label?: string; phoneNumber: string; targetType?: string; groupId?: number; enabled?: boolean }) =>
+    api.post<MonitoringRecipient>('/api/monitoring/recipients', data).then((r) => r.data),
+
+  update: (id: number, data: Partial<{ label: string; phoneNumber: string; targetType: string; groupId: number | null; enabled: boolean }>) =>
+    api.put<MonitoringRecipient>(`/api/monitoring/recipients/${id}`, data).then((r) => r.data),
+
+  remove: (id: number) =>
+    api.delete(`/api/monitoring/recipients/${id}`).then((r) => r.data),
 };
 
 // ─── Default Export ─────────────────────────────────────────────────────────

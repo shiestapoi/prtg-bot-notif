@@ -41,17 +41,21 @@ export class BrowserPoolService implements OnModuleInit, OnModuleDestroy {
    * Creates a new browser context with PRTG-optimized settings.
    * Each context is isolated (separate cookies, storage).
    * Caller is responsible for closing the context when done.
+   *
+   * Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params.
+   * Parameter cookie tetap ada untuk backward compatibility tapi tidak digunakan.
    */
-  async createContext(cookie?: string): Promise<BrowserContext> {
+  async createContext(_cookie?: string): Promise<BrowserContext> {
     const browser = await this.ensureBrowser();
     const headers: Record<string, string> = {
       'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
     };
-    if (cookie) {
-      headers.Cookie = cookie;
-    }
+    // Cookie tidak dipakai lagi — auth via username/passhash query params
+    // if (cookie) {
+    //   headers.Cookie = cookie;
+    // }
 
     return browser.newContext({
       ignoreHTTPSErrors: true,

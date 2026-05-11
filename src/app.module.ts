@@ -16,7 +16,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     PrismaModule,
     AuthModule,
     WhatsappModule,
-    CookieVaultModule,
+    CookieVaultModule, // DEPRECATED: Cookie tidak dipakai lagi untuk auth PRTG, tapi endpoint tetap ada
     PrtgSettingModule,
     PrtgReportModule,
     PrtgNocModule,

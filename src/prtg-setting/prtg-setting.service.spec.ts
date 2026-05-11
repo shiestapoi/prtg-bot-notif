@@ -138,6 +138,32 @@ describe('PrtgSettingService', () => {
       });
     });
 
+    it('should store passhash in loginPassword using the new settings contract', async () => {
+      const updatedSetting = {
+        ...defaultSetting,
+        loginPassword: '1234567890',
+        updatedAt: new Date(),
+      };
+      prisma.prtgSetting.update.mockResolvedValue(updatedSetting);
+
+      const result = await service.updateSetting({
+        loginPassword: '1234567890',
+      });
+
+      expect(result.hasLoginPassword).toBe(true);
+      expect(prisma.prtgSetting.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: expect.objectContaining({
+          loginUrl: defaultSetting.loginUrl,
+          loginUsername: null,
+          loginPassword: '1234567890',
+          messageTemplate: defaultSetting.messageTemplate,
+          alertMessageTemplate: defaultSetting.alertMessageTemplate,
+          recoveryMessageTemplate: defaultSetting.recoveryMessageTemplate,
+        }),
+      });
+    });
+
     it('should clear loginPassword when set to empty string', async () => {
       prisma.prtgSetting.upsert.mockResolvedValue({
         ...defaultSetting,

@@ -19,8 +19,6 @@ export default function PrtgSettingPage() {
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [hasLoginPassword, setHasLoginPassword] = useState(false);
-  const [loginPasshash, setLoginPasshash] = useState('');
-  const [hasLoginPasshash, setHasLoginPasshash] = useState(false);
   const [messageTemplate, setMessageTemplate] = useState('');
   const [alertMessageTemplate, setAlertMessageTemplate] = useState('');
   const [recoveryMessageTemplate, setRecoveryMessageTemplate] = useState('');
@@ -36,7 +34,6 @@ export default function PrtgSettingPage() {
       setLoginUrl(data.loginUrl || '');
       setLoginUsername(data.loginUsername || '');
       setHasLoginPassword(data.hasLoginPassword);
-      setHasLoginPasshash(data.hasLoginPasshash);
       setMessageTemplate(data.messageTemplate || '');
       setAlertMessageTemplate(data.alertMessageTemplate || '');
       setRecoveryMessageTemplate(data.recoveryMessageTemplate || '');
@@ -65,22 +62,15 @@ export default function PrtgSettingPage() {
         recoveryMessageTemplate,
       };
 
-      // Only include password if user typed a new one
+      // Only include password/passhash if user typed a new one
       if (loginPassword) {
         payload.loginPassword = loginPassword;
       }
 
-      // Only include passhash if user typed a new one
-      if (loginPasshash) {
-        payload.loginPasshash = loginPasshash;
-      }
-
       await prtgSettingApi.update(payload);
       toast.success('Pengaturan berhasil disimpan');
-      setHasLoginPassword(true);
-      setHasLoginPasshash(loginPasshash ? true : hasLoginPasshash);
+      setHasLoginPassword(loginPassword ? true : hasLoginPassword);
       setLoginPassword('');
-      setLoginPasshash('');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Gagal menyimpan pengaturan';
       toast.error(message);
@@ -150,45 +140,27 @@ export default function PrtgSettingPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="login-password">Password</Label>
+            <Label htmlFor="login-password">Password / Passhash</Label>
             <Input
               id="login-password"
               type="password"
               placeholder={
                 hasLoginPassword
                   ? '••••••••  (leave blank to keep current)'
-                  : 'Enter password'
+                  : 'Enter password or passhash'
               }
               value={loginPassword}
               onChange={(e) => setLoginPassword(e.target.value)}
             />
-            {hasLoginPassword && (
-              <p className="text-xs text-muted-foreground">
-                A password is already set. Leave blank to keep the current
-                password.
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="login-passhash">Passhash (untuk auth tanpa cookie)</Label>
-            <Input
-              id="login-passhash"
-              type="password"
-              placeholder={
-                hasLoginPasshash
-                  ? '••••••••  (kosongkan untuk tetap pakai yang ada)'
-                  : 'Masukkan passhash dari PRTG'
-              }
-              value={loginPasshash}
-              onChange={(e) => setLoginPasshash(e.target.value)}
-            />
             <p className="text-xs text-muted-foreground">
-              {hasLoginPasshash
-                ? 'Passhash sudah di-set. Jika ada passhash, monitoring akan pakai &username&passhash (tanpa cookie).'
-                : 'Opsional. Dapatkan dari PRTG: Setup → Account Settings → Show Passhash. Jika diisi, monitoring tidak perlu cookie.'}
+              {hasLoginPassword
+                ? 'A password/passhash is already set. Leave blank to keep the current value.'
+                : 'Enter a PRTG password or passhash.'}{' '}
+              This value is stored as loginPassword and used as &passhash= on
+              every PRTG request.
             </p>
           </div>
+
         </fieldset>
 
         {/* Report Message Templates */}

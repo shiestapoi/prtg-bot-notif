@@ -73,6 +73,12 @@ function normalizeCookieValue(value: string | undefined | null) {
   return cookie || command;
 }
 
+/**
+ * DEPRECATED: Cookie tidak dipakai lagi untuk auth ke PRTG.
+ * Auth sekarang menggunakan username/passhash query params.
+ * Module ini tetap ada karena schema Prisma tidak diubah (PrtgCookie table masih ada).
+ * Endpoint API cookie-vault masih bisa diakses tapi tidak berpengaruh ke auth PRTG.
+ */
 @Injectable()
 export class CookieVaultService {
   constructor(private readonly prisma: PrismaService) {}

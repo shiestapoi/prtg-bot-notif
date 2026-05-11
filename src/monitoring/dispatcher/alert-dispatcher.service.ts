@@ -46,6 +46,12 @@ interface ResolvedRecipient {
 /**
  * Pure function that evaluates whether a notification should be dispatched.
  * No side effects — can be tested independently.
+ *
+ * Aturan utama:
+ * - NORMAL → anomaly: KIRIM (new_anomaly)
+ * - anomaly → NORMAL: KIRIM (recovered)
+ * - anomaly A → anomaly B (berbeda): KIRIM (status_escalation)
+ * - anomaly → anomaly SAMA: JANGAN KIRIM (sudah dinotifikasi sebelumnya)
  */
 export function evaluateDispatch(
   previousStatus: NocStatus,
@@ -53,11 +59,6 @@ export function evaluateDispatch(
   lastNotifiedAt: Date | null,
   cooldownInterval: number,
 ): DispatchDecision {
-  const now = Date.now();
-  const inCooldown =
-    lastNotifiedAt !== null &&
-    now - lastNotifiedAt.getTime() < cooldownInterval * 1000;
-
   // Recovery: anomaly → NORMAL
   if (previousStatus !== NocStatus.NORMAL && currentStatus === NocStatus.NORMAL) {
     return { shouldNotify: true, reason: 'recovered', templateType: 'recovery' };
@@ -68,21 +69,16 @@ export function evaluateDispatch(
     return { shouldNotify: true, reason: 'new_anomaly', templateType: 'anomaly' };
   }
 
-  // Status change during anomaly (e.g., LOW_TRAFFIC → DOWN)
+  // Status escalation during anomaly (e.g., LOW_TRAFFIC → DOWN)
   if (
     previousStatus !== currentStatus &&
-    currentStatus !== NocStatus.NORMAL &&
-    !inCooldown
+    currentStatus !== NocStatus.NORMAL
   ) {
     return { shouldNotify: true, reason: 'status_escalation', templateType: 'anomaly' };
   }
 
-  // Same anomaly status, within cooldown
-  if (inCooldown) {
-    return { shouldNotify: false, reason: 'cooldown_active', templateType: null };
-  }
-
-  return { shouldNotify: false, reason: 'no_change', templateType: null };
+  // Same anomaly status (e.g., DOWN → DOWN) — NEVER re-notify
+  return { shouldNotify: false, reason: 'same_status_suppressed', templateType: null };
 }
 
 // ─── Template Rendering ──────────────────────────────────────────────────────
@@ -234,24 +230,49 @@ export class AlertDispatcherService {
 
   /**
    * Resolves all recipients for a monitoring-enabled config:
-   * - Group-scoped recipients (PrtgRecipient with matching groupId)
-   * - Global recipients (PrtgRecipient with groupId = null)
+   * - MonitoringRecipient (monitoring-specific) with matching groupId or global (groupId = null)
+   * - PrtgRecipient (report recipients) with matching groupId or global (groupId = null)
    * - Only enabled recipients
+   * - Deduplicates by phoneNumber (monitoring recipients take priority)
    */
   private async resolveRecipients(
     groupId: number,
   ): Promise<ResolvedRecipient[]> {
-    const recipients = await this.prisma.prtgRecipient.findMany({
+    // Fetch monitoring-specific recipients
+    const monitoringRecipients = await this.prisma.monitoringRecipient.findMany({
       where: {
         enabled: true,
         OR: [{ groupId: groupId }, { groupId: null }],
       },
     });
 
-    return recipients.map((r) => ({
-      phoneNumber: r.phoneNumber,
-      targetType: r.targetType,
-    }));
+    // Fetch regular report recipients as fallback/additional
+    const reportRecipients = await this.prisma.prtgRecipient.findMany({
+      where: {
+        enabled: true,
+        OR: [{ groupId: groupId }, { groupId: null }],
+      },
+    });
+
+    // Merge both lists, deduplicate by phoneNumber
+    const seen = new Set<string>();
+    const result: ResolvedRecipient[] = [];
+
+    for (const r of monitoringRecipients) {
+      if (!seen.has(r.phoneNumber)) {
+        seen.add(r.phoneNumber);
+        result.push({ phoneNumber: r.phoneNumber, targetType: r.targetType });
+      }
+    }
+
+    for (const r of reportRecipients) {
+      if (!seen.has(r.phoneNumber)) {
+        seen.add(r.phoneNumber);
+        result.push({ phoneNumber: r.phoneNumber, targetType: r.targetType });
+      }
+    }
+
+    return result;
   }
 
   /**

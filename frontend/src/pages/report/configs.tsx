@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { prtgConfigApi, prtgGroupApi, cookieVaultApi } from '@/lib/api';
+import { prtgConfigApi, prtgGroupApi } from '@/lib/api';
 import api from '@/lib/api';
-import type { PrtgConfig, PrtgGroup, PrtgCookie, NocSensitivity } from '@/lib/types';
+import type { PrtgConfig, PrtgGroup, NocSensitivity } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -25,7 +25,6 @@ interface ConfigForm {
   title: string;
   sensorId: number | '';
   groupId: number | '';
-  cookieId: number | '';
   enabled: boolean;
   // Monitoring fields
   monitoringEnabled: boolean;
@@ -65,7 +64,6 @@ const emptyForm: ConfigForm = {
   title: '',
   sensorId: '',
   groupId: '',
-  cookieId: '',
   enabled: true,
   monitoringEnabled: false,
   pollingInterval: 60,
@@ -145,7 +143,6 @@ function validateForm(form: ConfigForm): ValidationErrors {
 export default function ReportConfigsPage() {
   const [configs, setConfigs] = useState<PrtgConfig[]>([]);
   const [groups, setGroups] = useState<PrtgGroup[]>([]);
-  const [cookies, setCookies] = useState<PrtgCookie[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -169,14 +166,12 @@ export default function ReportConfigsPage() {
 
   const fetchData = async () => {
     try {
-      const [configData, groupData, cookieData] = await Promise.all([
+      const [configData, groupData] = await Promise.all([
         prtgConfigApi.getAll(),
         prtgGroupApi.getAll(),
-        cookieVaultApi.getAll(),
       ]);
       setConfigs(configData);
       setGroups(groupData);
-      setCookies(cookieData);
     } catch (err) {
       console.error('Failed to fetch data:', err);
     } finally {
@@ -213,7 +208,6 @@ export default function ReportConfigsPage() {
       title: config.title,
       sensorId: config.sensorId,
       groupId: config.groupId,
-      cookieId: config.cookieId,
       enabled: config.enabled,
       monitoringEnabled: config.monitoringEnabled,
       pollingInterval: config.pollingInterval ?? 60,
@@ -279,7 +273,6 @@ export default function ReportConfigsPage() {
         title: form.title,
         sensorId: Number(form.sensorId),
         groupId: Number(form.groupId),
-        cookieId: form.cookieId ? Number(form.cookieId) : null,
         enabled: form.enabled,
         monitoringEnabled: form.monitoringEnabled,
       };
@@ -451,17 +444,6 @@ export default function ReportConfigsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {groups.map((g) => (<SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Cookie</Label>
-              <Select value={form.cookieId ? String(form.cookieId) : undefined} onValueChange={(val) => setForm({ ...form, cookieId: Number(val) })}>
-                <SelectTrigger className="w-full">
-                  <span className="flex flex-1 text-left">{form.cookieId ? cookies.find(c => c.id === Number(form.cookieId))?.label || `Cookie #${form.cookieId}` : 'Select a cookie (optional)'}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {cookies.map((c) => (<SelectItem key={c.id} value={String(c.id)}>{c.label || `Cookie #${c.id}`}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
