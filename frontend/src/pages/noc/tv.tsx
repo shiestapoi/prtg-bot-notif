@@ -99,9 +99,9 @@ export default function NocTvDashboardPage() {
   const [items, setItems] = useState<MonitoringSummaryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [clock, setClock] = useState(new Date());
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [hasInteracted, setHasInteracted] = useState(false);
-  const [spotlightEnabled, setSpotlightEnabled] = useState(true);
+  const [spotlightEnabled, setSpotlightEnabled] = useState(false);
   const { playAlarm, alarmType, setAlarmType } = useAlertSound();
 
   // SSE for real-time updates
