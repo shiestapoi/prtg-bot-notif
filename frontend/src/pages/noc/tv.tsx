@@ -56,7 +56,7 @@ const ALARM_FILES: Record<AlarmType, string> = {
 
 function useAlertSound() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [alarmType, setAlarmType] = useState<AlarmType>('siren');
+  const [alarmType, setAlarmType] = useState<AlarmType>('beep');
 
   /** Play the selected alarm sound file for ~5 seconds */
   const playAlarm = useCallback(() => {
@@ -174,6 +174,52 @@ export default function NocTvDashboardPage() {
     setSoundEnabled(true);
   };
 
+  // ─── Auto-rotate Spotlight ──────────────────────────────────────────────
+  // Cycle through ALL items sorted by lowest traffic, 3 seconds each.
+  // When any item is DOWN → stop spotlight and let the grid focus on DOWN items.
+  const [spotlightIndex, setSpotlightIndex] = useState(0);
+  const [spotlightVisible, setSpotlightVisible] = useState(false);
+
+  const allNormal = useMemo(() => items.length > 0 && !items.some((i) => i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC'), [items]);
+
+  // Items sorted by lowest total traffic (for spotlight rotation)
+  const spotlightItems = useMemo(() => {
+    return [...items].sort((a, b) => {
+      const aTraffic = a.lastMetric?.totalTrafficBitrate ?? 0;
+      const bTraffic = b.lastMetric?.totalTrafficBitrate ?? 0;
+      return aTraffic - bTraffic;
+    });
+  }, [items]);
+
+  useEffect(() => {
+    if (!allNormal || spotlightItems.length === 0) {
+      setSpotlightVisible(false);
+      return;
+    }
+
+    // Show spotlight for 3 seconds, hide for 1 second, then next
+    let timer: ReturnType<typeof setTimeout>;
+    const cycle = () => {
+      setSpotlightVisible(true);
+      timer = setTimeout(() => {
+        setSpotlightVisible(false);
+        timer = setTimeout(() => {
+          setSpotlightIndex((prev) => (prev + 1) % spotlightItems.length);
+        }, 1000); // 1s gap between items
+      }, 3000); // 3s display
+    };
+
+    cycle();
+    return () => clearTimeout(timer);
+  }, [spotlightIndex, allNormal, spotlightItems.length]);
+
+  // Reset index when items change
+  useEffect(() => {
+    setSpotlightIndex(0);
+  }, [items.length]);
+
+  const spotlightItem = spotlightItems[spotlightIndex] ?? null;
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-950 text-white">
@@ -184,33 +230,33 @@ export default function NocTvDashboardPage() {
 
   return (
     <div
-      className="min-h-screen bg-gray-950 text-white p-4 select-none"
+      className="min-h-screen bg-gray-950 text-white p-2 select-none text-[12px]"
       onClick={() => { if (!hasInteracted) handleEnableSound(); }}
     >
-      {/* Header Bar */}
-      <header className="flex items-center justify-between mb-4 px-2">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold tracking-tight">PRTG MONITORING</h1>
-          <div className="flex items-center gap-2">
-            <span className={`inline-block h-3 w-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
-            <span className="text-sm text-gray-400">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
+      {/* Header Bar — always on top */}
+      <header className="sticky top-0 z-[60] flex items-center justify-between mb-2 px-1 py-1 bg-gray-950/95 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <h1 className="text-base font-bold tracking-tight">PRTG MONITORING</h1>
+          <div className="flex items-center gap-1">
+            <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
+            <span className="text-[10px] text-gray-400">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
           {/* Status Summary */}
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-2 text-[10px]">
             {downCount > 0 && (
-              <span className="flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 font-bold animate-pulse">
+              <span className="flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 font-bold animate-pulse">
                 🔴 {downCount} DOWN
               </span>
             )}
             {warningCount > 0 && (
-              <span className="flex items-center gap-1 rounded-full bg-yellow-500 px-3 py-1 font-bold text-black">
+              <span className="flex items-center gap-1 rounded-full bg-yellow-500 px-2 py-0.5 font-bold text-black">
                 ⚠️ {warningCount}
               </span>
             )}
-            <span className="flex items-center gap-1 rounded-full bg-green-600 px-3 py-1 font-bold">
+            <span className="flex items-center gap-1 rounded-full bg-green-600 px-2 py-0.5 font-bold">
               ✅ {normalCount}
             </span>
           </div>
@@ -219,7 +265,7 @@ export default function NocTvDashboardPage() {
           <select
             value={alarmType}
             onChange={(e) => { e.stopPropagation(); setAlarmType(e.target.value as 'siren' | 'beep' | 'klaxon'); }}
-            className="rounded-lg bg-gray-700 px-2 py-1.5 text-sm font-medium text-white border-none outline-none cursor-pointer"
+            className="rounded bg-gray-700 px-1.5 py-1 text-[10px] font-medium text-white border-none outline-none cursor-pointer"
             onClick={(e) => e.stopPropagation()}
           >
             <option value="siren">🚨 Siren</option>
@@ -230,26 +276,26 @@ export default function NocTvDashboardPage() {
           {/* Sound Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); setSoundEnabled(!soundEnabled); setHasInteracted(true); }}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${soundEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+            className={`rounded px-2 py-1 text-[10px] font-medium transition ${soundEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600'}`}
           >
-            {soundEnabled ? '🔊 Sound ON' : '🔇 Sound OFF'}
+            {soundEnabled ? '🔊 ON' : '🔇 OFF'}
           </button>
 
           {/* Test Alarm */}
           <button
             onClick={(e) => { e.stopPropagation(); setHasInteracted(true); playAlarm(); }}
-            className="rounded-lg bg-red-700 hover:bg-red-600 px-3 py-1.5 text-sm font-medium transition"
+            className="rounded bg-red-700 hover:bg-red-600 px-2 py-1 text-[10px] font-medium transition"
           >
-            🚨 Test Alarm
+            🚨 Test
           </button>
 
           {/* Clock */}
           <div className="text-right">
-            <div className="text-2xl font-mono font-bold tabular-nums">
+            <div className="text-sm font-mono font-bold tabular-nums">
               {clock.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' })}
             </div>
-            <div className="text-xs text-gray-400">
-              {clock.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' })}
+            <div className="text-[9px] text-gray-400">
+              {clock.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' })}
             </div>
           </div>
         </div>
@@ -257,17 +303,71 @@ export default function NocTvDashboardPage() {
 
       {/* Sound Enable Prompt */}
       {!hasInteracted && (
-        <div className="mb-4 rounded-lg bg-blue-900/50 border border-blue-500 p-3 text-center text-sm text-blue-200">
+        <div className="mb-2 rounded bg-blue-900/50 border border-blue-500 p-2 text-center text-[10px] text-blue-200">
           Klik di mana saja untuk mengaktifkan alert sound
         </div>
       )}
 
       {/* Grid of Cards — 4 columns for TV */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         {sortedItems.map((item) => (
           <TvCard key={item.configId} item={item} />
         ))}
       </div>
+
+      {/* Spotlight Overlay — auto-rotate detail when no DOWN */}
+      {spotlightItem && allNormal && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-500 ${spotlightVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <div className={`w-[70vw] max-w-4xl rounded-xl bg-gray-900 border border-gray-700 p-4 shadow-2xl transition-all duration-500 ${spotlightVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-lg font-bold">{spotlightItem.title}</h2>
+                <p className="text-xs text-gray-400">{spotlightItem.groupName}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`rounded px-2 py-1 text-xs font-bold uppercase ${STATUS_COLORS[spotlightItem.lastStatus]}`}>
+                  {spotlightItem.lastStatus}
+                </span>
+                <span className="text-[10px] text-gray-500">
+                  {spotlightIndex + 1}/{spotlightItems.length}
+                </span>
+              </div>
+            </div>
+            {/* Large Chart */}
+            <div className="bg-white rounded-lg p-2 mb-3">
+              <img
+                src={`/api/monitoring/chart/${spotlightItem.sensorId}?t=${spotlightItem.lastPolledAt ?? ''}`}
+                alt={spotlightItem.title}
+                className="w-full h-auto rounded"
+              />
+            </div>
+            {/* Metrics */}
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-[10px] text-gray-500 uppercase">Total Traffic</div>
+                <div className="text-base font-bold">{formatBitrate(spotlightItem.lastMetric?.totalTrafficBitrate)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-gray-500 uppercase">Inbound</div>
+                <div className="text-base font-bold text-green-400">{formatBitrate(spotlightItem.lastMetric?.inboundBitrate)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-gray-500 uppercase">Outbound</div>
+                <div className="text-base font-bold text-blue-400">{formatBitrate(spotlightItem.lastMetric?.outboundBitrate)}</div>
+              </div>
+            </div>
+            {/* Progress bar — key resets animation on each new item */}
+            <div className="mt-3 h-1 rounded-full bg-gray-800 overflow-hidden">
+              {spotlightVisible && (
+                <div key={spotlightIndex} className="h-full bg-green-500 rounded-full" style={{ animation: 'shrink 3s linear forwards' }} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Spotlight progress bar animation */}
+      <style>{`@keyframes shrink { from { width: 100%; } to { width: 0%; } }`}</style>
     </div>
   );
 }
@@ -280,20 +380,20 @@ function TvCard({ item }: { item: MonitoringSummaryItem }) {
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
 
   return (
-    <div className={`rounded-xl border-2 ${STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 overflow-hidden transition-all ${isDown ? 'shadow-lg shadow-red-500/20' : ''}`}>
+    <div className={`rounded-lg border ${STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 overflow-hidden transition-all ${isDown ? 'shadow-md shadow-red-500/20' : ''}`}>
       {/* Title + Status */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+      <div className="flex items-center justify-between px-2 py-1 border-b border-gray-800">
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold truncate" title={item.title}>{item.title}</h3>
-          <p className="text-[10px] text-gray-500">{item.groupName}</p>
+          <h3 className="text-[11px] font-semibold truncate" title={item.title}>{item.title}</h3>
+          <p className="text-[9px] text-gray-500">{item.groupName}</p>
         </div>
-        <span className={`ml-2 shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+        <span className={`ml-1 shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
           {item.lastStatus.replace('_', ' ')}
         </span>
       </div>
 
       {/* Chart */}
-      <div className="bg-white p-1 mx-2 mt-2 rounded">
+      <div className="bg-white p-0.5 mx-1 mt-1 rounded">
         {!imgError ? (
           <img
             src={chartUrl}
@@ -303,28 +403,28 @@ function TvCard({ item }: { item: MonitoringSummaryItem }) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="flex h-16 items-center justify-center text-[10px] text-gray-400">No chart</div>
+          <div className="flex h-10 items-center justify-center text-[8px] text-gray-400">No chart</div>
         )}
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-3 gap-1 px-3 py-2 text-center">
+      <div className="grid grid-cols-3 gap-0.5 px-2 py-1 text-center">
         <div>
-          <div className="text-[9px] text-gray-500 uppercase">Total</div>
-          <div className="text-xs font-bold">{formatBitrate(item.lastMetric?.totalTrafficBitrate)}</div>
+          <div className="text-[8px] text-gray-500 uppercase">Total</div>
+          <div className="text-[10px] font-bold">{formatBitrate(item.lastMetric?.totalTrafficBitrate)}</div>
         </div>
         <div>
-          <div className="text-[9px] text-gray-500 uppercase">In</div>
-          <div className="text-xs font-bold text-green-400">{formatBitrate(item.lastMetric?.inboundBitrate)}</div>
+          <div className="text-[8px] text-gray-500 uppercase">In</div>
+          <div className="text-[10px] font-bold text-green-400">{formatBitrate(item.lastMetric?.inboundBitrate)}</div>
         </div>
         <div>
-          <div className="text-[9px] text-gray-500 uppercase">Out</div>
-          <div className="text-xs font-bold text-blue-400">{formatBitrate(item.lastMetric?.outboundBitrate)}</div>
+          <div className="text-[8px] text-gray-500 uppercase">Out</div>
+          <div className="text-[10px] font-bold text-blue-400">{formatBitrate(item.lastMetric?.outboundBitrate)}</div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="px-3 pb-2 text-[10px] text-gray-500 text-right">
+      <div className="px-2 pb-1 text-[8px] text-gray-500 text-right">
         {formatTime(item.lastPolledAt)}
       </div>
     </div>
