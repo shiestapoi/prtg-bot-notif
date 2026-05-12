@@ -101,6 +101,7 @@ export default function NocTvDashboardPage() {
   const [clock, setClock] = useState(new Date());
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [spotlightEnabled, setSpotlightEnabled] = useState(true);
   const { playAlarm, alarmType, setAlarmType } = useAlertSound();
 
   // SSE for real-time updates
@@ -192,7 +193,7 @@ export default function NocTvDashboardPage() {
   }, [items]);
 
   useEffect(() => {
-    if (!allNormal || spotlightItems.length === 0) {
+    if (!allNormal || !spotlightEnabled || spotlightItems.length === 0) {
       setSpotlightVisible(false);
       return;
     }
@@ -211,7 +212,7 @@ export default function NocTvDashboardPage() {
 
     cycle();
     return () => clearTimeout(timer);
-  }, [spotlightIndex, allNormal, spotlightItems.length]);
+  }, [spotlightIndex, allNormal, spotlightEnabled, spotlightItems.length]);
 
   // Reset index when items change
   useEffect(() => {
@@ -260,6 +261,14 @@ export default function NocTvDashboardPage() {
               ✅ {normalCount}
             </span>
           </div>
+
+          {/* Spotlight Toggle */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setSpotlightEnabled(!spotlightEnabled); }}
+            className={`rounded px-2 py-1 text-[10px] font-medium transition ${spotlightEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+          >
+            {spotlightEnabled ? '📺 Rotate ON' : '📺 Rotate OFF'}
+          </button>
 
           {/* Alarm Type Selector */}
           <select
@@ -316,7 +325,7 @@ export default function NocTvDashboardPage() {
       </div>
 
       {/* Spotlight Overlay — auto-rotate detail when no DOWN */}
-      {spotlightItem && allNormal && (
+      {spotlightEnabled && spotlightItem && allNormal && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-500 ${spotlightVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className={`w-[70vw] max-w-4xl rounded-xl bg-gray-900 border border-gray-700 p-4 shadow-2xl transition-all duration-500 ${spotlightVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}>
             <div className="flex items-center justify-between mb-3">
