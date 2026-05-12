@@ -9,6 +9,7 @@ import ReportSchedulesPage from '@/pages/report/schedules';
 import ReportRecipientsPage from '@/pages/report/recipients';
 import NocDashboardPage from '@/pages/noc/dashboard';
 import NocHistoryPage from '@/pages/noc/history';
+import NocTvDashboardPage from '@/pages/noc/tv';
 import MonitoringRecipientsPage from '@/pages/monitoring/recipients';
 import PrtgSettingPage from '@/pages/settings/prtg-setting';
 import WhatsappPage from '@/pages/settings/whatsapp';
@@ -18,6 +19,11 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  // TV Dashboard — standalone, no shell/sidebar (full-screen for TV browser)
+  {
+    path: '/tv',
+    element: <NocTvDashboardPage />,
   },
   {
     path: '/',

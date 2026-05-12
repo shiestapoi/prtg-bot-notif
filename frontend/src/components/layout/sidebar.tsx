@@ -8,6 +8,7 @@ import {
   Monitor,
   History,
   Bell,
+  Tv,
   Settings,
   MessageCircle,
   LogOut,
@@ -34,6 +35,7 @@ const reportNavItems: NavItem[] = [
 
 const nocNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/noc/dashboard', icon: LayoutDashboard },
+  { label: 'TV Display', href: '/tv', icon: Tv },
   { label: 'History', href: '/noc/history', icon: History },
   { label: 'Alert Recipients', href: '/monitoring/recipients', icon: Bell },
 ];
