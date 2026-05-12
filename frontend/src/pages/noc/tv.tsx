@@ -143,17 +143,8 @@ export default function NocTvDashboardPage() {
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
-  // Play alarm when DOWN is first detected
-  const hasDown = useMemo(() => items.some((i) => i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC'), [items]);
+  // Play alarm when DOWN is first detected (effect runs after hasDown is computed below)
   const prevHasDownRef = useRef(false);
-
-  useEffect(() => {
-    // Only trigger alarm on transition from no-down to has-down
-    if (hasDown && !prevHasDownRef.current && soundEnabled) {
-      playAlarm();
-    }
-    prevHasDownRef.current = hasDown;
-  }, [hasDown, soundEnabled, playAlarm]);
 
   // Sort items: DOWN first, then by status priority
   const sortedItems = useMemo(() => {
@@ -176,15 +167,24 @@ export default function NocTvDashboardPage() {
   };
 
   // ─── Auto-rotate Spotlight ──────────────────────────────────────────────
-  // Cycle through ALL items sorted by lowest traffic, 3 seconds each.
-  // When any item is DOWN → stop spotlight and let the grid focus on DOWN items.
+  // Normal mode: cycle ALL items sorted by lowest traffic, 3s each.
+  // If any status changes to warning (LOW_TRAFFIC etc) → reset to start.
+  // DOWN mode: only show DOWN/NO_TRAFFIC items, 10s each.
   const [spotlightIndex, setSpotlightIndex] = useState(0);
   const [spotlightVisible, setSpotlightVisible] = useState(false);
 
-  const allNormal = useMemo(() => items.length > 0 && !items.some((i) => i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC'), [items]);
+  const hasDown = useMemo(() => items.some((i) => i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC'), [items]);
 
-  // Items sorted by lowest total traffic (for spotlight rotation)
-  const spotlightItems = useMemo(() => {
+  // Play alarm when DOWN is first detected
+  useEffect(() => {
+    if (hasDown && !prevHasDownRef.current && soundEnabled) {
+      playAlarm();
+    }
+    prevHasDownRef.current = hasDown;
+  }, [hasDown, soundEnabled, playAlarm]);
+
+  // Items for normal rotation (all items, sorted by lowest traffic)
+  const normalSpotlightItems = useMemo(() => {
     return [...items].sort((a, b) => {
       const aTraffic = a.lastMetric?.totalTrafficBitrate ?? 0;
       const bTraffic = b.lastMetric?.totalTrafficBitrate ?? 0;
@@ -192,13 +192,38 @@ export default function NocTvDashboardPage() {
     });
   }, [items]);
 
+  // Items for DOWN mode (only DOWN/NO_TRAFFIC items)
+  const downSpotlightItems = useMemo(() => {
+    return items.filter((i) => i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC');
+  }, [items]);
+
+  // Active spotlight list and duration based on mode
+  const spotlightItems = hasDown ? downSpotlightItems : normalSpotlightItems;
+  const spotlightDuration = hasDown ? 10000 : 3000;
+
+  // Reset index when switching between normal/down mode or when a warning appears
+  const prevHasDownForSpotlight = useRef(hasDown);
+  const prevWarningCount = useRef(warningCount);
+
   useEffect(() => {
-    if (!allNormal || !spotlightEnabled || spotlightItems.length === 0) {
+    // Reset on mode switch (normal ↔ down)
+    if (prevHasDownForSpotlight.current !== hasDown) {
+      setSpotlightIndex(0);
+      prevHasDownForSpotlight.current = hasDown;
+    }
+    // Reset when warning count increases (new LOW_TRAFFIC detected)
+    if (!hasDown && warningCount > prevWarningCount.current) {
+      setSpotlightIndex(0);
+    }
+    prevWarningCount.current = warningCount;
+  }, [hasDown, warningCount]);
+
+  useEffect(() => {
+    if (!spotlightEnabled || spotlightItems.length === 0) {
       setSpotlightVisible(false);
       return;
     }
 
-    // Show spotlight for 3 seconds, hide for 1 second, then next
     let timer: ReturnType<typeof setTimeout>;
     const cycle = () => {
       setSpotlightVisible(true);
@@ -206,18 +231,13 @@ export default function NocTvDashboardPage() {
         setSpotlightVisible(false);
         timer = setTimeout(() => {
           setSpotlightIndex((prev) => (prev + 1) % spotlightItems.length);
-        }, 1000); // 1s gap between items
-      }, 3000); // 3s display
+        }, 1000); // 1s gap
+      }, spotlightDuration);
     };
 
     cycle();
     return () => clearTimeout(timer);
-  }, [spotlightIndex, allNormal, spotlightEnabled, spotlightItems.length]);
-
-  // Reset index when items change
-  useEffect(() => {
-    setSpotlightIndex(0);
-  }, [items.length]);
+  }, [spotlightIndex, spotlightEnabled, spotlightItems.length, spotlightDuration]);
 
   const spotlightItem = spotlightItems[spotlightIndex] ?? null;
 
@@ -324,10 +344,10 @@ export default function NocTvDashboardPage() {
         ))}
       </div>
 
-      {/* Spotlight Overlay — auto-rotate detail when no DOWN */}
-      {spotlightEnabled && spotlightItem && allNormal && (
+      {/* Spotlight Overlay — auto-rotate detail */}
+      {spotlightEnabled && spotlightItem && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-500 ${spotlightVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          <div className={`w-[70vw] max-w-4xl rounded-xl bg-gray-900 border border-gray-700 p-4 shadow-2xl transition-all duration-500 ${spotlightVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}>
+          <div className={`w-[70vw] max-w-4xl rounded-xl bg-gray-900 border ${hasDown ? 'border-red-500' : 'border-gray-700'} p-4 shadow-2xl transition-all duration-500 ${spotlightVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h2 className="text-lg font-bold">{spotlightItem.title}</h2>
@@ -368,7 +388,7 @@ export default function NocTvDashboardPage() {
             {/* Progress bar — key resets animation on each new item */}
             <div className="mt-3 h-1 rounded-full bg-gray-800 overflow-hidden">
               {spotlightVisible && (
-                <div key={spotlightIndex} className="h-full bg-green-500 rounded-full" style={{ animation: 'shrink 3s linear forwards' }} />
+                <div key={spotlightIndex} className={`h-full rounded-full ${hasDown ? 'bg-red-500' : 'bg-green-500'}`} style={{ animation: `shrink ${spotlightDuration / 1000}s linear forwards` }} />
               )}
             </div>
           </div>
