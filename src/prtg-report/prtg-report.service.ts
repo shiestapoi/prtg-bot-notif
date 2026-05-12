@@ -148,6 +148,12 @@ type ConfigWithGroup = {
   groupId: number;
   group: { name: string; enabled: boolean };
   lastStatus: string;
+  // Monitoring notification switches
+  notifyDown: boolean;
+  notifyNoTraffic: boolean;
+  notifyLowTraffic: boolean;
+  notifyFlapping: boolean;
+  notifyRecovery: boolean;
 };
 
 // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
@@ -1204,41 +1210,60 @@ export class PrtgReportService {
           settings,
         );
 
-        // Check if config is in anomaly state — use monitoring alert template instead
-        const isAnomalyStatus = config.lastStatus !== 'NORMAL';
-        const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' });
+
+        // Fetch latest monitoring data for traffic info
+        let bitrateStr = '—';
+        let trafficInStr = '—';
+        let trafficOutStr = '—';
+        let reasonStr = '';
+        const latestHistory = await this.prisma.monitoringHistory.findFirst({
+          where: { configId: config.id },
+          orderBy: { timestamp: 'desc' },
+        });
+        if (latestHistory?.totalTrafficBitrate) {
+          bitrateStr = `${(latestHistory.totalTrafficBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
+        }
+        if (latestHistory?.inboundBitrate) {
+          trafficInStr = `${(latestHistory.inboundBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
+        }
+        if (latestHistory?.outboundBitrate) {
+          trafficOutStr = `${(latestHistory.outboundBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
+        }
+        if (latestHistory?.errorMessage) {
+          reasonStr = latestHistory.errorMessage;
+        }
+
+        // Determine if this config is in anomaly AND notification for that status is enabled
+        const isAnomalyWithNotify = this.isAnomalyWithNotifyEnabled(config);
 
         let caption: string;
-        if (isAnomalyStatus) {
-          // Use alert template for configs that are DOWN/NO_TRAFFIC/LOW_TRAFFIC
+        if (isAnomalyWithNotify) {
+          // Use alert template — config is in anomaly state and notify is enabled for that status
           const alertTemplate = settings.alertMessageTemplate ??
-            '━━━━━━━━━━━━━━━━\n⚠️ *ALERT: {status}*\n━━━━━━━━━━━━━━━━\n📍 {title}\n🏢 {groupName}\n⏰ {time}\n━━━━━━━━━━━━━━━━';
+            '━━━━━━━━━━━━━━━━\n⚠️ *ALERT: {status}*\n━━━━━━━━━━━━━━━━\n📍 {title}\n🏢 {groupName}\n⏰ {time} WIB\n📊 Traffic Total: {bitrate}\n📥 Traffic In: {trafficIn}\n📤 Traffic Out: {trafficOut}\n💬 {reason}\n━━━━━━━━━━━━━━━━';
           caption = alertTemplate
             .replace(/\{title\}/g, config.title)
             .replace(/\{groupName\}/g, config.group.name)
+            .replace(/\{groupname\}/g, config.group.name)
             .replace(/\{status\}/g, config.lastStatus)
             .replace(/\{time\}/g, timeStr)
-            .replace(/\{bitrate\}/g, '—')
-            .replace(/\{trafficIn\}/g, '—')
-            .replace(/\{trafficOut\}/g, '—')
-            .replace(/\{reason\}/g, `Status: ${config.lastStatus}`);
+            .replace(/\{bitrate\}/g, bitrateStr)
+            .replace(/\{trafficIn\}/g, trafficInStr)
+            .replace(/\{trafficOut\}/g, trafficOutStr)
+            .replace(/\{reason\}/g, reasonStr || `Status: ${config.lastStatus}`);
         } else {
-          // Normal report template — include latest traffic data if available
-          let bitrateStr = '—';
-          const latestHistory = await this.prisma.monitoringHistory.findFirst({
-            where: { configId: config.id },
-            orderBy: { timestamp: 'desc' },
-          });
-          if (latestHistory?.totalTrafficBitrate) {
-            bitrateStr = `${(latestHistory.totalTrafficBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
-          }
-
-          const values = {
+          // Normal report template
+          const values: Record<string, string> = {
             title: config.title,
             groupname: config.group.name,
+            groupName: config.group.name,
             url: requestUrl,
             time: timeStr,
             bitrate: bitrateStr,
+            trafficIn: trafficInStr,
+            trafficOut: trafficOutStr,
+            status: config.lastStatus,
           };
           caption = this.renderMessageTemplate(settings.messageTemplate, values);
         }
@@ -1331,6 +1356,28 @@ export class PrtgReportService {
 
   private isPrivateRecipient(targetType: string) {
     return targetType === 'contact' || targetType === 'manual';
+  }
+
+  /**
+   * Checks if a config is in anomaly state AND the notification for that specific
+   * status is enabled in the config's monitoring switches.
+   * Used by schedule dispatch to decide whether to use alert template.
+   */
+  private isAnomalyWithNotifyEnabled(config: ConfigWithGroup): boolean {
+    const status = config.lastStatus;
+    if (status === 'NORMAL') return false;
+
+    switch (status) {
+      case 'DOWN':
+      case 'NO_TRAFFIC':
+        return config.notifyDown;
+      case 'LOW_TRAFFIC':
+        return config.notifyLowTraffic;
+      case 'POSSIBLE_FLAPPING':
+        return config.notifyFlapping;
+      default:
+        return false;
+    }
   }
 
   // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
