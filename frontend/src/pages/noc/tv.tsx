@@ -13,7 +13,7 @@ function formatBitrate(bitrate: number | null | undefined): string {
 
 function formatTime(dateStr: string | null): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date(dateStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' });
 }
 
 /** Priority for sorting — lower number = more critical = shown first */
@@ -246,10 +246,10 @@ export default function NocTvDashboardPage() {
           {/* Clock */}
           <div className="text-right">
             <div className="text-2xl font-mono font-bold tabular-nums">
-              {clock.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              {clock.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' })}
             </div>
             <div className="text-xs text-gray-400">
-              {clock.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
+              {clock.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' })}
             </div>
           </div>
         </div>
@@ -262,8 +262,8 @@ export default function NocTvDashboardPage() {
         </div>
       )}
 
-      {/* Grid of Cards */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      {/* Grid of Cards — single column list for TV readability */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {sortedItems.map((item) => (
           <TvCard key={item.configId} item={item} />
         ))}
