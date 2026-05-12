@@ -262,8 +262,8 @@ export default function NocTvDashboardPage() {
         </div>
       )}
 
-      {/* Grid of Cards — single column list for TV readability */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      {/* Grid of Cards — 4 columns for TV */}
+      <div className="grid grid-cols-4 gap-3">
         {sortedItems.map((item) => (
           <TvCard key={item.configId} item={item} />
         ))}
