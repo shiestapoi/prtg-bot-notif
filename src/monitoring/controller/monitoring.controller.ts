@@ -230,7 +230,7 @@ export class MonitoringController {
       }
 
       res.set('Content-Type', 'image/png');
-      res.set('Cache-Control', 'no-cache, max-age=0');
+      res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
       res.send(Buffer.from(response.data));
     } catch (error) {
       res

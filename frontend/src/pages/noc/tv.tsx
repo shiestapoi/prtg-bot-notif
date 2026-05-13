@@ -16,6 +16,26 @@ function formatTime(dateStr: string | null): string {
   return new Date(dateStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' });
 }
 
+/** Format duration from a date string to now (e.g., "2j 15m") */
+function formatDuration(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  if (diff < 0) return '';
+  const totalMin = Math.floor(diff / 60000);
+  if (totalMin < 1) return '<1m';
+  const hours = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  if (hours > 0) return `${hours}j ${mins}m`;
+  return `${mins}m`;
+}
+
+/** Event ticker entry */
+interface TickerEvent {
+  id: string;
+  text: string;
+  timestamp: number;
+}
+
 /** Priority for sorting — lower number = more critical = shown first */
 const STATUS_PRIORITY: Record<NocStatus, number> = {
   DOWN: 0,
@@ -43,6 +63,71 @@ const STATUS_CARD_BORDER: Record<NocStatus, string> = {
   LOW_TRAFFIC: 'border-yellow-300',
   NORMAL: 'border-gray-700',
 };
+
+// ─── Wake Lock (prevent screen sleep) ───────────────────────────────────────
+
+function useWakeLock() {
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const [isActive, setIsActive] = useState(false);
+
+  const requestWakeLock = useCallback(async () => {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request('screen');
+      setIsActive(true);
+      wakeLockRef.current.addEventListener('release', () => {
+        setIsActive(false);
+      });
+    } catch {
+      // Wake Lock request failed (e.g., low battery)
+      setIsActive(false);
+    }
+  }, []);
+
+  // Request wake lock on mount and re-acquire when page becomes visible again
+  useEffect(() => {
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    };
+  }, [requestWakeLock]);
+
+  return { isWakeLockActive: isActive };
+}
+
+// ─── Fullscreen ─────────────────────────────────────────────────────────────
+
+function useFullscreen() {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  return { isFullscreen, toggleFullscreen };
+}
 
 // ─── Alert Sound ────────────────────────────────────────────────────────────
 
@@ -99,10 +184,17 @@ export default function NocTvDashboardPage() {
   const [items, setItems] = useState<MonitoringSummaryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [clock, setClock] = useState(new Date());
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [spotlightEnabled, setSpotlightEnabled] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
+  const [tickerEvents, setTickerEvents] = useState<TickerEvent[]>([]);
   const { playAlarm, alarmType, setAlarmType } = useAlertSound();
+  const { isWakeLockActive } = useWakeLock();
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
+
+  // ─── Auto-reload on prolonged disconnect ────────────────────────────────
+  const disconnectedSinceRef = useRef<number | null>(null);
 
   // SSE for real-time updates
   const onStatusChange = useCallback((event: MonitoringStatusEvent) => {
@@ -114,7 +206,21 @@ export default function NocTvDashboardPage() {
       ),
     );
 
-    // Play alert sound on new DOWN event (5 seconds)
+    // Add to ticker
+    const timeStr = new Date(event.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+    let tickerText = '';
+    if (event.currentStatus === 'DOWN' || event.currentStatus === 'NO_TRAFFIC') {
+      tickerText = `${timeStr} — ${event.configTitle} [${event.groupName}] went ${event.currentStatus.replace('_', ' ')}`;
+    } else if (event.currentStatus === 'NORMAL' && event.previousStatus !== 'NORMAL') {
+      tickerText = `${timeStr} — ${event.configTitle} [${event.groupName}] recovered ✓`;
+    } else if (event.currentStatus !== 'NORMAL') {
+      tickerText = `${timeStr} — ${event.configTitle} [${event.groupName}] → ${event.currentStatus.replace('_', ' ')}`;
+    }
+    if (tickerText) {
+      setTickerEvents((prev) => [{ id: `${event.configId}-${event.timestamp}`, text: tickerText, timestamp: Date.now() }, ...prev].slice(0, 20));
+    }
+
+    // Play alert sound on new DOWN event
     if (event.currentStatus === 'DOWN' && event.previousStatus !== 'DOWN' && soundEnabled) {
       playAlarm();
     }
@@ -122,13 +228,35 @@ export default function NocTvDashboardPage() {
 
   const { isConnected } = useMonitoringSSE(onStatusChange);
 
+  // Auto-reload if disconnected for more than 30 seconds
+  useEffect(() => {
+    if (!isConnected) {
+      if (disconnectedSinceRef.current === null) {
+        disconnectedSinceRef.current = Date.now();
+      }
+    } else {
+      disconnectedSinceRef.current = null;
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      const timer = setInterval(() => {
+        if (disconnectedSinceRef.current && Date.now() - disconnectedSinceRef.current > 30000) {
+          window.location.reload();
+        }
+      }, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [isConnected]);
+
   // Clock update every second
   useEffect(() => {
     const timer = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch initial data + auto-refresh every 15 seconds
+  // Fetch initial data only (real-time updates via SSE)
   useEffect(() => {
     let cancelled = false;
     async function fetchSummary() {
@@ -139,8 +267,7 @@ export default function NocTvDashboardPage() {
       finally { if (!cancelled) setLoading(false); }
     }
     fetchSummary();
-    const interval = setInterval(fetchSummary, 15000);
-    return () => { cancelled = true; clearInterval(interval); };
+    return () => { cancelled = true; };
   }, []);
 
   // Play alarm when DOWN is first detected (effect runs after hasDown is computed below)
@@ -160,7 +287,28 @@ export default function NocTvDashboardPage() {
   const normalCount = useMemo(() => items.filter((i) => i.lastStatus === 'NORMAL').length, [items]);
   const warningCount = useMemo(() => items.length - downCount - normalCount, [items, downCount, normalCount]);
 
-  // Enable sound on first user interaction
+  // Group list for filter tabs
+  const groups = useMemo(() => {
+    const set = new Set(items.map((i) => i.groupName));
+    return ['ALL', ...Array.from(set).sort()];
+  }, [items]);
+
+  // Filter items by selected group
+  const filteredItems = useMemo(() => {
+    if (selectedGroup === 'ALL') return sortedItems;
+    return sortedItems.filter((i) => i.groupName === selectedGroup);
+  }, [sortedItems, selectedGroup]);
+
+  // Adaptive grid columns based on item count
+  const gridCols = useMemo(() => {
+    const count = filteredItems.length;
+    if (count <= 4) return 'grid-cols-2';
+    if (count <= 9) return 'grid-cols-3';
+    if (count <= 16) return 'grid-cols-4';
+    return 'grid-cols-5';
+  }, [filteredItems.length]);
+
+  // Enable sound on first user interaction (satisfies browser autoplay policy)
   const handleEnableSound = () => {
     setHasInteracted(true);
     setSoundEnabled(true);
@@ -251,9 +399,20 @@ export default function NocTvDashboardPage() {
 
   return (
     <div
-      className="min-h-screen bg-gray-950 text-white p-2 select-none text-[12px]"
+      className={`min-h-screen text-white p-2 select-none text-[12px] transition-colors duration-700 ${hasDown ? 'bg-gray-950 bg-gradient-to-br from-red-950/30 to-gray-950' : 'bg-gray-950'}`}
       onClick={() => { if (!hasInteracted) handleEnableSound(); }}
     >
+      {/* Connection Lost Overlay */}
+      {!isConnected && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="text-center">
+            <div className="text-4xl mb-3 animate-pulse">📡</div>
+            <h2 className="text-xl font-bold text-red-400 mb-1">CONNECTION LOST</h2>
+            <p className="text-sm text-gray-400">Reconnecting... Auto-reload dalam 30 detik</p>
+          </div>
+        </div>
+      )}
+
       {/* Header Bar — always on top */}
       <header className="sticky top-0 z-[60] flex items-center justify-between mb-2 px-1 py-1 bg-gray-950/95 backdrop-blur-sm">
         <div className="flex items-center gap-3">
@@ -261,6 +420,10 @@ export default function NocTvDashboardPage() {
           <div className="flex items-center gap-1">
             <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
             <span className="text-[10px] text-gray-400">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className={`inline-block h-2 w-2 rounded-full ${isWakeLockActive ? 'bg-cyan-400' : 'bg-gray-600'}`} />
+            <span className="text-[10px] text-gray-400">{isWakeLockActive ? 'AWAKE' : 'NO LOCK'}</span>
           </div>
         </div>
 
@@ -282,6 +445,14 @@ export default function NocTvDashboardPage() {
             </span>
           </div>
 
+          {/* Fullscreen Toggle */}
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+            className="rounded bg-gray-700 hover:bg-gray-600 px-2 py-1 text-[10px] font-medium transition"
+          >
+            {isFullscreen ? '⬜ Exit' : '⛶ Full'}
+          </button>
+
           {/* Spotlight Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); setSpotlightEnabled(!spotlightEnabled); }}
@@ -290,17 +461,18 @@ export default function NocTvDashboardPage() {
             {spotlightEnabled ? '📺 Rotate ON' : '📺 Rotate OFF'}
           </button>
 
-          {/* Alarm Type Selector */}
-          <select
-            value={alarmType}
-            onChange={(e) => { e.stopPropagation(); setAlarmType(e.target.value as 'siren' | 'beep' | 'klaxon'); }}
-            className="rounded bg-gray-700 px-1.5 py-1 text-[10px] font-medium text-white border-none outline-none cursor-pointer"
-            onClick={(e) => e.stopPropagation()}
+          {/* Alarm Type Selector — cycle button (TV-friendly, no dropdown) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const types: AlarmType[] = ['siren', 'beep', 'klaxon'];
+              const currentIdx = types.indexOf(alarmType);
+              setAlarmType(types[(currentIdx + 1) % types.length]);
+            }}
+            className="rounded bg-gray-700 hover:bg-gray-600 px-2 py-1 text-[10px] font-medium transition"
           >
-            <option value="siren">🚨 Siren</option>
-            <option value="beep">🔔 Beep</option>
-            <option value="klaxon">📢 Klaxon</option>
-          </select>
+            {alarmType === 'siren' ? '🚨 Siren' : alarmType === 'beep' ? '🔔 Beep' : '📢 Klaxon'}
+          </button>
 
           {/* Sound Toggle */}
           <button
@@ -337,12 +509,40 @@ export default function NocTvDashboardPage() {
         </div>
       )}
 
-      {/* Grid of Cards — 4 columns for TV */}
-      <div className="grid grid-cols-4 gap-2">
-        {sortedItems.map((item) => (
-          <TvCard key={item.configId} item={item} />
+      {/* Group Filter Tabs */}
+      {groups.length > 2 && (
+        <div className="flex items-center gap-1 mb-2 overflow-x-auto pb-1">
+          {groups.map((group) => (
+            <button
+              key={group}
+              onClick={(e) => { e.stopPropagation(); setSelectedGroup(group); }}
+              className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-medium transition ${selectedGroup === group ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+            >
+              {group}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Grid of Cards — adaptive columns */}
+      <div className={`grid ${gridCols} gap-2`}>
+        {filteredItems.map((item) => (
+          <TvCard key={item.configId} item={item} now={clock} />
         ))}
       </div>
+
+      {/* Event Ticker — bottom bar */}
+      {tickerEvents.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-[55] bg-gray-900/95 border-t border-gray-800 px-3 py-1.5 overflow-hidden">
+          <div className="flex items-center gap-4 animate-ticker">
+            {tickerEvents.slice(0, 10).map((evt) => (
+              <span key={evt.id} className="shrink-0 text-[10px] text-gray-300">
+                {evt.text}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Spotlight Overlay — auto-rotate detail */}
       {spotlightEnabled && spotlightItem && (
@@ -395,18 +595,36 @@ export default function NocTvDashboardPage() {
         </div>
       )}
 
-      {/* Spotlight progress bar animation */}
-      <style>{`@keyframes shrink { from { width: 100%; } to { width: 0%; } }`}</style>
+      {/* Animations */}
+      <style>{`
+        @keyframes shrink { from { width: 100%; } to { width: 0%; } }
+        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .animate-ticker { animation: ticker 30s linear infinite; }
+      `}</style>
     </div>
   );
 }
 
 // ─── TV Card ────────────────────────────────────────────────────────────────
 
-function TvCard({ item }: { item: MonitoringSummaryItem }) {
+function TvCard({ item, now }: { item: MonitoringSummaryItem; now: Date }) {
   const [imgError, setImgError] = useState(false);
-  const chartUrl = `/api/monitoring/chart/${item.sensorId}?t=${item.lastPolledAt ?? ''}`;
+  const prevPolledAtRef = useRef(item.lastPolledAt);
+  const [cachedChartUrl, setCachedChartUrl] = useState(`/api/monitoring/chart/${item.sensorId}?t=${item.lastPolledAt ?? ''}`);
+
+  // Only update chart URL when lastPolledAt actually changes (image caching)
+  useEffect(() => {
+    if (item.lastPolledAt !== prevPolledAtRef.current) {
+      prevPolledAtRef.current = item.lastPolledAt;
+      setCachedChartUrl(`/api/monitoring/chart/${item.sensorId}?t=${item.lastPolledAt ?? ''}`);
+      setImgError(false);
+    }
+  }, [item.lastPolledAt, item.sensorId]);
+
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
+  const duration = formatDuration(item.lastPolledAt);
+  // Suppress unused var warning — now is used to trigger re-render for duration
+  void now;
 
   return (
     <div className={`rounded-lg border ${STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 overflow-hidden transition-all ${isDown ? 'shadow-md shadow-red-500/20' : ''}`}>
@@ -416,16 +634,21 @@ function TvCard({ item }: { item: MonitoringSummaryItem }) {
           <h3 className="text-[11px] font-semibold truncate" title={item.title}>{item.title}</h3>
           <p className="text-[9px] text-gray-500">{item.groupName}</p>
         </div>
-        <span className={`ml-1 shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
-          {item.lastStatus.replace('_', ' ')}
-        </span>
+        <div className="flex flex-col items-end gap-0.5">
+          <span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+            {item.lastStatus.replace('_', ' ')}
+          </span>
+          {item.lastStatus !== 'NORMAL' && duration && (
+            <span className="text-[8px] text-gray-400">{duration}</span>
+          )}
+        </div>
       </div>
 
       {/* Chart */}
       <div className="bg-white p-0.5 mx-1 mt-1 rounded">
         {!imgError ? (
           <img
-            src={chartUrl}
+            src={cachedChartUrl}
             alt={item.title}
             className="w-full h-auto rounded"
             loading="lazy"
