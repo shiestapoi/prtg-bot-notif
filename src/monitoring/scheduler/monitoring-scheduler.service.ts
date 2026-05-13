@@ -663,13 +663,21 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
     }
 
     // Step 7: Broadcast SSE event
+    // If notifyLowTraffic is disabled, broadcast LOW_TRAFFIC as NORMAL for display purposes
+    const displayStatus = (classification.status === NocStatus.LOW_TRAFFIC && !config.notifyLowTraffic)
+      ? NocStatus.NORMAL
+      : classification.status;
+    const displayPreviousStatus = (previousStatus === NocStatus.LOW_TRAFFIC && !config.notifyLowTraffic)
+      ? NocStatus.NORMAL
+      : previousStatus;
+
     this.eventService.emit({
       type: 'status_change',
       configId: config.id,
       configTitle: config.title,
       groupName: configRecord.group.name,
-      previousStatus,
-      currentStatus: classification.status,
+      previousStatus: displayPreviousStatus,
+      currentStatus: displayStatus,
       timestamp: now.toISOString(),
       metric: metric
         ? {

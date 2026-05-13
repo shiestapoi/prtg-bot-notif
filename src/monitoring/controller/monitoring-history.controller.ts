@@ -57,12 +57,18 @@ export class MonitoringHistoryController {
           orderBy: { timestamp: 'desc' },
         });
 
+        // If notifyLowTraffic is disabled, treat LOW_TRAFFIC as NORMAL for display
+        let displayStatus = config.lastStatus;
+        if (displayStatus === 'LOW_TRAFFIC' && !config.notifyLowTraffic) {
+          displayStatus = 'NORMAL';
+        }
+
         return {
           configId: config.id,
           title: config.title,
           groupName: config.group.name,
           sensorId: config.sensorId,
-          lastStatus: config.lastStatus,
+          lastStatus: displayStatus,
           lastPolledAt: config.lastPolledAt?.toISOString() ?? null,
           lastMetric: latestHistory
             ? {
