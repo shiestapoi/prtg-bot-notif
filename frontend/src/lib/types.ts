@@ -227,22 +227,7 @@ export interface MonitoringSummaryItem {
   sensorId: number;
   lastStatus: NocStatus;
   lastPolledAt: string | null;
-  lastMetric: {
-    totalTrafficBitrate: number | null;
-    inboundBitrate: number | null;
-    outboundBitrate: number | null;
-  } | null;
-}
-
-// ─── Monitoring Summary ─────────────────────────────────────────────────────
-
-export interface MonitoringSummaryItem {
-  configId: number;
-  title: string;
-  groupName: string;
-  sensorId: number;
-  lastStatus: NocStatus;
-  lastPolledAt: string | null;
+  downCountThisMonth: number;
   lastMetric: {
     totalTrafficBitrate: number | null;
     inboundBitrate: number | null;

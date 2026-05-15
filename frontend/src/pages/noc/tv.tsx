@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { useMonitoringSSE } from '@/hooks/use-sse';
 import { monitoringApi } from '@/lib/api';
 import type { MonitoringSummaryItem, MonitoringStatusEvent, NocStatus } from '@/lib/types';
+import Loader from '@/components/ui/loader';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -27,13 +28,6 @@ function formatDuration(dateStr: string | null): string {
   const mins = totalMin % 60;
   if (hours > 0) return `${hours}j ${mins}m`;
   return `${mins}m`;
-}
-
-/** Event ticker entry */
-interface TickerEvent {
-  id: string;
-  text: string;
-  timestamp: number;
 }
 
 /** Priority for sorting — lower number = more critical = shown first */
@@ -131,19 +125,53 @@ function useFullscreen() {
 
 // ─── Alert Sound ────────────────────────────────────────────────────────────
 
-type AlarmType = 'siren' | 'beep' | 'klaxon';
+type AlarmType = 'beep' | 'sshh' | 'alarm3' | 'fahhh' | 'alarm2';
 
 const ALARM_FILES: Record<AlarmType, string> = {
-  siren: '/sounds/siren.wav',
   beep: '/sounds/beep.wav',
-  klaxon: '/sounds/klaxon.wav',
+  sshh: '/sounds/sshh.wav',
+  alarm3: '/sounds/alarm3.wav',
+  fahhh: '/sounds/fahhh.wav',
+  alarm2: '/sounds/alarm2.wav',
+};
+
+const ALARM_LABELS: Record<AlarmType, string> = {
+  beep: '🔔 Beep',
+  sshh: '🤫 Sshh',
+  alarm3: '🚨 Alarm 3',
+  fahhh: '😱 Fahhh',
+  alarm2: '⚠️ Alarm 2',
 };
 
 function useAlertSound() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [alarmType, setAlarmType] = useState<AlarmType>('beep');
+  // Read initial alarm type from cookie, default to 'beep'
+  const [alarmType, setAlarmTypeState] = useState<AlarmType>(() => {
+    const match = document.cookie.match(/(?:^|; )alarmType=([^;]*)/);
+    const saved = match ? decodeURIComponent(match[1]) : null;
+    return (saved && saved in ALARM_FILES) ? saved as AlarmType : 'alarm3';
+  });
+  const preloadedRef = useRef<Map<AlarmType, HTMLAudioElement>>(new Map());
 
-  /** Play the selected alarm sound file for ~5 seconds */
+  // Save alarm type to cookie when changed (expires in 1 year)
+  const setAlarmType = useCallback((type: AlarmType) => {
+    setAlarmTypeState(type);
+    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `alarmType=${encodeURIComponent(type)}; expires=${expires}; path=/`;
+  }, []);
+
+  // Preload all alarm sound files on mount
+  useEffect(() => {
+    const entries = Object.entries(ALARM_FILES) as [AlarmType, string][];
+    entries.forEach(([type, src]) => {
+      const audio = new Audio(src);
+      audio.preload = 'auto';
+      audio.load();
+      preloadedRef.current.set(type, audio);
+    });
+  }, []);
+
+  /** Play the selected alarm sound file */
   const playAlarm = useCallback(() => {
     // Stop any currently playing sound
     if (audioRef.current) {
@@ -151,7 +179,9 @@ function useAlertSound() {
       audioRef.current.currentTime = 0;
     }
 
-    const audio = new Audio(ALARM_FILES[alarmType]);
+    // Use preloaded audio if available, otherwise create new
+    const preloaded = preloadedRef.current.get(alarmType);
+    const audio = preloaded ? preloaded.cloneNode(true) as HTMLAudioElement : new Audio(ALARM_FILES[alarmType]);
     audio.volume = 0.7;
     audioRef.current = audio;
     audio.play().catch(() => {
@@ -180,15 +210,17 @@ function useAlertSound() {
 
 // ─── TV Dashboard Page ──────────────────────────────────────────────────────
 
+type ViewMode = 'grid' | 'compact' | 'list';
+
 export default function NocTvDashboardPage() {
   const [items, setItems] = useState<MonitoringSummaryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [clock, setClock] = useState(new Date());
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [spotlightEnabled, setSpotlightEnabled] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
-  const [tickerEvents, setTickerEvents] = useState<TickerEvent[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [alarmModalOpen, setAlarmModalOpen] = useState(false);
   const { playAlarm, alarmType, setAlarmType } = useAlertSound();
   const { isWakeLockActive } = useWakeLock();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
@@ -205,20 +237,6 @@ export default function NocTvDashboardPage() {
           : item,
       ),
     );
-
-    // Add to ticker
-    const timeStr = new Date(event.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
-    let tickerText = '';
-    if (event.currentStatus === 'DOWN' || event.currentStatus === 'NO_TRAFFIC') {
-      tickerText = `${timeStr} — ${event.configTitle} [${event.groupName}] went ${event.currentStatus.replace('_', ' ')}`;
-    } else if (event.currentStatus === 'NORMAL' && event.previousStatus !== 'NORMAL') {
-      tickerText = `${timeStr} — ${event.configTitle} [${event.groupName}] recovered ✓`;
-    } else if (event.currentStatus !== 'NORMAL') {
-      tickerText = `${timeStr} — ${event.configTitle} [${event.groupName}] → ${event.currentStatus.replace('_', ' ')}`;
-    }
-    if (tickerText) {
-      setTickerEvents((prev) => [{ id: `${event.configId}-${event.timestamp}`, text: tickerText, timestamp: Date.now() }, ...prev].slice(0, 20));
-    }
 
     // Play alert sound on new DOWN event
     if (event.currentStatus === 'DOWN' && event.previousStatus !== 'DOWN' && soundEnabled) {
@@ -250,9 +268,22 @@ export default function NocTvDashboardPage() {
     }
   }, [isConnected]);
 
-  // Clock update every second
+  // Clock update every second — only update clock display, not card props
+  const [clockStr, setClockStr] = useState(() => {
+    const now = new Date();
+    return {
+      time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' }),
+      date: now.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' }),
+    };
+  });
   useEffect(() => {
-    const timer = setInterval(() => setClock(new Date()), 1000);
+    const timer = setInterval(() => {
+      const now = new Date();
+      setClockStr({
+        time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' }),
+        date: now.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' }),
+      });
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -392,7 +423,7 @@ export default function NocTvDashboardPage() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-950 text-white">
-        <div className="text-2xl animate-pulse">Loading NOC Dashboard...</div>
+        <Loader />
       </div>
     );
   }
@@ -453,6 +484,19 @@ export default function NocTvDashboardPage() {
             {isFullscreen ? '⬜ Exit' : '⛶ Full'}
           </button>
 
+          {/* View Mode Toggle — cycle button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const modes: ViewMode[] = ['grid', 'compact', 'list'];
+              const currentIdx = modes.indexOf(viewMode);
+              setViewMode(modes[(currentIdx + 1) % modes.length]);
+            }}
+            className="rounded bg-gray-700 hover:bg-gray-600 px-2 py-1 text-[10px] font-medium transition"
+          >
+            {viewMode === 'grid' ? '▦ Grid' : viewMode === 'compact' ? '▤ Compact' : '☰ List'}
+          </button>
+
           {/* Spotlight Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); setSpotlightEnabled(!spotlightEnabled); }}
@@ -461,17 +505,12 @@ export default function NocTvDashboardPage() {
             {spotlightEnabled ? '📺 Rotate ON' : '📺 Rotate OFF'}
           </button>
 
-          {/* Alarm Type Selector — cycle button (TV-friendly, no dropdown) */}
+          {/* Alarm Type Selector — opens modal */}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const types: AlarmType[] = ['siren', 'beep', 'klaxon'];
-              const currentIdx = types.indexOf(alarmType);
-              setAlarmType(types[(currentIdx + 1) % types.length]);
-            }}
+            onClick={(e) => { e.stopPropagation(); setAlarmModalOpen(true); }}
             className="rounded bg-gray-700 hover:bg-gray-600 px-2 py-1 text-[10px] font-medium transition"
           >
-            {alarmType === 'siren' ? '🚨 Siren' : alarmType === 'beep' ? '🔔 Beep' : '📢 Klaxon'}
+            {ALARM_LABELS[alarmType]}
           </button>
 
           {/* Sound Toggle */}
@@ -493,10 +532,10 @@ export default function NocTvDashboardPage() {
           {/* Clock */}
           <div className="text-right">
             <div className="text-sm font-mono font-bold tabular-nums">
-              {clock.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' })}
+              {clockStr.time}
             </div>
             <div className="text-[9px] text-gray-400">
-              {clock.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Jakarta' })}
+              {clockStr.date}
             </div>
           </div>
         </div>
@@ -524,22 +563,70 @@ export default function NocTvDashboardPage() {
         </div>
       )}
 
-      {/* Grid of Cards — adaptive columns */}
-      <div className={`grid ${gridCols} gap-2`}>
-        {filteredItems.map((item) => (
-          <TvCard key={item.configId} item={item} now={clock} />
-        ))}
-      </div>
+      {/* Cards — view mode dependent */}
+      {viewMode === 'grid' && (
+        <div className={`grid ${gridCols} gap-2`}>
+          {filteredItems.map((item) => (
+            <TvCard key={item.configId} item={item} />
+          ))}
+        </div>
+      )}
 
-      {/* Event Ticker — bottom bar */}
-      {tickerEvents.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-[55] bg-gray-900/95 border-t border-gray-800 px-3 py-1.5 overflow-hidden">
-          <div className="flex items-center gap-4 animate-ticker">
-            {tickerEvents.slice(0, 10).map((evt) => (
-              <span key={evt.id} className="shrink-0 text-[10px] text-gray-300">
-                {evt.text}
-              </span>
-            ))}
+      {viewMode === 'compact' && (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
+          {filteredItems.map((item) => (
+            <CompactCard key={item.configId} item={item} />
+          ))}
+        </div>
+      )}
+
+      {viewMode === 'list' && (
+        <div className="flex flex-col gap-1">
+          {/* List Header */}
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_100px_80px] gap-2 px-2 py-1 text-[9px] text-gray-500 uppercase border-b border-gray-800">
+            <span>Name</span>
+            <span className="text-center">Status</span>
+            <span className="text-right">Total</span>
+            <span className="text-right">In</span>
+            <span className="text-right">Out</span>
+            <span className="text-center">Down</span>
+            <span className="text-right">Updated</span>
+          </div>
+          {filteredItems.map((item) => (
+            <ListRow key={item.configId} item={item} />
+          ))}
+        </div>
+      )}
+
+      {/* Alarm Selector Modal */}
+      {alarmModalOpen && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={(e) => { e.stopPropagation(); setAlarmModalOpen(false); }}
+        >
+          <div
+            className="bg-gray-900 border border-gray-700 rounded-xl p-4 w-[320px] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-sm font-bold mb-3">Pilih Alarm Sound</h3>
+            <div className="flex flex-col gap-2">
+              {(Object.keys(ALARM_FILES) as AlarmType[]).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => { setAlarmType(type); setAlarmModalOpen(false); }}
+                  className={`flex items-center justify-between rounded-lg px-3 py-2 text-[11px] font-medium transition ${alarmType === type ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
+                >
+                  <span>{ALARM_LABELS[type]}</span>
+                  {alarmType === type && <span className="text-[10px]">✓</span>}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { playAlarm(); }}
+              className="mt-3 w-full rounded-lg bg-red-700 hover:bg-red-600 px-3 py-2 text-[11px] font-medium transition"
+            >
+              🔊 Test Sound
+            </button>
           </div>
         </div>
       )}
@@ -598,8 +685,6 @@ export default function NocTvDashboardPage() {
       {/* Animations */}
       <style>{`
         @keyframes shrink { from { width: 100%; } to { width: 0%; } }
-        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .animate-ticker { animation: ticker 30s linear infinite; }
       `}</style>
     </div>
   );
@@ -607,24 +692,34 @@ export default function NocTvDashboardPage() {
 
 // ─── TV Card ────────────────────────────────────────────────────────────────
 
-function TvCard({ item, now }: { item: MonitoringSummaryItem; now: Date }) {
+const TvCard = memo(function TvCard({ item }: { item: MonitoringSummaryItem }) {
   const [imgError, setImgError] = useState(false);
+  const [imgLoading, setImgLoading] = useState(true);
   const prevPolledAtRef = useRef(item.lastPolledAt);
   const [cachedChartUrl, setCachedChartUrl] = useState(`/api/monitoring/chart/${item.sensorId}?t=${item.lastPolledAt ?? ''}`);
+  const [duration, setDuration] = useState(() => formatDuration(item.lastPolledAt));
 
   // Only update chart URL when lastPolledAt actually changes (image caching)
   useEffect(() => {
     if (item.lastPolledAt !== prevPolledAtRef.current) {
       prevPolledAtRef.current = item.lastPolledAt;
+      setImgLoading(true);
       setCachedChartUrl(`/api/monitoring/chart/${item.sensorId}?t=${item.lastPolledAt ?? ''}`);
       setImgError(false);
+      setDuration(formatDuration(item.lastPolledAt));
     }
   }, [item.lastPolledAt, item.sensorId]);
 
+  // Update duration every 60 seconds (not every second to avoid blink)
+  useEffect(() => {
+    if (item.lastStatus === 'NORMAL') return;
+    const timer = setInterval(() => {
+      setDuration(formatDuration(item.lastPolledAt));
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [item.lastPolledAt, item.lastStatus]);
+
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
-  const duration = formatDuration(item.lastPolledAt);
-  // Suppress unused var warning — now is used to trigger re-render for duration
-  void now;
 
   return (
     <div className={`rounded-lg border ${STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 overflow-hidden transition-all ${isDown ? 'shadow-md shadow-red-500/20' : ''}`}>
@@ -644,18 +739,35 @@ function TvCard({ item, now }: { item: MonitoringSummaryItem; now: Date }) {
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="bg-white p-0.5 mx-1 mt-1 rounded">
+      {/* Chart with skeleton loading — aspect ratio 925:300 */}
+      <div className="relative mx-1 mt-1 rounded overflow-hidden" style={{ aspectRatio: '925 / 300' }}>
         {!imgError ? (
-          <img
-            src={cachedChartUrl}
-            alt={item.title}
-            className="w-full h-auto rounded"
-            loading="lazy"
-            onError={() => setImgError(true)}
-          />
+          <>
+            {imgLoading && (
+              <div className="absolute inset-0 bg-gray-200 animate-pulse rounded">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="h-[40%] w-[80%] bg-gray-300 rounded" />
+                    <div className="flex w-[80%] justify-between">
+                      <div className="h-1.5 w-8 bg-gray-300 rounded" />
+                      <div className="h-1.5 w-8 bg-gray-300 rounded" />
+                      <div className="h-1.5 w-8 bg-gray-300 rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <img
+              src={cachedChartUrl}
+              alt={item.title}
+              className={`w-full h-full object-cover rounded transition-opacity duration-300 ${imgLoading ? 'opacity-0' : 'opacity-100'}`}
+              loading="lazy"
+              onLoad={() => setImgLoading(false)}
+              onError={() => { setImgError(true); setImgLoading(false); }}
+            />
+          </>
         ) : (
-          <div className="flex h-10 items-center justify-center text-[8px] text-gray-400">No chart</div>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 rounded text-[8px] text-gray-400">No chart</div>
         )}
       </div>
 
@@ -676,9 +788,107 @@ function TvCard({ item, now }: { item: MonitoringSummaryItem; now: Date }) {
       </div>
 
       {/* Footer */}
-      <div className="px-2 pb-1 text-[8px] text-gray-500 text-right">
+      <div className="flex items-center justify-between px-2 pb-1">
+        {item.downCountThisMonth > 0 && (
+          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountThisMonth}x down bulan ini</span>
+        )}
+        <span className="text-[8px] text-gray-500 ml-auto">
+          {formatTime(item.lastPolledAt)}
+        </span>
+      </div>
+    </div>
+  );
+});
+
+// ─── Compact Card (no chart, dense metrics) ─────────────────────────────────
+
+const CompactCard = memo(function CompactCard({ item }: { item: MonitoringSummaryItem }) {
+  const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
+
+  return (
+    <div className={`rounded-lg border ${STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 p-2 transition-all ${isDown ? 'shadow-md shadow-red-500/20' : ''}`}>
+      {/* Title + Status */}
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-[10px] font-semibold truncate flex-1 mr-1" title={item.title}>{item.title}</h3>
+        <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+          {item.lastStatus.replace('_', ' ')}
+        </span>
+      </div>
+      <p className="text-[8px] text-gray-500 mb-1.5">{item.groupName}</p>
+
+      {/* Metrics — stacked */}
+      <div className="space-y-0.5">
+        <div className="flex justify-between text-[9px]">
+          <span className="text-gray-500">Total</span>
+          <span className="font-bold">{formatBitrate(item.lastMetric?.totalTrafficBitrate)}</span>
+        </div>
+        <div className="flex justify-between text-[9px]">
+          <span className="text-gray-500">In</span>
+          <span className="font-bold text-green-400">{formatBitrate(item.lastMetric?.inboundBitrate)}</span>
+        </div>
+        <div className="flex justify-between text-[9px]">
+          <span className="text-gray-500">Out</span>
+          <span className="font-bold text-blue-400">{formatBitrate(item.lastMetric?.outboundBitrate)}</span>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-gray-800">
+        {item.downCountThisMonth > 0 ? (
+          <span className="text-[7px] text-red-400 font-medium">🔴 {item.downCountThisMonth}x</span>
+        ) : <span />}
+        <span className="text-[7px] text-gray-500">{formatTime(item.lastPolledAt)}</span>
+      </div>
+    </div>
+  );
+});
+
+// ─── List Row (table-like) ──────────────────────────────────────────────────
+
+const ListRow = memo(function ListRow({ item }: { item: MonitoringSummaryItem }) {
+  const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
+
+  return (
+    <div className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_100px_80px] gap-2 items-center px-2 py-1.5 rounded border ${STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 ${isDown ? 'shadow-sm shadow-red-500/20' : ''}`}>
+      {/* Name */}
+      <div className="min-w-0">
+        <h3 className="text-[10px] font-semibold truncate">{item.title}</h3>
+        <p className="text-[8px] text-gray-500">{item.groupName}</p>
+      </div>
+
+      {/* Status */}
+      <div className="text-center">
+        <span className={`inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+          {item.lastStatus.replace('_', ' ')}
+        </span>
+      </div>
+
+      {/* Total */}
+      <div className="text-right text-[10px] font-bold">
+        {formatBitrate(item.lastMetric?.totalTrafficBitrate)}
+      </div>
+
+      {/* In */}
+      <div className="text-right text-[10px] font-bold text-green-400">
+        {formatBitrate(item.lastMetric?.inboundBitrate)}
+      </div>
+
+      {/* Out */}
+      <div className="text-right text-[10px] font-bold text-blue-400">
+        {formatBitrate(item.lastMetric?.outboundBitrate)}
+      </div>
+
+      {/* Down count */}
+      <div className="text-center">
+        {item.downCountThisMonth > 0 && (
+          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountThisMonth}x</span>
+        )}
+      </div>
+
+      {/* Time */}
+      <div className="text-right text-[8px] text-gray-500">
         {formatTime(item.lastPolledAt)}
       </div>
     </div>
   );
-}
+});
