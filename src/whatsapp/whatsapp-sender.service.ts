@@ -1,54 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { WhatsappSocketStore } from './whatsapp-socket.store';
 
-export interface SentMessageKey {
-  remoteJid: string;
-  id: string;
-  fromMe: boolean;
-}
-
 @Injectable()
 export class WhatsappSenderService {
   constructor(private readonly socketStore: WhatsappSocketStore) {}
 
-  async sendTextToJid(jid: string, text: string): Promise<SentMessageKey | null> {
+  async sendTextToJid(jid: string, text: string): Promise<void> {
     const socket = this.socketStore.getSocket();
     if (!socket) {
       throw new Error('WhatsApp socket is not connected.');
     }
-    const result = await socket.sendMessage(jid, { text });
-    return result?.key ? { remoteJid: result.key.remoteJid!, id: result.key.id!, fromMe: true } : null;
+    await socket.sendMessage(jid, { text });
   }
 
   async sendImageToJid(
     jid: string,
     payload: { buffer: Buffer; caption?: string; mimeType?: string },
-  ): Promise<SentMessageKey | null> {
-    const socket = this.socketStore.getSocket();
-    if (!socket) {
-      throw new Error('WhatsApp socket is not connected.');
-    }
-    const result = await socket.sendMessage(jid, {
-      image: payload.buffer,
-      mimetype: payload.mimeType ?? 'image/png',
-      caption: payload.caption,
-    });
-    return result?.key ? { remoteJid: result.key.remoteJid!, id: result.key.id!, fromMe: true } : null;
-  }
-
-  /**
-   * Edit the text/caption of a previously sent message.
-   * Only text can be edited — images cannot be changed.
-   * Uses Baileys: sock.sendMessage(jid, { text: newText, edit: key })
-   */
-  async editMessage(jid: string, messageKey: SentMessageKey, newText: string): Promise<void> {
+  ): Promise<void> {
     const socket = this.socketStore.getSocket();
     if (!socket) {
       throw new Error('WhatsApp socket is not connected.');
     }
     await socket.sendMessage(jid, {
-      text: newText,
-      edit: { remoteJid: messageKey.remoteJid, id: messageKey.id, fromMe: messageKey.fromMe },
+      image: payload.buffer,
+      mimetype: payload.mimeType ?? 'image/png',
+      caption: payload.caption,
     });
   }
 

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NocStatus, type RecipientTargetType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { WhatsappSenderService, type SentMessageKey } from '../../whatsapp/whatsapp-sender.service';
+import { WhatsappSenderService } from '../../whatsapp/whatsapp-sender.service';
 import { ScreenshotService } from './screenshot.service';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -27,13 +27,6 @@ export interface DispatchContext {
   cooldownInterval: number;
   groupId: number;
   groupName: string;
-}
-
-/** Tracks a sent message for potential editing */
-interface SentMessageRecord {
-  keys: Map<string, SentMessageKey>; // jid → message key
-  sentAt: Date;
-  configId: number;
 }
 
 interface ResolvedRecipient {
@@ -130,12 +123,6 @@ function formatTime(date: Date): string {
 export class AlertDispatcherService {
   private readonly logger = new Logger(AlertDispatcherService.name);
 
-  /** Tracks last sent message per config for edit-instead-of-new-message logic */
-  private readonly sentMessages: Map<number, SentMessageRecord> = new Map();
-
-  /** If a new notification for the same config comes within this window, edit the old message */
-  private readonly EDIT_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappSender: WhatsappSenderService,
@@ -179,46 +166,13 @@ export class AlertDispatcherService {
       // Fetch and render template
       const message = await this.buildMessage(context, decision.templateType!);
 
-      // Check if we should EDIT a recent message instead of sending a new one
-      const recentSent = this.sentMessages.get(context.configId);
-      const now = Date.now();
-      const shouldEdit = recentSent && (now - recentSent.sentAt.getTime()) < this.EDIT_WINDOW_MS;
+      // Send new message (image+caption)
+      const screenshot = await this.screenshotService.capture(context.requestUrl);
+      await this.sendToRecipients(recipients, message, screenshot);
 
-      if (shouldEdit && recentSent) {
-        // Edit the existing message (text/caption only — image stays the same)
-        for (const recipient of recipients) {
-          const jid = this.buildJid(recipient.phoneNumber, recipient.targetType);
-          if (!jid) continue;
-          const savedKey = recentSent.keys.get(jid);
-          if (savedKey) {
-            try {
-              await this.whatsappSender.editMessage(jid, savedKey, message);
-            } catch {
-              // Edit failed — fall through to send new
-            }
-          }
-        }
-        // Update the timestamp
-        recentSent.sentAt = new Date();
-        this.logger.log(
-          `Edited existing notification for config ${context.configId} (${context.title})`,
-        );
-      } else {
-        // Send new message (image+caption)
-        const screenshot = await this.screenshotService.capture(context.requestUrl);
-        const sentKeys = await this.sendToRecipientsWithKeys(recipients, message, screenshot);
-
-        // Track sent message keys for future edits
-        this.sentMessages.set(context.configId, {
-          keys: sentKeys,
-          sentAt: new Date(),
-          configId: context.configId,
-        });
-
-        this.logger.log(
-          `Dispatched ${decision.templateType} notification for config ${context.configId} (${context.title}) to ${recipients.length} recipients`,
-        );
-      }
+      this.logger.log(
+        `Dispatched ${decision.templateType} notification for config ${context.configId} (${context.title}) to ${recipients.length} recipients`,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to dispatch notification for config ${context.configId}: ${error instanceof Error ? error.message : String(error)}`,
@@ -322,7 +276,7 @@ export class AlertDispatcherService {
   }
 
   /**
-   * Sends a message to all resolved recipients via WhatsApp.
+   * Sends message to all recipients via WhatsApp.
    * If a screenshot is available, sends as image with caption.
    * Otherwise, sends as text-only.
    */
@@ -331,20 +285,6 @@ export class AlertDispatcherService {
     message: string,
     screenshot: Buffer | null,
   ): Promise<void> {
-    await this.sendToRecipientsWithKeys(recipients, message, screenshot);
-  }
-
-  /**
-   * Sends message to all recipients and returns the message keys for each JID.
-   * Used for tracking sent messages for future edits.
-   */
-  private async sendToRecipientsWithKeys(
-    recipients: ResolvedRecipient[],
-    message: string,
-    screenshot: Buffer | null,
-  ): Promise<Map<string, SentMessageKey>> {
-    const keys = new Map<string, SentMessageKey>();
-
     for (const recipient of recipients) {
       const jid = this.buildJid(recipient.phoneNumber, recipient.targetType);
       if (!jid) {
@@ -355,21 +295,17 @@ export class AlertDispatcherService {
       }
 
       try {
-        let key: SentMessageKey | null = null;
         if (screenshot && message) {
-          key = await this.whatsappSender.sendImageToJid(jid, {
+          await this.whatsappSender.sendImageToJid(jid, {
             buffer: screenshot,
             caption: message,
           });
         } else if (screenshot) {
-          key = await this.whatsappSender.sendImageToJid(jid, {
+          await this.whatsappSender.sendImageToJid(jid, {
             buffer: screenshot,
           });
         } else if (message) {
-          key = await this.whatsappSender.sendTextToJid(jid, message);
-        }
-        if (key) {
-          keys.set(jid, key);
+          await this.whatsappSender.sendTextToJid(jid, message);
         }
       } catch (error) {
         this.logger.error(
@@ -377,8 +313,6 @@ export class AlertDispatcherService {
         );
       }
     }
-
-    return keys;
   }
 
   /**
