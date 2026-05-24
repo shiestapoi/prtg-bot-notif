@@ -154,6 +154,9 @@ type ConfigWithGroup = {
   notifyLowTraffic: boolean;
   notifyFlapping: boolean;
   notifyRecovery: boolean;
+  // Maintenance
+  maintenance: boolean;
+  maintenanceLabel: string | null;
 };
 
 // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
@@ -1278,6 +1281,12 @@ export class PrtgReportService {
             status: config.lastStatus,
           };
           caption = this.renderMessageTemplate(settings.messageTemplate, values);
+        }
+
+        // Prepend maintenance label if config is in maintenance mode
+        if (config.maintenance) {
+          const label = config.maintenanceLabel || 'Maintenance';
+          caption = `🔧 *[${label}]* — Notifikasi monitoring dinonaktifkan\n\n${caption}`;
         }
 
         const recipients = this.getRecipientsForConfig(
