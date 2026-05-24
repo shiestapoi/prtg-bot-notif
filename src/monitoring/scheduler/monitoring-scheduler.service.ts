@@ -154,6 +154,8 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
       notifyFlapping: c.notifyFlapping,
       notifyRecovery: c.notifyRecovery,
       maintenance: c.maintenance,
+      maintenanceLabel: c.maintenanceLabel,
+      minTrafficThreshold: c.minTrafficThreshold,
       lastPolledAt: c.lastPolledAt,
       lastStatus: c.lastStatus,
     }));
@@ -205,6 +207,8 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
       notifyFlapping: config.notifyFlapping,
       notifyRecovery: config.notifyRecovery,
       maintenance: config.maintenance,
+      maintenanceLabel: config.maintenanceLabel,
+      minTrafficThreshold: config.minTrafficThreshold,
       lastPolledAt: config.lastPolledAt,
       lastStatus: config.lastStatus,
     };
@@ -430,6 +434,8 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
       notifyFlapping: configRecord.notifyFlapping,
       notifyRecovery: configRecord.notifyRecovery,
       maintenance: configRecord.maintenance,
+      maintenanceLabel: configRecord.maintenanceLabel,
+      minTrafficThreshold: configRecord.minTrafficThreshold,
       lastPolledAt: configRecord.lastPolledAt,
       lastStatus: configRecord.lastStatus,
     };

@@ -266,8 +266,8 @@ export const monitoringApi = {
   forceNotify: (configId: number) =>
     api.post<{ message: string; configId: number; status: string }>(`/api/monitoring/configs/${configId}/notify`).then((r) => r.data),
 
-  toggleMaintenance: (configId: number, maintenance: boolean) =>
-    api.put(`/api/prtg/configs/${configId}/maintenance`, { maintenance }).then((r) => r.data),
+  toggleMaintenance: (configId: number, maintenance: boolean, label?: string | null) =>
+    api.put(`/api/prtg/configs/${configId}/maintenance`, { maintenance, maintenanceLabel: label }).then((r) => r.data),
 };
 
 // ─── Monitoring Recipients API ──────────────────────────────────────────────

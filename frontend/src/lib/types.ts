@@ -116,6 +116,7 @@ export interface PrtgConfig {
   notifyFlapping: boolean;
   notifyRecovery: boolean;
   maintenance: boolean;
+  maintenanceLabel: string | null;
   lastPolledAt: string | null;
   lastStatus: NocStatus;
   createdAt: string;
@@ -231,6 +232,7 @@ export interface MonitoringSummaryItem {
   lastPolledAt: string | null;
   downCountThisMonth: number;
   maintenance: boolean;
+  maintenanceLabel: string | null;
   lastMetric: {
     totalTrafficBitrate: number | null;
     inboundBitrate: number | null;

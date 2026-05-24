@@ -31,6 +31,8 @@ export interface MonitoringEligibleConfig {
   notifyFlapping: boolean;
   notifyRecovery: boolean;
   maintenance: boolean;
+  maintenanceLabel: string | null;
+  minTrafficThreshold: number;
   lastPolledAt: Date | null;
   lastStatus: NocStatus;
 }
@@ -140,6 +142,22 @@ export class AnomalyEngineService {
     // Priority 2: LOW_TRAFFIC — sudden drop > thresholdLow% from rolling average
     const thresholdFraction = config.thresholdLow / 100;
     const rollingAvgIn = this.calculateInboundRollingAverage(recentHistory, config.rollingWindowSize);
+
+    // If rolling average is 0 (no NORMAL baseline data), we can't determine LOW_TRAFFIC.
+    // In this case, if the previous status was LOW_TRAFFIC or worse, maintain that status
+    // to prevent false "recovery" to NORMAL when the baseline data runs out.
+    if (rollingAvgIn === 0 && config.lastStatus !== NocStatus.NORMAL) {
+      // No baseline — maintain previous anomaly status to avoid false recovery
+      // Only applies if traffic is still below the configured minimum threshold
+      // If traffic is genuinely high (>= minTrafficThreshold), allow recovery to NORMAL
+      if (inboundBitrateMbps < config.minTrafficThreshold) {
+        return {
+          status: config.lastStatus,
+          reason: `Traffic In ${inboundBitrateMbps.toFixed(2)} Mbit/s — tidak ada baseline untuk perbandingan, mempertahankan status ${config.lastStatus}`,
+        };
+      }
+    }
+
     if (rollingAvgIn > 0 && inboundBitrateMbps < rollingAvgIn * (1 - thresholdFraction)) {
       // Get previous NORMAL Traffic In value for display (not current, not avg)
       const prevNormal = recentHistory.find(

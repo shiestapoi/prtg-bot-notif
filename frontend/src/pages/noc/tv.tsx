@@ -302,18 +302,40 @@ export default function NocTvDashboardPage() {
   }, []);
 
   // Toggle maintenance mode for a config
-  const toggleMaintenance = useCallback(async (configId: number, currentMaintenance: boolean) => {
+  const toggleMaintenance = useCallback(async (configId: number, currentMaintenance: boolean, label?: string | null) => {
     try {
-      await monitoringApi.toggleMaintenance(configId, !currentMaintenance);
+      await monitoringApi.toggleMaintenance(configId, !currentMaintenance, label);
       setItems((prev) =>
         prev.map((item) =>
-          item.configId === configId ? { ...item, maintenance: !currentMaintenance } : item,
+          item.configId === configId
+            ? { ...item, maintenance: !currentMaintenance, maintenanceLabel: !currentMaintenance ? (label ?? 'Maintenance') : null }
+            : item,
         ),
       );
     } catch {
-      // silent — could show toast if available
+      // silent
     }
   }, []);
+
+  // Set maintenance with specific label
+  const setMaintenanceLabel = useCallback(async (configId: number, label: string | null) => {
+    try {
+      const maintenance = label !== null;
+      await monitoringApi.toggleMaintenance(configId, maintenance, label);
+      setItems((prev) =>
+        prev.map((item) =>
+          item.configId === configId
+            ? { ...item, maintenance, maintenanceLabel: label }
+            : item,
+        ),
+      );
+    } catch {
+      // silent
+    }
+  }, []);
+
+  // Detail modal state
+  const [detailItem, setDetailItem] = useState<MonitoringSummaryItem | null>(null);
 
   // Play alarm when DOWN is first detected (effect runs after hasDown is computed below)
   const prevHasDownRef = useRef(false);
@@ -581,7 +603,7 @@ export default function NocTvDashboardPage() {
       {viewMode === 'grid' && (
         <div className={`grid ${gridCols} gap-2`}>
           {filteredItems.map((item) => (
-            <TvCard key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} />
+            <TvCard key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} onClickDetail={setDetailItem} />
           ))}
         </div>
       )}
@@ -589,7 +611,7 @@ export default function NocTvDashboardPage() {
       {viewMode === 'compact' && (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
           {filteredItems.map((item) => (
-            <CompactCard key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} />
+            <CompactCard key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} onClickDetail={setDetailItem} />
           ))}
         </div>
       )}
@@ -607,7 +629,7 @@ export default function NocTvDashboardPage() {
             <span className="text-right">Updated</span>
           </div>
           {filteredItems.map((item) => (
-            <ListRow key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} />
+            <ListRow key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} onClickDetail={setDetailItem} />
           ))}
         </div>
       )}
@@ -696,6 +718,83 @@ export default function NocTvDashboardPage() {
         </div>
       )}
 
+      {/* Detail Modal — click on card to open */}
+      {detailItem && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={(e) => { e.stopPropagation(); setDetailItem(null); }}
+        >
+          <div
+            className="bg-gray-900 border border-gray-700 rounded-xl p-5 w-[400px] max-w-[90vw] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-sm font-bold">{detailItem.title}</h2>
+                <p className="text-[10px] text-gray-400">{detailItem.groupName}</p>
+              </div>
+              <button
+                onClick={() => setDetailItem(null)}
+                className="rounded bg-gray-700 hover:bg-gray-600 px-2 py-1 text-[10px] font-medium"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {/* Current Status */}
+            <div className="mb-4 p-2 rounded-lg bg-gray-800">
+              <div className="text-[9px] text-gray-500 uppercase mb-1">Status</div>
+              <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${detailItem.maintenance ? 'bg-blue-600 text-white' : STATUS_COLORS[detailItem.lastStatus]}`}>
+                {detailItem.maintenance ? `🔧 ${detailItem.maintenanceLabel ?? 'Maintenance'}` : detailItem.lastStatus.replace('_', ' ')}
+              </span>
+            </div>
+
+            {/* Metrics */}
+            <div className="grid grid-cols-3 gap-2 mb-4 p-2 rounded-lg bg-gray-800">
+              <div className="text-center">
+                <div className="text-[8px] text-gray-500 uppercase">Total</div>
+                <div className="text-[11px] font-bold">{formatBitrate(detailItem.lastMetric?.totalTrafficBitrate)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[8px] text-gray-500 uppercase">In</div>
+                <div className="text-[11px] font-bold text-green-400">{formatBitrate(detailItem.lastMetric?.inboundBitrate)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[8px] text-gray-500 uppercase">Out</div>
+                <div className="text-[11px] font-bold text-blue-400">{formatBitrate(detailItem.lastMetric?.outboundBitrate)}</div>
+              </div>
+            </div>
+
+            {/* Maintenance Label Actions */}
+            <div className="space-y-2">
+              <div className="text-[9px] text-gray-500 uppercase">Label / Status Khusus</div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setMaintenanceLabel(detailItem.configId, 'Maintenance'); setDetailItem({ ...detailItem, maintenance: true, maintenanceLabel: 'Maintenance' }); }}
+                  className={`rounded-lg px-3 py-1.5 text-[10px] font-medium transition ${detailItem.maintenance && detailItem.maintenanceLabel === 'Maintenance' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-600'}`}
+                >
+                  🔧 Maintenance
+                </button>
+                <button
+                  onClick={() => { setMaintenanceLabel(detailItem.configId, 'Mati Lampu'); setDetailItem({ ...detailItem, maintenance: true, maintenanceLabel: 'Mati Lampu' }); }}
+                  className={`rounded-lg px-3 py-1.5 text-[10px] font-medium transition ${detailItem.maintenance && detailItem.maintenanceLabel === 'Mati Lampu' ? 'bg-yellow-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-600'}`}
+                >
+                  ⚡ Mati Lampu
+                </button>
+                {detailItem.maintenance && (
+                  <button
+                    onClick={() => { setMaintenanceLabel(detailItem.configId, null); setDetailItem({ ...detailItem, maintenance: false, maintenanceLabel: null }); }}
+                    className="rounded-lg px-3 py-1.5 text-[10px] font-medium transition bg-red-800 text-red-200 hover:bg-red-700 border border-red-600"
+                  >
+                    ❌ Hapus Label
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Animations */}
       <style>{`
         @keyframes shrink { from { width: 100%; } to { width: 0%; } }
@@ -706,7 +805,7 @@ export default function NocTvDashboardPage() {
 
 // ─── TV Card ────────────────────────────────────────────────────────────────
 
-const TvCard = memo(function TvCard({ item, onToggleMaintenance }: { item: MonitoringSummaryItem; onToggleMaintenance: (configId: number, current: boolean) => void }) {
+const TvCard = memo(function TvCard({ item, onToggleMaintenance, onClickDetail }: { item: MonitoringSummaryItem; onToggleMaintenance: (configId: number, current: boolean, label?: string | null) => void; onClickDetail: (item: MonitoringSummaryItem) => void }) {
   const [imgError, setImgError] = useState(false);
   const [imgLoading, setImgLoading] = useState(true);
   const prevPolledAtRef = useRef(item.lastPolledAt);
@@ -749,6 +848,7 @@ const TvCard = memo(function TvCard({ item, onToggleMaintenance }: { item: Monit
     <div
       className={`relative rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 overflow-hidden transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(true); }}
+      onClick={(e) => { e.stopPropagation(); if (!showMenu) onClickDetail(item); }}
     >
       {/* Context Menu (right-click) */}
       {showMenu && (
@@ -770,7 +870,7 @@ const TvCard = memo(function TvCard({ item, onToggleMaintenance }: { item: Monit
         <div className="flex flex-col items-end gap-0.5">
           {isMaintenance ? (
             <span className="shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase bg-blue-600 text-white">
-              🔧 MAINTENANCE
+              🔧 {item.maintenanceLabel ?? 'MAINTENANCE'}
             </span>
           ) : (
             <span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
@@ -846,7 +946,7 @@ const TvCard = memo(function TvCard({ item, onToggleMaintenance }: { item: Monit
 
 // ─── Compact Card (no chart, dense metrics) ─────────────────────────────────
 
-const CompactCard = memo(function CompactCard({ item, onToggleMaintenance }: { item: MonitoringSummaryItem; onToggleMaintenance: (configId: number, current: boolean) => void }) {
+const CompactCard = memo(function CompactCard({ item, onToggleMaintenance, onClickDetail }: { item: MonitoringSummaryItem; onToggleMaintenance: (configId: number, current: boolean, label?: string | null) => void; onClickDetail: (item: MonitoringSummaryItem) => void }) {
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
   const isMaintenance = item.maintenance;
 
@@ -854,13 +954,14 @@ const CompactCard = memo(function CompactCard({ item, onToggleMaintenance }: { i
     <div
       className={`rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 p-2 transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onToggleMaintenance(item.configId, item.maintenance); }}
+      onClick={(e) => { e.stopPropagation(); onClickDetail(item); }}
     >
       {/* Title + Status */}
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-[10px] font-semibold truncate flex-1 mr-1" title={item.title}>{item.title}</h3>
         {isMaintenance ? (
           <span className="shrink-0 rounded px-1 py-0.5 text-[7px] font-bold uppercase bg-blue-600 text-white">
-            🔧 MAINT
+            🔧 {item.maintenanceLabel ?? 'MAINT'}
           </span>
         ) : (
           <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
@@ -899,7 +1000,7 @@ const CompactCard = memo(function CompactCard({ item, onToggleMaintenance }: { i
 
 // ─── List Row (table-like) ──────────────────────────────────────────────────
 
-const ListRow = memo(function ListRow({ item, onToggleMaintenance }: { item: MonitoringSummaryItem; onToggleMaintenance: (configId: number, current: boolean) => void }) {
+const ListRow = memo(function ListRow({ item, onToggleMaintenance, onClickDetail }: { item: MonitoringSummaryItem; onToggleMaintenance: (configId: number, current: boolean, label?: string | null) => void; onClickDetail: (item: MonitoringSummaryItem) => void }) {
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
   const isMaintenance = item.maintenance;
 
@@ -907,6 +1008,7 @@ const ListRow = memo(function ListRow({ item, onToggleMaintenance }: { item: Mon
     <div
       className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_100px_80px] gap-2 items-center px-2 py-1.5 rounded border ${isMaintenance ? 'border-blue-500' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 ${isDown && !isMaintenance ? 'shadow-sm shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onToggleMaintenance(item.configId, item.maintenance); }}
+      onClick={(e) => { e.stopPropagation(); onClickDetail(item); }}
     >
       {/* Name */}
       <div className="min-w-0">
@@ -918,7 +1020,7 @@ const ListRow = memo(function ListRow({ item, onToggleMaintenance }: { item: Mon
       <div className="text-center">
         {isMaintenance ? (
           <span className="inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase bg-blue-600 text-white">
-            🔧 MAINT
+            🔧 {item.maintenanceLabel ?? 'MAINT'}
           </span>
         ) : (
           <span className={`inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>

@@ -365,6 +365,8 @@ export class PrtgReportService {
     notifyFlapping?: boolean;
     notifyRecovery?: boolean;
     maintenance?: boolean;
+    maintenanceLabel?: string | null;
+    minTrafficThreshold?: number;
   }): Promise<PrtgConfigDto> {
     const title = normalizeInput(payload.title);
 
@@ -417,6 +419,8 @@ export class PrtgReportService {
         ...(payload.notifyFlapping !== undefined && { notifyFlapping: payload.notifyFlapping }),
         ...(payload.notifyRecovery !== undefined && { notifyRecovery: payload.notifyRecovery }),
         ...(payload.maintenance !== undefined && { maintenance: payload.maintenance }),
+        ...(payload.maintenanceLabel !== undefined && { maintenanceLabel: payload.maintenanceLabel }),
+        ...(payload.minTrafficThreshold !== undefined && { minTrafficThreshold: payload.minTrafficThreshold }),
       },
     });
 
@@ -448,6 +452,8 @@ export class PrtgReportService {
       notifyFlapping?: boolean;
       notifyRecovery?: boolean;
       maintenance?: boolean;
+      maintenanceLabel?: string | null;
+      minTrafficThreshold?: number;
     },
   ): Promise<PrtgConfigDto> {
     const config = await this.prisma.prtgConfig.findUnique({
@@ -509,6 +515,8 @@ export class PrtgReportService {
         ...(payload.notifyFlapping !== undefined && { notifyFlapping: payload.notifyFlapping }),
         ...(payload.notifyRecovery !== undefined && { notifyRecovery: payload.notifyRecovery }),
         ...(payload.maintenance !== undefined && { maintenance: payload.maintenance }),
+        ...(payload.maintenanceLabel !== undefined && { maintenanceLabel: payload.maintenanceLabel }),
+        ...(payload.minTrafficThreshold !== undefined && { minTrafficThreshold: payload.minTrafficThreshold }),
       },
     });
 

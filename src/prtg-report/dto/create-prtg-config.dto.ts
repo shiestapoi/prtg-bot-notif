@@ -113,4 +113,13 @@ export class CreatePrtgConfigDto {
   @IsOptional()
   @IsBoolean()
   maintenance?: boolean;
+
+  @IsOptional()
+  @IsString()
+  maintenanceLabel?: string | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0.1, { message: 'Min traffic threshold must be >= 0.1 Mbit/s.' })
+  minTrafficThreshold?: number;
 }

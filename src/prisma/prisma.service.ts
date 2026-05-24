@@ -43,6 +43,16 @@ export class PrismaService
         column: 'maintenance',
         sql: `ALTER TABLE "PrtgConfig" ADD COLUMN IF NOT EXISTS "maintenance" BOOLEAN NOT NULL DEFAULT false`,
       },
+      {
+        table: 'PrtgConfig',
+        column: 'maintenanceLabel',
+        sql: `ALTER TABLE "PrtgConfig" ADD COLUMN IF NOT EXISTS "maintenanceLabel" TEXT`,
+      },
+      {
+        table: 'PrtgConfig',
+        column: 'minTrafficThreshold',
+        sql: `ALTER TABLE "PrtgConfig" ADD COLUMN IF NOT EXISTS "minTrafficThreshold" DOUBLE PRECISION NOT NULL DEFAULT 10.0`,
+      },
     ];
 
     for (const migration of migrations) {

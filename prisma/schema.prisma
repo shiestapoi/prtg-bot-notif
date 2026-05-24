@@ -77,6 +77,8 @@ model PrtgConfig {
   notifyFlapping    Boolean        @default(true)
   notifyRecovery    Boolean        @default(true)
   maintenance       Boolean        @default(false)
+  maintenanceLabel  String?        // e.g. "Maintenance", "Mati Lampu", or null if not in maintenance
+  minTrafficThreshold Float        @default(10.0)  // Mbit/s — minimum traffic to consider "recovered" when no baseline
   lastPolledAt      DateTime?
   lastStatus        NocStatus      @default(NORMAL)
 
