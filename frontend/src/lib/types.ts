@@ -191,6 +191,7 @@ export interface MonitoringStatusEvent {
   previousStatus: NocStatus;
   currentStatus: NocStatus;
   timestamp: string;
+  maintenance: boolean;
   metric: {
     totalTrafficBitrate: number | null;
     inboundBitrate: number | null;
@@ -228,6 +229,7 @@ export interface MonitoringSummaryItem {
   lastStatus: NocStatus;
   lastPolledAt: string | null;
   downCountThisMonth: number;
+  maintenance: boolean;
   lastMetric: {
     totalTrafficBitrate: number | null;
     inboundBitrate: number | null;

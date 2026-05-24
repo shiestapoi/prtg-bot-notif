@@ -44,6 +44,9 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
   /** Tracks last notification time per config for cooldown */
   private readonly lastNotifiedAt: Map<number, Date> = new Map();
 
+  /** Tracks the last notified anomaly status per config (to detect same-status bouncing vs new anomaly) */
+  private readonly lastNotifiedStatus: Map<number, NocStatus> = new Map();
+
   /** Tracks when a config first became NORMAL after an anomaly (for recovery grace period) */
   private readonly recoveryStartedAt: Map<number, Date> = new Map();
 
@@ -52,6 +55,12 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
 
   /** Recovery grace period in ms — must be NORMAL for this long before sending recovery notif */
   private readonly RECOVERY_GRACE_MS = 5 * 60 * 1000; // 5 minutes
+
+  /** Cooldown for anomaly↔anomaly transitions (e.g., DOWN↔LOW_TRAFFIC): 1 hour */
+  private readonly ESCALATION_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+
+  /** Re-notification interval for persistent DOWN status: 1 hour */
+  private readonly PERSISTENT_DOWN_RENOTIFY_MS = 60 * 60 * 1000; // 1 hour
 
   /** Semaphore: current number of active concurrent polls */
   private activePollCount = 0;
@@ -144,6 +153,7 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
       notifyLowTraffic: c.notifyLowTraffic,
       notifyFlapping: c.notifyFlapping,
       notifyRecovery: c.notifyRecovery,
+      maintenance: c.maintenance,
       lastPolledAt: c.lastPolledAt,
       lastStatus: c.lastStatus,
     }));
@@ -194,6 +204,7 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
       notifyLowTraffic: config.notifyLowTraffic,
       notifyFlapping: config.notifyFlapping,
       notifyRecovery: config.notifyRecovery,
+      maintenance: config.maintenance,
       lastPolledAt: config.lastPolledAt,
       lastStatus: config.lastStatus,
     };
@@ -418,6 +429,7 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
       notifyLowTraffic: configRecord.notifyLowTraffic,
       notifyFlapping: configRecord.notifyFlapping,
       notifyRecovery: configRecord.notifyRecovery,
+      maintenance: configRecord.maintenance,
       lastPolledAt: configRecord.lastPolledAt,
       lastStatus: configRecord.lastStatus,
     };
@@ -556,7 +568,14 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
     // - When goes back to anomaly within grace period: cancel recovery, suppress re-alert
     const isRecovering = this.recoveryStartedAt.has(configId);
 
-    if (previousStatus !== NocStatus.NORMAL && classification.status === NocStatus.NORMAL && !isRecovering) {
+    // Skip all notifications if config is in maintenance mode
+    if (config.maintenance) {
+      this.logger.debug(`Config ${configId} (${config.title}): Maintenance mode — notifications suppressed`);
+      // Still clear recovery state if needed
+      if (isRecovering && classification.status !== NocStatus.NORMAL) {
+        this.recoveryStartedAt.delete(configId);
+      }
+    } else if (previousStatus !== NocStatus.NORMAL && classification.status === NocStatus.NORMAL && !isRecovering) {
       // Just became NORMAL — start grace period
       this.recoveryStartedAt.set(configId, now);
       this.logger.debug(`Config ${configId}: Recovery grace period started (5 min)`);
@@ -568,6 +587,7 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
         // Grace period passed — send recovery notification (if enabled)
         this.recoveryStartedAt.delete(configId);
         this.lastNotifiedAt.delete(configId);
+        this.lastNotifiedStatus.delete(configId);
 
         if (this.isNotifyEnabledForStatus(NocStatus.NORMAL, config)) {
           await this.dispatcher.dispatch({
@@ -592,12 +612,15 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
         }
       }
     } else if (isRecovering && classification.status !== NocStatus.NORMAL) {
-      // Went back to anomaly during grace period — cancel recovery and SEND alert immediately (if enabled)
+      // Went back to anomaly during grace period — cancel recovery
+      // Sensor sempat NORMAL sebentar tapi kembali anomaly sebelum grace period selesai
       this.recoveryStartedAt.delete(configId);
-      this.logger.log(`Config ${configId}: Recovery cancelled — back to ${classification.status}, sending alert`);
+      this.logger.log(`Config ${configId}: Recovery cancelled — back to ${classification.status}`);
 
       if (this.isNotifyEnabledForStatus(classification.status, config)) {
-        // Send alert immediately (link went down again after brief recovery)
+        // Always send immediately when sensor goes back to anomaly after brief NORMAL
+        // This covers: NORMAL→DOWN→(brief NORMAL)→DOWN = kirim langsung
+        // The 1-hour cooldown only applies to escalation (e.g., LOW_TRAFFIC→DOWN without NORMAL in between)
         await this.dispatcher.dispatch({
           configId: config.id,
           title: config.title,
@@ -609,12 +632,13 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
           outboundBitrate: metric?.outboundBitrate ?? null,
           timestamp: now,
           reason: classification.reason,
-          lastNotifiedAt: null, // Bypass cooldown
+          lastNotifiedAt: null,
           cooldownInterval: 0,
           groupId: config.groupId,
           groupName: configRecord.group.name,
         });
         this.lastNotifiedAt.set(configId, now);
+        this.lastNotifiedStatus.set(configId, classification.status);
       } else {
         this.logger.debug(`Config ${configId}: Notification for ${classification.status} disabled, skipping dispatch`);
       }
@@ -623,14 +647,14 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
       // Once notified, do NOT re-notify while status remains the same anomaly state.
       // Only notify again if:
       //   1. Status was NORMAL before (first occurrence)
-      //   2. Status escalated to a DIFFERENT anomaly (e.g., LOW_TRAFFIC → DOWN)
+      //   2. Status escalated to a DIFFERENT anomaly (e.g., LOW_TRAFFIC → DOWN) — with 1h cooldown
       if (this.isNotifyEnabledForStatus(classification.status, config)) {
         const isFirstTransition = previousStatus === NocStatus.NORMAL;
         const isStatusEscalation = previousStatus !== NocStatus.NORMAL
           && previousStatus !== classification.status;
 
-        if (isFirstTransition || isStatusEscalation) {
-          // First time DOWN or status changed (escalation) — send immediately
+        if (isFirstTransition) {
+          // First time anomaly from NORMAL — send immediately
           const dispatchResult = await this.dispatcher.dispatch({
             configId: config.id,
             title: config.title,
@@ -642,7 +666,7 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
             outboundBitrate: metric?.outboundBitrate ?? null,
             timestamp: now,
             reason: classification.reason,
-            lastNotifiedAt: null, // Bypass cooldown for first/escalation
+            lastNotifiedAt: null,
             cooldownInterval: 0,
             groupId: config.groupId,
             groupName: configRecord.group.name,
@@ -650,12 +674,78 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
 
           if (dispatchResult.shouldNotify) {
             this.lastNotifiedAt.set(configId, now);
+            this.lastNotifiedStatus.set(configId, classification.status);
+          }
+        } else if (isStatusEscalation) {
+          // Status escalation (e.g., DOWN↔LOW_TRAFFIC) — apply 1-hour cooldown
+          const lastNotified = this.lastNotifiedAt.get(configId);
+          const cooldownElapsed = !lastNotified ||
+            (now.getTime() - lastNotified.getTime() >= this.ESCALATION_COOLDOWN_MS);
+
+          if (cooldownElapsed) {
+            const dispatchResult = await this.dispatcher.dispatch({
+              configId: config.id,
+              title: config.title,
+              requestUrl,
+              previousStatus,
+              currentStatus: classification.status,
+              bitrate: metric?.totalTrafficBitrate ?? null,
+              inboundBitrate: metric?.inboundBitrate ?? null,
+              outboundBitrate: metric?.outboundBitrate ?? null,
+              timestamp: now,
+              reason: classification.reason,
+              lastNotifiedAt: lastNotified ?? null,
+              cooldownInterval: this.ESCALATION_COOLDOWN_MS / 1000,
+              groupId: config.groupId,
+              groupName: configRecord.group.name,
+            });
+
+            if (dispatchResult.shouldNotify) {
+              this.lastNotifiedAt.set(configId, now);
+              this.lastNotifiedStatus.set(configId, classification.status);
+            }
+          } else {
+            const remainingMin = Math.ceil(
+              (this.ESCALATION_COOLDOWN_MS - (now.getTime() - lastNotified!.getTime())) / 60000,
+            );
+            this.logger.debug(
+              `Config ${configId} (${config.title}): Escalation ${previousStatus}→${classification.status} suppressed (cooldown ${remainingMin} min remaining)`,
+            );
           }
         } else {
-          // Same anomaly status as before (e.g., DOWN → DOWN) — suppress notification
-          this.logger.debug(
-            `Config ${configId} (${config.title}): Still ${classification.status}, suppressing duplicate notification`,
-          );
+          // Same anomaly status as before (e.g., DOWN → DOWN)
+          // Re-send notification every 1 hour if still DOWN
+          const lastNotified = this.lastNotifiedAt.get(configId);
+          if (
+            classification.status === NocStatus.DOWN &&
+            lastNotified &&
+            now.getTime() - lastNotified.getTime() >= this.PERSISTENT_DOWN_RENOTIFY_MS
+          ) {
+            const dispatchResult = await this.dispatcher.dispatch({
+              configId: config.id,
+              title: config.title,
+              requestUrl,
+              previousStatus,
+              currentStatus: classification.status,
+              bitrate: metric?.totalTrafficBitrate ?? null,
+              inboundBitrate: metric?.inboundBitrate ?? null,
+              outboundBitrate: metric?.outboundBitrate ?? null,
+              timestamp: now,
+              reason: `Masih DOWN selama ${Math.round((now.getTime() - lastNotified.getTime()) / 60000)} menit`,
+              lastNotifiedAt: lastNotified,
+              cooldownInterval: this.PERSISTENT_DOWN_RENOTIFY_MS / 1000,
+              groupId: config.groupId,
+              groupName: configRecord.group.name,
+            });
+
+            if (dispatchResult.shouldNotify) {
+              this.lastNotifiedAt.set(configId, now);
+            }
+          } else {
+            this.logger.debug(
+              `Config ${configId} (${config.title}): Still ${classification.status}, suppressing duplicate notification`,
+            );
+          }
         }
       } else {
         this.logger.debug(`Config ${configId}: Notification for ${classification.status} disabled, skipping dispatch`);
@@ -679,6 +769,7 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
       previousStatus: displayPreviousStatus,
       currentStatus: displayStatus,
       timestamp: now.toISOString(),
+      maintenance: config.maintenance,
       metric: metric
         ? {
             totalTrafficBitrate: metric.totalTrafficBitrate,

@@ -112,4 +112,8 @@ export class UpdatePrtgConfigDto {
   @IsOptional()
   @IsBoolean()
   notifyRecovery?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  maintenance?: boolean;
 }

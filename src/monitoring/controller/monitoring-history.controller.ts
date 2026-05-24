@@ -92,6 +92,7 @@ export class MonitoringHistoryController {
           lastStatus: displayStatus,
           lastPolledAt: config.lastPolledAt?.toISOString() ?? null,
           downCountThisMonth: downDayMap.get(config.id) ?? 0,
+          maintenance: config.maintenance,
           lastMetric: latestHistory
             ? {
                 totalTrafficBitrate: latestHistory.totalTrafficBitrate,

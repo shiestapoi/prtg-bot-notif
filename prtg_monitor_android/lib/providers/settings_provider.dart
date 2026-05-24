@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/alarm_service.dart';
 import '../services/secure_storage_service.dart';
+import '../services/background_service.dart';
 
 /// Provider for app settings (PRTG connection, alarm, polling, escalation, daily summary, app lock)
 class SettingsProvider extends ChangeNotifier {
@@ -97,6 +98,9 @@ class SettingsProvider extends ChangeNotifier {
     // Load alarm service
     await AlarmService().load();
 
+    // Sync config to native service file
+    BackgroundServiceHelper.syncNativeConfig();
+
     notifyListeners();
   }
 
@@ -116,6 +120,9 @@ class SettingsProvider extends ChangeNotifier {
     // Store passhash in secure storage AND SharedPreferences (for native service)
     await SecureStorageService.setPasshash(passhash);
     await prefs.setString('prtg_passhash', passhash);
+
+    // Sync to native service
+    await BackgroundServiceHelper.syncNativeConfig();
 
     notifyListeners();
   }

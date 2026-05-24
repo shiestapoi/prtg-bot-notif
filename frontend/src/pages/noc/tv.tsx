@@ -233,13 +233,13 @@ export default function NocTvDashboardPage() {
     setItems((prev) =>
       prev.map((item) =>
         item.configId === event.configId
-          ? { ...item, lastStatus: event.currentStatus, lastPolledAt: event.timestamp, lastMetric: event.metric }
+          ? { ...item, lastStatus: event.currentStatus, lastPolledAt: event.timestamp, lastMetric: event.metric, maintenance: event.maintenance ?? item.maintenance }
           : item,
       ),
     );
 
-    // Play alert sound on new DOWN event
-    if (event.currentStatus === 'DOWN' && event.previousStatus !== 'DOWN' && soundEnabled) {
+    // Play alert sound on new DOWN event (skip if maintenance)
+    if (event.currentStatus === 'DOWN' && event.previousStatus !== 'DOWN' && soundEnabled && !event.maintenance) {
       playAlarm();
     }
   }, [soundEnabled, playAlarm]);
@@ -314,8 +314,8 @@ export default function NocTvDashboardPage() {
     });
   }, [items]);
 
-  const downCount = useMemo(() => items.filter((i) => i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC').length, [items]);
-  const normalCount = useMemo(() => items.filter((i) => i.lastStatus === 'NORMAL').length, [items]);
+  const downCount = useMemo(() => items.filter((i) => (i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC') && !i.maintenance).length, [items]);
+  const normalCount = useMemo(() => items.filter((i) => i.lastStatus === 'NORMAL' || i.maintenance).length, [items]);
   const warningCount = useMemo(() => items.length - downCount - normalCount, [items, downCount, normalCount]);
 
   // Group list for filter tabs
@@ -352,7 +352,7 @@ export default function NocTvDashboardPage() {
   const [spotlightIndex, setSpotlightIndex] = useState(0);
   const [spotlightVisible, setSpotlightVisible] = useState(false);
 
-  const hasDown = useMemo(() => items.some((i) => i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC'), [items]);
+  const hasDown = useMemo(() => items.some((i) => (i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC') && !i.maintenance), [items]);
 
   // Play alarm when DOWN is first detected
   useEffect(() => {
@@ -720,9 +720,10 @@ const TvCard = memo(function TvCard({ item }: { item: MonitoringSummaryItem }) {
   }, [item.lastPolledAt, item.lastStatus]);
 
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
+  const isMaintenance = item.maintenance;
 
   return (
-    <div className={`rounded-lg border ${STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 overflow-hidden transition-all ${isDown ? 'shadow-md shadow-red-500/20' : ''}`}>
+    <div className={`rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 overflow-hidden transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}>
       {/* Title + Status */}
       <div className="flex items-center justify-between px-2 py-1 border-b border-gray-800">
         <div className="flex-1 min-w-0">
@@ -730,10 +731,16 @@ const TvCard = memo(function TvCard({ item }: { item: MonitoringSummaryItem }) {
           <p className="text-[9px] text-gray-500">{item.groupName}</p>
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
-            {item.lastStatus.replace('_', ' ')}
-          </span>
-          {item.lastStatus !== 'NORMAL' && duration && (
+          {isMaintenance ? (
+            <span className="shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase bg-blue-600 text-white">
+              🔧 MAINTENANCE
+            </span>
+          ) : (
+            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+              {item.lastStatus.replace('_', ' ')}
+            </span>
+          )}
+          {item.lastStatus !== 'NORMAL' && !isMaintenance && duration && (
             <span className="text-[8px] text-gray-400">{duration}</span>
           )}
         </div>
@@ -804,15 +811,22 @@ const TvCard = memo(function TvCard({ item }: { item: MonitoringSummaryItem }) {
 
 const CompactCard = memo(function CompactCard({ item }: { item: MonitoringSummaryItem }) {
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
+  const isMaintenance = item.maintenance;
 
   return (
-    <div className={`rounded-lg border ${STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 p-2 transition-all ${isDown ? 'shadow-md shadow-red-500/20' : ''}`}>
+    <div className={`rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 p-2 transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}>
       {/* Title + Status */}
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-[10px] font-semibold truncate flex-1 mr-1" title={item.title}>{item.title}</h3>
-        <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
-          {item.lastStatus.replace('_', ' ')}
-        </span>
+        {isMaintenance ? (
+          <span className="shrink-0 rounded px-1 py-0.5 text-[7px] font-bold uppercase bg-blue-600 text-white">
+            🔧 MAINT
+          </span>
+        ) : (
+          <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+            {item.lastStatus.replace('_', ' ')}
+          </span>
+        )}
       </div>
       <p className="text-[8px] text-gray-500 mb-1.5">{item.groupName}</p>
 
@@ -847,9 +861,10 @@ const CompactCard = memo(function CompactCard({ item }: { item: MonitoringSummar
 
 const ListRow = memo(function ListRow({ item }: { item: MonitoringSummaryItem }) {
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
+  const isMaintenance = item.maintenance;
 
   return (
-    <div className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_100px_80px] gap-2 items-center px-2 py-1.5 rounded border ${STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 ${isDown ? 'shadow-sm shadow-red-500/20' : ''}`}>
+    <div className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_100px_80px] gap-2 items-center px-2 py-1.5 rounded border ${isMaintenance ? 'border-blue-500' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 ${isDown && !isMaintenance ? 'shadow-sm shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}>
       {/* Name */}
       <div className="min-w-0">
         <h3 className="text-[10px] font-semibold truncate">{item.title}</h3>
@@ -858,9 +873,15 @@ const ListRow = memo(function ListRow({ item }: { item: MonitoringSummaryItem })
 
       {/* Status */}
       <div className="text-center">
-        <span className={`inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
-          {item.lastStatus.replace('_', ' ')}
-        </span>
+        {isMaintenance ? (
+          <span className="inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase bg-blue-600 text-white">
+            🔧 MAINT
+          </span>
+        ) : (
+          <span className={`inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+            {item.lastStatus.replace('_', ' ')}
+          </span>
+        )}
       </div>
 
       {/* Total */}

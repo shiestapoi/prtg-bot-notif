@@ -3,6 +3,8 @@
 /node_modules
 /build
 /public/app
+/prtg_monitor_android
+/prtg_monitor_native
 
 # Logs
 logs

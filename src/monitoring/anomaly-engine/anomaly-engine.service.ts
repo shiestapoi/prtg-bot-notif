@@ -30,6 +30,7 @@ export interface MonitoringEligibleConfig {
   notifyLowTraffic: boolean;
   notifyFlapping: boolean;
   notifyRecovery: boolean;
+  maintenance: boolean;
   lastPolledAt: Date | null;
   lastStatus: NocStatus;
 }

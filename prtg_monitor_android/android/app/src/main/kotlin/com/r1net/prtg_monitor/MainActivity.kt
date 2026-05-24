@@ -22,10 +22,14 @@ class MainActivity : FlutterFragmentActivity() {
                     result.success(true)
                 }
                 "flutterAlive" -> {
-                    // Tell native service that Flutter is handling polling
                     val intent = Intent(this, MonitoringForegroundService::class.java)
-                    intent.action = "FLUTTER_ALIVE"
+                    intent.action = MonitoringForegroundService.ACTION_FLUTTER_ALIVE
                     startService(intent)
+                    result.success(true)
+                }
+                "writeNativeConfig" -> {
+                    val json = call.argument<String>("json") ?: ""
+                    NativeConfigManager.writeConfig(this, json)
                     result.success(true)
                 }
                 else -> result.notImplemented()

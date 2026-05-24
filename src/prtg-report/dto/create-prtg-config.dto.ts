@@ -109,4 +109,8 @@ export class CreatePrtgConfigDto {
   @IsOptional()
   @IsBoolean()
   notifyRecovery?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  maintenance?: boolean;
 }

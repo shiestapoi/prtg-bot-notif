@@ -118,6 +118,14 @@ export class PrtgReportController {
     return this.prtgReportService.dispatchConfig(id);
   }
 
+  @Put('configs/:id/maintenance')
+  async toggleMaintenance(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { maintenance: boolean },
+  ) {
+    return this.prtgReportService.updateConfig(id, { maintenance: body.maintenance });
+  }
+
   @Get('settings')
   getSettings() {
     return this.prtgReportService.getSettings();

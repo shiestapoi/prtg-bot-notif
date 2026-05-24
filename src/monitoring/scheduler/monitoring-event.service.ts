@@ -13,6 +13,7 @@ export interface MonitoringStatusEvent {
   previousStatus: NocStatus;
   currentStatus: NocStatus;
   timestamp: string;
+  maintenance: boolean;
   metric: {
     totalTrafficBitrate: number | null;
     inboundBitrate: number | null;

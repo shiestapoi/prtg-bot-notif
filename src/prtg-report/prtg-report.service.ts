@@ -364,6 +364,7 @@ export class PrtgReportService {
     notifyLowTraffic?: boolean;
     notifyFlapping?: boolean;
     notifyRecovery?: boolean;
+    maintenance?: boolean;
   }): Promise<PrtgConfigDto> {
     const title = normalizeInput(payload.title);
 
@@ -415,6 +416,7 @@ export class PrtgReportService {
         ...(payload.notifyLowTraffic !== undefined && { notifyLowTraffic: payload.notifyLowTraffic }),
         ...(payload.notifyFlapping !== undefined && { notifyFlapping: payload.notifyFlapping }),
         ...(payload.notifyRecovery !== undefined && { notifyRecovery: payload.notifyRecovery }),
+        ...(payload.maintenance !== undefined && { maintenance: payload.maintenance }),
       },
     });
 
@@ -445,6 +447,7 @@ export class PrtgReportService {
       notifyLowTraffic?: boolean;
       notifyFlapping?: boolean;
       notifyRecovery?: boolean;
+      maintenance?: boolean;
     },
   ): Promise<PrtgConfigDto> {
     const config = await this.prisma.prtgConfig.findUnique({
@@ -505,6 +508,7 @@ export class PrtgReportService {
         ...(payload.notifyLowTraffic !== undefined && { notifyLowTraffic: payload.notifyLowTraffic }),
         ...(payload.notifyFlapping !== undefined && { notifyFlapping: payload.notifyFlapping }),
         ...(payload.notifyRecovery !== undefined && { notifyRecovery: payload.notifyRecovery }),
+        ...(payload.maintenance !== undefined && { maintenance: payload.maintenance }),
       },
     });
 

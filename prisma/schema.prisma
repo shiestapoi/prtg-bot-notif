@@ -76,6 +76,7 @@ model PrtgConfig {
   notifyLowTraffic  Boolean        @default(true)
   notifyFlapping    Boolean        @default(true)
   notifyRecovery    Boolean        @default(true)
+  maintenance       Boolean        @default(false)
   lastPolledAt      DateTime?
   lastStatus        NocStatus      @default(NORMAL)
 
