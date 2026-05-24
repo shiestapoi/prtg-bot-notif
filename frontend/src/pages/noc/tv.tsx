@@ -301,6 +301,20 @@ export default function NocTvDashboardPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // Toggle maintenance mode for a config
+  const toggleMaintenance = useCallback(async (configId: number, currentMaintenance: boolean) => {
+    try {
+      await monitoringApi.toggleMaintenance(configId, !currentMaintenance);
+      setItems((prev) =>
+        prev.map((item) =>
+          item.configId === configId ? { ...item, maintenance: !currentMaintenance } : item,
+        ),
+      );
+    } catch {
+      // silent — could show toast if available
+    }
+  }, []);
+
   // Play alarm when DOWN is first detected (effect runs after hasDown is computed below)
   const prevHasDownRef = useRef(false);
 
@@ -567,7 +581,7 @@ export default function NocTvDashboardPage() {
       {viewMode === 'grid' && (
         <div className={`grid ${gridCols} gap-2`}>
           {filteredItems.map((item) => (
-            <TvCard key={item.configId} item={item} />
+            <TvCard key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} />
           ))}
         </div>
       )}
@@ -575,7 +589,7 @@ export default function NocTvDashboardPage() {
       {viewMode === 'compact' && (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
           {filteredItems.map((item) => (
-            <CompactCard key={item.configId} item={item} />
+            <CompactCard key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} />
           ))}
         </div>
       )}
@@ -593,7 +607,7 @@ export default function NocTvDashboardPage() {
             <span className="text-right">Updated</span>
           </div>
           {filteredItems.map((item) => (
-            <ListRow key={item.configId} item={item} />
+            <ListRow key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} />
           ))}
         </div>
       )}
@@ -692,7 +706,7 @@ export default function NocTvDashboardPage() {
 
 // ─── TV Card ────────────────────────────────────────────────────────────────
 
-const TvCard = memo(function TvCard({ item }: { item: MonitoringSummaryItem }) {
+const TvCard = memo(function TvCard({ item, onToggleMaintenance }: { item: MonitoringSummaryItem; onToggleMaintenance: (configId: number, current: boolean) => void }) {
   const [imgError, setImgError] = useState(false);
   const [imgLoading, setImgLoading] = useState(true);
   const prevPolledAtRef = useRef(item.lastPolledAt);
@@ -721,9 +735,32 @@ const TvCard = memo(function TvCard({ item }: { item: MonitoringSummaryItem }) {
 
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
   const isMaintenance = item.maintenance;
+  const [showMenu, setShowMenu] = useState(false);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    if (!showMenu) return;
+    const close = () => setShowMenu(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [showMenu]);
 
   return (
-    <div className={`rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 overflow-hidden transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}>
+    <div
+      className={`relative rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 overflow-hidden transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(true); }}
+    >
+      {/* Context Menu (right-click) */}
+      {showMenu && (
+        <div className="absolute top-8 right-2 z-50 rounded-lg bg-gray-800 border border-gray-600 shadow-xl py-1 min-w-[160px]">
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleMaintenance(item.configId, item.maintenance); setShowMenu(false); }}
+            className="w-full text-left px-3 py-1.5 text-[10px] hover:bg-gray-700 transition"
+          >
+            {isMaintenance ? '✅ Akhiri Maintenance' : '🔧 Set Maintenance'}
+          </button>
+        </div>
+      )}
       {/* Title + Status */}
       <div className="flex items-center justify-between px-2 py-1 border-b border-gray-800">
         <div className="flex-1 min-w-0">
@@ -809,12 +846,15 @@ const TvCard = memo(function TvCard({ item }: { item: MonitoringSummaryItem }) {
 
 // ─── Compact Card (no chart, dense metrics) ─────────────────────────────────
 
-const CompactCard = memo(function CompactCard({ item }: { item: MonitoringSummaryItem }) {
+const CompactCard = memo(function CompactCard({ item, onToggleMaintenance }: { item: MonitoringSummaryItem; onToggleMaintenance: (configId: number, current: boolean) => void }) {
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
   const isMaintenance = item.maintenance;
 
   return (
-    <div className={`rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 p-2 transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}>
+    <div
+      className={`rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 p-2 transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onToggleMaintenance(item.configId, item.maintenance); }}
+    >
       {/* Title + Status */}
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-[10px] font-semibold truncate flex-1 mr-1" title={item.title}>{item.title}</h3>
@@ -859,12 +899,15 @@ const CompactCard = memo(function CompactCard({ item }: { item: MonitoringSummar
 
 // ─── List Row (table-like) ──────────────────────────────────────────────────
 
-const ListRow = memo(function ListRow({ item }: { item: MonitoringSummaryItem }) {
+const ListRow = memo(function ListRow({ item, onToggleMaintenance }: { item: MonitoringSummaryItem; onToggleMaintenance: (configId: number, current: boolean) => void }) {
   const isDown = item.lastStatus === 'DOWN' || item.lastStatus === 'NO_TRAFFIC';
   const isMaintenance = item.maintenance;
 
   return (
-    <div className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_100px_80px] gap-2 items-center px-2 py-1.5 rounded border ${isMaintenance ? 'border-blue-500' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 ${isDown && !isMaintenance ? 'shadow-sm shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}>
+    <div
+      className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_100px_80px] gap-2 items-center px-2 py-1.5 rounded border ${isMaintenance ? 'border-blue-500' : STATUS_CARD_BORDER[item.lastStatus]} bg-gray-900 ${isDown && !isMaintenance ? 'shadow-sm shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onToggleMaintenance(item.configId, item.maintenance); }}
+    >
       {/* Name */}
       <div className="min-w-0">
         <h3 className="text-[10px] font-semibold truncate">{item.title}</h3>

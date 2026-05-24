@@ -115,6 +115,7 @@ export interface PrtgConfig {
   notifyLowTraffic: boolean;
   notifyFlapping: boolean;
   notifyRecovery: boolean;
+  maintenance: boolean;
   lastPolledAt: string | null;
   lastStatus: NocStatus;
   createdAt: string;
