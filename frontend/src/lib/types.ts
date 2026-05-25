@@ -201,6 +201,15 @@ export interface MonitoringStatusEvent {
   } | null;
 }
 
+export interface ConfigUpdatedEvent {
+  type: 'config_updated';
+  action: 'created' | 'updated' | 'deleted';
+  configId: number;
+  timestamp: string;
+}
+
+export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent;
+
 // ─── Monitoring History (Unified) ───────────────────────────────────────────
 
 export interface MonitoringHistory {

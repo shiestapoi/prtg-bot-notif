@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { MonitoringStatusEvent, NocStatusEvent } from '../lib/types';
+import type { MonitoringStatusEvent, MonitoringEvent, NocStatusEvent } from '../lib/types';
 
 export interface UseSSEOptions {
   /** Maximum number of events to keep in the buffer. Default: 50 */
@@ -167,12 +167,13 @@ export interface UseMonitoringSSEReturn {
  */
 export function useMonitoringSSE(
   onStatusChange?: (event: MonitoringStatusEvent) => void,
-  options: UseMonitoringSSEOptions = {},
+  options: UseMonitoringSSEOptions & { onConfigUpdated?: () => void } = {},
 ): UseMonitoringSSEReturn {
   const {
     maxEvents = 50,
     reconnectDelay = 3000,
     maxReconnectAttempts = 10,
+    onConfigUpdated,
   } = options;
 
   const [events, setEvents] = useState<MonitoringStatusEvent[]>([]);
@@ -184,11 +185,13 @@ export function useMonitoringSSE(
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
   const onStatusChangeRef = useRef(onStatusChange);
+  const onConfigUpdatedRef = useRef(onConfigUpdated);
 
   // Keep callback ref up to date without triggering reconnects
   useEffect(() => {
     onStatusChangeRef.current = onStatusChange;
-  }, [onStatusChange]);
+    onConfigUpdatedRef.current = onConfigUpdated;
+  }, [onStatusChange, onConfigUpdated]);
 
   const clearEvents = useCallback(() => {
     setEvents([]);
@@ -217,9 +220,13 @@ export function useMonitoringSSE(
     eventSource.onmessage = (event: MessageEvent) => {
       if (!mountedRef.current) return;
       try {
-        const parsed = JSON.parse(event.data) as MonitoringStatusEvent;
-        setEvents((prev) => [parsed, ...prev].slice(0, maxEvents));
-        onStatusChangeRef.current?.(parsed);
+        const parsed = JSON.parse(event.data) as MonitoringEvent;
+        if (parsed.type === 'status_change') {
+          setEvents((prev) => [parsed, ...prev].slice(0, maxEvents));
+          onStatusChangeRef.current?.(parsed);
+        } else if (parsed.type === 'config_updated') {
+          onConfigUpdatedRef.current?.();
+        }
       } catch (e) {
         setError(
           e instanceof Error ? e : new Error('Failed to parse SSE data'),

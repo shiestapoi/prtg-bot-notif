@@ -20,7 +20,6 @@ import { AlertDispatcherService } from './dispatcher/alert-dispatcher.service';
 import { BrowserPoolService } from './dispatcher/browser-pool.service';
 import { ScreenshotService } from './dispatcher/screenshot.service';
 import { MonitoringHistoryService } from './service/monitoring-history.service';
-import { MonitoringEventService } from './scheduler/monitoring-event.service';
 import { MonitoringRecipientService } from './service/monitoring-recipient.service';
 
 @Module({
@@ -39,7 +38,6 @@ import { MonitoringRecipientService } from './service/monitoring-recipient.servi
     AlertDispatcherService,
     ScreenshotService,
     MonitoringHistoryService,
-    MonitoringEventService,
     MonitoringRecipientService,
   ],
 })

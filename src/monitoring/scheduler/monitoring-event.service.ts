@@ -22,6 +22,19 @@ export interface MonitoringStatusEvent {
 }
 
 /**
+ * SSE event payload broadcast when a config is created, updated, or deleted.
+ * The TV page uses this to re-fetch the full summary without manual reload.
+ */
+export interface ConfigUpdatedEvent {
+  type: 'config_updated';
+  action: 'created' | 'updated' | 'deleted';
+  configId: number;
+  timestamp: string;
+}
+
+export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent;
+
+/**
  * Simple EventEmitter-based service for broadcasting monitoring status events.
  * Controllers can subscribe to receive real-time updates for SSE streaming.
  */
@@ -38,17 +51,30 @@ export class MonitoringEventService {
    * Emit a status change event to all subscribers.
    */
   emit(event: MonitoringStatusEvent): void {
-    this.emitter.emit('status_change', event);
+    this.emitter.emit('monitoring_event', event);
   }
 
   /**
-   * Subscribe to status change events.
+   * Emit a config updated event to all subscribers.
+   */
+  emitConfigUpdated(action: 'created' | 'updated' | 'deleted', configId: number): void {
+    const event: ConfigUpdatedEvent = {
+      type: 'config_updated',
+      action,
+      configId,
+      timestamp: new Date().toISOString(),
+    };
+    this.emitter.emit('monitoring_event', event);
+  }
+
+  /**
+   * Subscribe to all monitoring events (status_change + config_updated).
    * Returns an unsubscribe function.
    */
-  subscribe(listener: (event: MonitoringStatusEvent) => void): () => void {
-    this.emitter.on('status_change', listener);
+  subscribe(listener: (event: MonitoringEvent) => void): () => void {
+    this.emitter.on('monitoring_event', listener);
     return () => {
-      this.emitter.off('status_change', listener);
+      this.emitter.off('monitoring_event', listener);
     };
   }
 }

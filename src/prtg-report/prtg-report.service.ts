@@ -13,6 +13,7 @@ import sharp from 'sharp';
 // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
 // import { CookieVaultService } from '../cookie-vault/cookie-vault.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MonitoringEventService } from '../monitoring/scheduler/monitoring-event.service';
 import { PrtgSettingService } from '../prtg-setting/prtg-setting.service';
 import { WhatsappSenderService } from '../whatsapp/whatsapp-sender.service';
 import type {
@@ -178,6 +179,7 @@ export class PrtgReportService {
     // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
     // private readonly cookieVault: CookieVaultService,
     private readonly prtgSetting: PrtgSettingService,
+    private readonly monitoringEventService: MonitoringEventService,
   ) {}
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -427,6 +429,7 @@ export class PrtgReportService {
       },
     });
 
+    this.monitoringEventService.emitConfigUpdated('created', config.id);
     return this.mapConfigToDto(config);
   }
 
@@ -523,6 +526,7 @@ export class PrtgReportService {
       },
     });
 
+    this.monitoringEventService.emitConfigUpdated('updated', updated.id);
     return this.mapConfigToDto(updated);
   }
 
@@ -610,6 +614,7 @@ export class PrtgReportService {
 
   async deleteConfig(id: number) {
     await this.prisma.prtgConfig.delete({ where: { id } });
+    this.monitoringEventService.emitConfigUpdated('deleted', id);
     return { id };
   }
 

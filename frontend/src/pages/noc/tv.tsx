@@ -244,7 +244,15 @@ export default function NocTvDashboardPage() {
     }
   }, [soundEnabled, playAlarm]);
 
-  const { isConnected } = useMonitoringSSE(onStatusChange);
+  // Re-fetch summary when config is created/updated/deleted
+  const refetchSummary = useCallback(async () => {
+    try {
+      const data = await monitoringApi.summary();
+      setItems(data);
+    } catch { /* silent */ }
+  }, []);
+
+  const { isConnected } = useMonitoringSSE(onStatusChange, { onConfigUpdated: refetchSummary });
 
   // Auto-reload if disconnected for more than 30 seconds
   useEffect(() => {

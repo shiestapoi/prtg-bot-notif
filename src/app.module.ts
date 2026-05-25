@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { CookieVaultModule } from './cookie-vault/cookie-vault.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { MonitoringEventModule } from './monitoring/scheduler/monitoring-event.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { PrtgNocModule } from './prtg-noc/prtg-noc.module';
 import { PrtgReportModule } from './prtg-report/prtg-report.module';
@@ -14,6 +15,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
 @Module({
   imports: [
     PrismaModule,
+    MonitoringEventModule, // Global — available to all modules
     AuthModule,
     WhatsappModule,
     CookieVaultModule, // DEPRECATED: Cookie tidak dipakai lagi untuk auth PRTG, tapi endpoint tetap ada
