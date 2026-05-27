@@ -5,6 +5,7 @@ import { AuthModule } from '../auth/auth.module';
 import { PrtgSettingModule } from '../prtg-setting/prtg-setting.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { PrtgReportController } from './prtg-report.controller';
+import { PrtgConfigPublicController } from './prtg-config-public.controller';
 import { PrtgReportSchedulerService } from './prtg-report-scheduler.service';
 import { PrtgReportService } from './prtg-report.service';
 
@@ -16,7 +17,7 @@ import { PrtgReportService } from './prtg-report.service';
     PrtgSettingModule,
     forwardRef(() => WhatsappModule),
   ],
-  controllers: [PrtgReportController],
+  controllers: [PrtgReportController, PrtgConfigPublicController],
   providers: [PrtgReportService, PrtgReportSchedulerService],
   exports: [PrtgReportService, PrtgReportSchedulerService],
 })
