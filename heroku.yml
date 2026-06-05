@@ -7,7 +7,7 @@ release:
   command:
     - sh
     - -c
-    - "npm run db:deploy && npx tsx prisma/seed-deploy.ts"
+    - "npm run heroku:release"
 
 run:
   web: npm run start:prod

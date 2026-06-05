@@ -71,8 +71,8 @@ async function main() {
   }
 
   // ─── Default admin user ───────────────────────────────────────────────────
-  const adminUsername = process.env.SEED_USERNAME?.trim() ?? 'admin';
-  const adminPassword = process.env.SEED_PASSWORD?.trim() ?? 'admin123';
+  const adminUsername = 'admin';
+  const adminPassword = 'admin123';
 
   await prisma.user.upsert({
     where: { username: adminUsername },
@@ -184,6 +184,25 @@ async function main() {
     }
   }
   console.log(`✓ ${defaultRecipients.length} recipients ensured`);
+
+  await prisma.pingMonitor.upsert({
+    where: { host: '223.130.21.34' },
+    create: {
+      name: 'IP Public Solnet',
+      host: '223.130.21.34',
+      enabled: true,
+      intervalSeconds: 2,
+      pingTimeoutSeconds: 1,
+      rtoThresholdSeconds: 10,
+      notificationCooldownSeconds: 3600,
+      maintenance: false,
+      notifyRecovery: true,
+      alertTemplate: '*ALERT RTO*\nIP Public Solnet ({host}) RTO dalam {outageSeconds} detik yang lalu.\nWaktu: {time}',
+      recoveryTemplate: '*PULIH*\nIP Public Solnet ({host}) kembali terhubung.\nLatency: {latencyMs} ms\nWaktu: {time}',
+    },
+    update: {},
+  });
+  console.log('✓ Default ping monitor 223.130.21.34 ensured');
 
   // ─── Default schedule ─────────────────────────────────────────────────────
   const existingSchedule = await prisma.prtgSchedule.findFirst({ where: { id: 1 } });

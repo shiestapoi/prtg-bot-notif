@@ -116,6 +116,58 @@ model MonitoringRecipient {
   updatedAt   DateTime            @updatedAt
 }
 
+/// Recipient khusus untuk notifikasi ping monitoring.
+/// Dipisahkan dari MonitoringRecipient agar alert PRTG/NOC dan ping punya jalur sendiri.
+model PingRecipient {
+  id          Int                 @id @default(autoincrement())
+  label       String?
+  phoneNumber String
+  targetType  RecipientTargetType @default(manual)
+  enabled     Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  pingMonitors PingMonitorRecipient[]
+}
+
+enum PingMonitorStatus {
+  UNKNOWN
+  UP
+  RTO
+}
+
+model PingMonitor {
+  id                  Int               @id @default(autoincrement())
+  name                String
+  host                String            @unique
+  enabled             Boolean           @default(true)
+  intervalSeconds     Int               @default(2)
+  pingTimeoutSeconds  Int               @default(1)
+  rtoThresholdSeconds Int               @default(10)
+  notificationCooldownSeconds Int       @default(3600)
+  maintenance         Boolean           @default(false)
+  maintenanceLabel    String?
+  notifyRecovery      Boolean           @default(true)
+  alertTemplate       String            @default("*ALERT RTO*\n{label} ({host}) mengalami RTO dalam {outageSeconds} detik yang lalu.\nWaktu: {time}")
+  recoveryTemplate    String            @default("*PULIH*\n{label} ({host}) kembali terhubung.\nLatency: {latencyMs} ms\nWaktu: {time}")
+  status              PingMonitorStatus @default(UNKNOWN)
+  lastLatencyMs       Float?
+  lastCheckedAt       DateTime?
+  outageStartedAt     DateTime?
+  lastAlertAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  recipients          PingMonitorRecipient[]
+}
+
+model PingMonitorRecipient {
+  pingMonitorId  Int
+  pingRecipientId Int
+  pingMonitor    PingMonitor   @relation(fields: [pingMonitorId], references: [id], onDelete: Cascade)
+  pingRecipient  PingRecipient @relation(fields: [pingRecipientId], references: [id], onDelete: Cascade)
+
+  @@id([pingMonitorId, pingRecipientId])
+}
+
 enum RecipientTargetType {
   contact
   group

@@ -63,18 +63,24 @@ git push heroku main
 
 `Procfile` menjalankan:
 
-- `release: npm run db:deploy` untuk `prisma migrate deploy`
+- `release: npm run heroku:release`
 - `web: npm run start:prod` untuk menjalankan Nest dari `dist`
+
+Release Heroku otomatis menjalankan:
+
+1. `prisma migrate deploy` untuk migration resmi.
+2. `prisma db push` tanpa `--accept-data-loss`, jadi hanya menyelaraskan tabel/kolom yang kurang dan akan gagal jika perubahan berisiko menghapus data.
+3. `tsx prisma/seed-deploy.ts` yang memakai upsert dan tidak menghapus data.
 
 Build Heroku menjalankan `npm run heroku-postbuild`, yaitu Prisma generate dan
 Nest build.
 
 ### 5. Seed database
 
-Jalankan seed setelah migration berhasil:
+Seed deploy sudah berjalan otomatis di release phase. Untuk menjalankan ulang secara manual tanpa menghapus data:
 
 ```bash
-heroku run npm run db:seed -a prtg-report-app
+heroku run npm run db:seed:deploy -a prtg-report-app
 ```
 
 ### 6. Cek log dan buka app

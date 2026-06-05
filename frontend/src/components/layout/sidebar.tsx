@@ -8,6 +8,7 @@ import {
   Monitor,
   History,
   Bell,
+  Activity,
   Tv,
   Settings,
   MessageCircle,
@@ -38,6 +39,8 @@ const nocNavItems: NavItem[] = [
   { label: 'TV Display', href: '/tv', icon: Tv },
   { label: 'History', href: '/noc/history', icon: History },
   { label: 'Alert Recipients', href: '/monitoring/recipients', icon: Bell },
+  { label: 'Ping Monitoring', href: '/monitoring/ping', icon: Activity },
+  { label: 'Ping Recipients', href: '/monitoring/ping-recipients', icon: Send },
 ];
 
 const settingsNavItems: NavItem[] = [

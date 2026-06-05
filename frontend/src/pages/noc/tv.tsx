@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { useMonitoringSSE } from '@/hooks/use-sse';
-import { monitoringApi } from '@/lib/api';
-import type { MonitoringSummaryItem, MonitoringStatusEvent, NocStatus } from '@/lib/types';
+import { monitoringApi, pingMonitorApi } from '@/lib/api';
+import type { MonitoringSummaryItem, MonitoringStatusEvent, NocStatus, PingMonitor, PingStatusEvent } from '@/lib/types';
 import Loader from '@/components/ui/loader';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -145,6 +145,7 @@ const ALARM_LABELS: Record<AlarmType, string> = {
 
 function useAlertSound() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recoveryAudioRef = useRef<HTMLAudioElement | null>(null);
   // Read initial alarm type from cookie, default to 'beep'
   const [alarmType, setAlarmTypeState] = useState<AlarmType>(() => {
     const match = document.cookie.match(/(?:^|; )alarmType=([^;]*)/);
@@ -196,16 +197,31 @@ function useAlertSound() {
     }
   }, []);
 
+  const playRecovery = useCallback(() => {
+    if (recoveryAudioRef.current) {
+      recoveryAudioRef.current.pause();
+      recoveryAudioRef.current.currentTime = 0;
+    }
+    const audio = new Audio('/sounds/beep.wav');
+    audio.volume = 0.65;
+    recoveryAudioRef.current = audio;
+    audio.play().catch(() => {});
+  }, []);
+
   useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
+      if (recoveryAudioRef.current) {
+        recoveryAudioRef.current.pause();
+        recoveryAudioRef.current = null;
+      }
     };
   }, []);
 
-  return { playAlarm, stopAlarm, alarmType, setAlarmType };
+  return { playAlarm, playRecovery, stopAlarm, alarmType, setAlarmType };
 }
 
 // ─── TV Dashboard Page ──────────────────────────────────────────────────────
@@ -214,6 +230,7 @@ type ViewMode = 'grid' | 'compact' | 'list';
 
 export default function NocTvDashboardPage() {
   const [items, setItems] = useState<MonitoringSummaryItem[]>([]);
+  const [pingMonitors, setPingMonitors] = useState<PingMonitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -221,12 +238,13 @@ export default function NocTvDashboardPage() {
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [alarmModalOpen, setAlarmModalOpen] = useState(false);
-  const { playAlarm, alarmType, setAlarmType } = useAlertSound();
-  const { isWakeLockActive } = useWakeLock();
+  const { playAlarm, playRecovery, alarmType, setAlarmType } = useAlertSound();
+  useWakeLock();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
 
   // ─── Auto-reload on prolonged disconnect ────────────────────────────────
   const disconnectedSinceRef = useRef<number | null>(null);
+  const pingStatusRef = useRef<Map<number, PingMonitor['status']>>(new Map());
 
   // SSE for real-time updates
   const onStatusChange = useCallback((event: MonitoringStatusEvent) => {
@@ -252,7 +270,36 @@ export default function NocTvDashboardPage() {
     } catch { /* silent */ }
   }, []);
 
-  const { isConnected } = useMonitoringSSE(onStatusChange, { onConfigUpdated: refetchSummary });
+  const onPingStatus = useCallback((event: PingStatusEvent) => {
+    const previousStatus = pingStatusRef.current.get(event.monitorId);
+    pingStatusRef.current.set(event.monitorId, event.status);
+
+    if (soundEnabled && event.host === '223.130.21.34' && !event.maintenance) {
+      if (event.status === 'RTO' && previousStatus !== 'RTO') {
+        playAlarm();
+      } else if (event.status === 'UP' && previousStatus === 'RTO') {
+        playRecovery();
+      }
+    }
+
+    setPingMonitors((prev) => prev.map((monitor) =>
+      monitor.id === event.monitorId
+        ? {
+            ...monitor,
+            name: event.name,
+            host: event.host,
+            status: event.status,
+            lastLatencyMs: event.latencyMs,
+            lastCheckedAt: event.checkedAt,
+            outageStartedAt: event.outageStartedAt,
+            maintenance: event.maintenance,
+            maintenanceLabel: event.maintenanceLabel,
+          }
+        : monitor,
+    ));
+  }, [soundEnabled, playAlarm, playRecovery]);
+
+  const { isConnected } = useMonitoringSSE(onStatusChange, { onConfigUpdated: refetchSummary, onPingStatus });
 
   // Auto-reload if disconnected for more than 30 seconds
   useEffect(() => {
@@ -300,8 +347,14 @@ export default function NocTvDashboardPage() {
     let cancelled = false;
     async function fetchSummary() {
       try {
-        const data = await monitoringApi.summary();
-        if (!cancelled) { setItems(data); }
+        const [data, pingData] = await Promise.all([monitoringApi.summary(), pingMonitorApi.getAll()]);
+        if (!cancelled) {
+          setItems(data);
+          setPingMonitors(pingData);
+          pingStatusRef.current = new Map(
+            pingData.map((monitor) => [monitor.id, monitor.status]),
+          );
+        }
       } catch { /* silent */ }
       finally { if (!cancelled) setLoading(false); }
     }
@@ -397,6 +450,10 @@ export default function NocTvDashboardPage() {
   const [spotlightVisible, setSpotlightVisible] = useState(false);
 
   const hasDown = useMemo(() => items.some((i) => (i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC') && !i.maintenance), [items]);
+  const publicIpMonitor = useMemo(
+    () => pingMonitors.find((monitor) => monitor.host === '223.130.21.34') ?? pingMonitors[0] ?? null,
+    [pingMonitors],
+  );
 
   // Play alarm when DOWN is first detected
   useEffect(() => {
@@ -496,10 +553,15 @@ export default function NocTvDashboardPage() {
             <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
             <span className="text-[10px] text-gray-400">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className={`inline-block h-2 w-2 rounded-full ${isWakeLockActive ? 'bg-cyan-400' : 'bg-gray-600'}`} />
-            <span className="text-[10px] text-gray-400">{isWakeLockActive ? 'AWAKE' : 'NO LOCK'}</span>
-          </div>
+          {publicIpMonitor && (
+            <div className="flex items-center gap-1">
+              <span className={`inline-block h-2 w-2 rounded-full ${publicIpMonitor.maintenance ? 'bg-yellow-400' : publicIpMonitor.status === 'RTO' ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
+              <span className="text-[10px] text-gray-400">{publicIpMonitor.maintenance ? (publicIpMonitor.maintenanceLabel ?? 'MAINTENANCE') : 'IP PUBLIC SOLNET'}</span>
+              <span className={`font-mono text-[10px] font-bold tabular-nums ${publicIpMonitor.maintenance ? 'text-yellow-300' : publicIpMonitor.status === 'RTO' ? 'text-red-400' : 'text-emerald-400'}`}>
+                {publicIpMonitor.maintenance ? 'MAINT' : publicIpMonitor.lastLatencyMs === null ? publicIpMonitor.status : `${publicIpMonitor.lastLatencyMs.toFixed(1)} ms`}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">

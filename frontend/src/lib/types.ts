@@ -208,7 +208,7 @@ export interface ConfigUpdatedEvent {
   timestamp: string;
 }
 
-export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent;
+export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent | PingStatusEvent;
 
 // ─── Monitoring History (Unified) ───────────────────────────────────────────
 
@@ -247,4 +247,41 @@ export interface MonitoringSummaryItem {
     inboundBitrate: number | null;
     outboundBitrate: number | null;
   } | null;
+}
+
+export type PingMonitorStatus = 'UNKNOWN' | 'UP' | 'RTO';
+
+export interface PingMonitor {
+  id: number;
+  name: string;
+  host: string;
+  enabled: boolean;
+  intervalSeconds: number;
+  pingTimeoutSeconds: number;
+  rtoThresholdSeconds: number;
+  notificationCooldownSeconds: number;
+  maintenance: boolean;
+  maintenanceLabel: string | null;
+  notifyRecovery: boolean;
+  alertTemplate: string;
+  recoveryTemplate: string;
+  status: PingMonitorStatus;
+  lastLatencyMs: number | null;
+  lastCheckedAt: string | null;
+  outageStartedAt: string | null;
+  lastAlertAt: string | null;
+  recipientIds: number[];
+}
+
+export interface PingStatusEvent {
+  type: 'ping_status';
+  monitorId: number;
+  name: string;
+  host: string;
+  status: PingMonitorStatus;
+  latencyMs: number | null;
+  checkedAt: string;
+  outageStartedAt: string | null;
+  maintenance: boolean;
+  maintenanceLabel: string | null;
 }

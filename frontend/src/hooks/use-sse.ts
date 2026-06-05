@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { MonitoringStatusEvent, MonitoringEvent, NocStatusEvent } from '../lib/types';
+import type { MonitoringStatusEvent, MonitoringEvent, NocStatusEvent, PingStatusEvent } from '../lib/types';
 
 export interface UseSSEOptions {
   /** Maximum number of events to keep in the buffer. Default: 50 */
@@ -167,13 +167,14 @@ export interface UseMonitoringSSEReturn {
  */
 export function useMonitoringSSE(
   onStatusChange?: (event: MonitoringStatusEvent) => void,
-  options: UseMonitoringSSEOptions & { onConfigUpdated?: () => void } = {},
+  options: UseMonitoringSSEOptions & { onConfigUpdated?: () => void; onPingStatus?: (event: PingStatusEvent) => void } = {},
 ): UseMonitoringSSEReturn {
   const {
     maxEvents = 50,
     reconnectDelay = 3000,
     maxReconnectAttempts = 10,
     onConfigUpdated,
+    onPingStatus,
   } = options;
 
   const [events, setEvents] = useState<MonitoringStatusEvent[]>([]);
@@ -186,12 +187,14 @@ export function useMonitoringSSE(
   const mountedRef = useRef(true);
   const onStatusChangeRef = useRef(onStatusChange);
   const onConfigUpdatedRef = useRef(onConfigUpdated);
+  const onPingStatusRef = useRef(onPingStatus);
 
   // Keep callback ref up to date without triggering reconnects
   useEffect(() => {
     onStatusChangeRef.current = onStatusChange;
     onConfigUpdatedRef.current = onConfigUpdated;
-  }, [onStatusChange, onConfigUpdated]);
+    onPingStatusRef.current = onPingStatus;
+  }, [onStatusChange, onConfigUpdated, onPingStatus]);
 
   const clearEvents = useCallback(() => {
     setEvents([]);
@@ -226,6 +229,8 @@ export function useMonitoringSSE(
           onStatusChangeRef.current?.(parsed);
         } else if (parsed.type === 'config_updated') {
           onConfigUpdatedRef.current?.();
+        } else if (parsed.type === 'ping_status') {
+          onPingStatusRef.current?.(parsed);
         }
       } catch (e) {
         setError(

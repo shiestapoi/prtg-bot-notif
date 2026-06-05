@@ -76,6 +76,8 @@ async function resetSequence(table: string, maxId: number) {
 
 async function cleanTables() {
   // Delete in order respecting FK constraints
+  await prisma.pingMonitorRecipient.deleteMany();
+  await prisma.pingMonitor.deleteMany();
   await prisma.monitoringHistory.deleteMany();
   await prisma.prtgConfig.deleteMany();
   await prisma.prtgRecipient.deleteMany();
@@ -104,6 +106,17 @@ async function seedUsers() {
       },
     });
   }
+
+  await prisma.user.upsert({
+    where: { username: 'admin' },
+    create: {
+      username: 'admin',
+      passwordHash: await bcrypt.hash('admin123', 12),
+    },
+    update: {
+      passwordHash: await bcrypt.hash('admin123', 12),
+    },
+  });
 
   const username = process.env.SEED_USERNAME?.trim();
   const password = process.env.SEED_PASSWORD?.trim();
@@ -215,6 +228,22 @@ async function main() {
       targetMode: 'group_only',
       createdAt: date('2026-05-03T19:43:00.421Z'),
       updatedAt: date('2026-05-06T00:05:01.385Z'),
+    },
+  });
+
+  await prisma.pingMonitor.create({
+    data: {
+      name: 'IP Public Solnet',
+      host: '223.130.21.34',
+      enabled: true,
+      intervalSeconds: 2,
+      pingTimeoutSeconds: 1,
+      rtoThresholdSeconds: 10,
+      notificationCooldownSeconds: 3600,
+      maintenance: false,
+      notifyRecovery: true,
+      alertTemplate: '*ALERT RTO*\nIP Public Solnet ({host}) RTO dalam {outageSeconds} detik yang lalu.\nWaktu: {time}',
+      recoveryTemplate: '*PULIH*\nIP Public Solnet ({host}) kembali terhubung.\nLatency: {latencyMs} ms\nWaktu: {time}',
     },
   });
 

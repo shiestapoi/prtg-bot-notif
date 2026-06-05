@@ -11,6 +11,8 @@ import { MonitoringHistoryController } from './controller/monitoring-history.con
 import { MonitoringEventController } from './controller/monitoring-event.controller';
 import { MonitoringController } from './controller/monitoring.controller';
 import { MonitoringRecipientController } from './controller/monitoring-recipient.controller';
+import { PingMonitorController } from './controller/ping-monitor.controller';
+import { PingRecipientController } from './controller/ping-recipient.controller';
 
 // Services
 import { MonitoringSchedulerService } from './scheduler/monitoring-scheduler.service';
@@ -21,6 +23,9 @@ import { BrowserPoolService } from './dispatcher/browser-pool.service';
 import { ScreenshotService } from './dispatcher/screenshot.service';
 import { MonitoringHistoryService } from './service/monitoring-history.service';
 import { MonitoringRecipientService } from './service/monitoring-recipient.service';
+import { PingMonitorService } from './service/ping-monitor.service';
+import { PingRecipientService } from './service/ping-recipient.service';
+import { PingMonitorSchedulerService } from './scheduler/ping-monitor-scheduler.service';
 
 @Module({
   imports: [PrismaModule, PrtgSettingModule, PrtgReportModule, WhatsappModule],
@@ -29,6 +34,8 @@ import { MonitoringRecipientService } from './service/monitoring-recipient.servi
     MonitoringEventController,
     MonitoringController,
     MonitoringRecipientController,
+    PingMonitorController,
+    PingRecipientController,
   ],
   providers: [
     BrowserPoolService,
@@ -39,6 +46,9 @@ import { MonitoringRecipientService } from './service/monitoring-recipient.servi
     ScreenshotService,
     MonitoringHistoryService,
     MonitoringRecipientService,
+    PingMonitorService,
+    PingRecipientService,
+    PingMonitorSchedulerService,
   ],
 })
 export class MonitoringModule {}

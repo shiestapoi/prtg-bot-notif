@@ -12,6 +12,7 @@ import type {
   PrtgConfig,
   PrtgRecipient,
   PrtgSchedule,
+  PingMonitor,
 } from './types';
 
 // ─── Axios Instance ─────────────────────────────────────────────────────────
@@ -270,6 +271,23 @@ export const monitoringApi = {
     api.put(`/api/prtg/configs/${configId}/maintenance`, { maintenance, maintenanceLabel: label }).then((r) => r.data),
 };
 
+export type PingMonitorPayload = Partial<Omit<PingMonitor,
+  'id' | 'status' | 'lastLatencyMs' | 'lastCheckedAt' | 'outageStartedAt' | 'lastAlertAt'
+>> & { name?: string; host?: string };
+
+export const pingMonitorApi = {
+  getAll: () =>
+    api.get<PingMonitor[]>('/api/monitoring/ping-monitors').then((r) => r.data),
+  create: (data: PingMonitorPayload & { name: string; host: string }) =>
+    api.post<PingMonitor>('/api/monitoring/ping-monitors', data).then((r) => r.data),
+  update: (id: number, data: PingMonitorPayload) =>
+    api.patch<PingMonitor>(`/api/monitoring/ping-monitors/${id}`, data).then((r) => r.data),
+  remove: (id: number) =>
+    api.delete(`/api/monitoring/ping-monitors/${id}`).then((r) => r.data),
+  poll: (id: number) =>
+    api.post<PingMonitor>(`/api/monitoring/ping-monitors/${id}/poll`).then((r) => r.data),
+};
+
 // ─── Monitoring Recipients API ──────────────────────────────────────────────
 
 export interface MonitoringRecipient {
@@ -283,6 +301,30 @@ export interface MonitoringRecipient {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface PingRecipient {
+  id: number;
+  label: string | null;
+  phoneNumber: string;
+  targetType: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const pingRecipientApi = {
+  getAll: () =>
+    api.get<PingRecipient[]>('/api/monitoring/ping-recipients').then((r) => r.data),
+
+  create: (data: { label?: string; phoneNumber: string; targetType?: string; enabled?: boolean }) =>
+    api.post<PingRecipient>('/api/monitoring/ping-recipients', data).then((r) => r.data),
+
+  update: (id: number, data: Partial<{ label: string; phoneNumber: string; targetType: string; enabled: boolean }>) =>
+    api.put<PingRecipient>(`/api/monitoring/ping-recipients/${id}`, data).then((r) => r.data),
+
+  remove: (id: number) =>
+    api.delete(`/api/monitoring/ping-recipients/${id}`).then((r) => r.data),
+};
 
 export const monitoringRecipientApi = {
   getAll: () =>

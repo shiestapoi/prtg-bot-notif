@@ -32,7 +32,20 @@ export interface ConfigUpdatedEvent {
   timestamp: string;
 }
 
-export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent;
+export interface PingStatusEvent {
+  type: 'ping_status';
+  monitorId: number;
+  name: string;
+  host: string;
+  status: 'UNKNOWN' | 'UP' | 'RTO';
+  latencyMs: number | null;
+  checkedAt: string;
+  outageStartedAt: string | null;
+  maintenance: boolean;
+  maintenanceLabel: string | null;
+}
+
+export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent | PingStatusEvent;
 
 /**
  * Simple EventEmitter-based service for broadcasting monitoring status events.
@@ -64,6 +77,10 @@ export class MonitoringEventService {
       configId,
       timestamp: new Date().toISOString(),
     };
+    this.emitter.emit('monitoring_event', event);
+  }
+
+  emitPing(event: PingStatusEvent): void {
     this.emitter.emit('monitoring_event', event);
   }
 

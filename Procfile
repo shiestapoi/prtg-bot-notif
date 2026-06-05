@@ -1,2 +1,2 @@
-release: npm run db:deploy
+release: npm run heroku:release
 web: npm run start:prod
