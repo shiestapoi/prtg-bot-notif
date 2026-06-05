@@ -2,7 +2,7 @@ FROM node:22-bookworm-slim AS build-deps
 WORKDIR /app
 COPY .npmrc package.json package-lock.json ./
 COPY prisma ./prisma
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps --ignore-scripts
 
 FROM node:22-bookworm-slim AS prod-deps
 WORKDIR /app
