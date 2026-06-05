@@ -181,3 +181,20 @@ ALTER TABLE "PrtgSchedule" ADD CONSTRAINT "PrtgSchedule_groupId_fkey" FOREIGN KE
 
 -- AddForeignKey
 ALTER TABLE "MonitoringHistory" ADD CONSTRAINT "MonitoringHistory_configId_fkey" FOREIGN KEY ("configId") REFERENCES "PrtgConfig"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- CreateTable
+CREATE TABLE "MonitoringRecipient" (
+    "id" SERIAL NOT NULL,
+    "label" TEXT,
+    "phoneNumber" TEXT NOT NULL,
+    "targetType" "RecipientTargetType" NOT NULL DEFAULT 'manual',
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "groupId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MonitoringRecipient_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "MonitoringRecipient" ADD CONSTRAINT "MonitoringRecipient_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "PrtgGroup"("id") ON DELETE SET NULL ON UPDATE CASCADE;
