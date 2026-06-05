@@ -163,6 +163,9 @@ Waktu: {time}',
     `ALTER TABLE "PingMonitor" ADD COLUMN IF NOT EXISTS "notificationCooldownSeconds" INTEGER NOT NULL DEFAULT 3600;`,
     `ALTER TABLE "PingMonitor" ADD COLUMN IF NOT EXISTS "maintenance" BOOLEAN NOT NULL DEFAULT false;`,
     `ALTER TABLE "PingMonitor" ADD COLUMN IF NOT EXISTS "maintenanceLabel" TEXT;`,
+    `ALTER TABLE "PrtgConfig" ADD COLUMN IF NOT EXISTS "maintenance" BOOLEAN NOT NULL DEFAULT false;`,
+    `ALTER TABLE "PrtgConfig" ADD COLUMN IF NOT EXISTS "maintenanceLabel" TEXT;`,
+    `ALTER TABLE "PrtgConfig" ADD COLUMN IF NOT EXISTS "minTrafficThreshold" DOUBLE PRECISION NOT NULL DEFAULT 10.0;`,
     `
     DO $$
     BEGIN

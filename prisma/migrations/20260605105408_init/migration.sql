@@ -1,5 +1,5 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
+-- CreateEnum
+CREATE TYPE "PingMonitorStatus" AS ENUM ('UNKNOWN', 'UP', 'RTO');
 
 -- CreateEnum
 CREATE TYPE "RecipientTargetType" AS ENUM ('contact', 'group', 'channel', 'manual');
@@ -92,6 +92,9 @@ CREATE TABLE "PrtgConfig" (
     "notifyLowTraffic" BOOLEAN NOT NULL DEFAULT true,
     "notifyFlapping" BOOLEAN NOT NULL DEFAULT true,
     "notifyRecovery" BOOLEAN NOT NULL DEFAULT true,
+    "maintenance" BOOLEAN NOT NULL DEFAULT false,
+    "maintenanceLabel" TEXT,
+    "minTrafficThreshold" DOUBLE PRECISION NOT NULL DEFAULT 10.0,
     "lastPolledAt" TIMESTAMP(3),
     "lastStatus" "NocStatus" NOT NULL DEFAULT 'NORMAL',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -113,6 +116,72 @@ CREATE TABLE "PrtgRecipient" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "PrtgRecipient_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "MonitoringRecipient" (
+    "id" SERIAL NOT NULL,
+    "label" TEXT,
+    "phoneNumber" TEXT NOT NULL,
+    "targetType" "RecipientTargetType" NOT NULL DEFAULT 'manual',
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "groupId" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MonitoringRecipient_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PingRecipient" (
+    "id" SERIAL NOT NULL,
+    "label" TEXT,
+    "phoneNumber" TEXT NOT NULL,
+    "targetType" "RecipientTargetType" NOT NULL DEFAULT 'manual',
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PingRecipient_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PingMonitor" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+    "host" TEXT NOT NULL,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "intervalSeconds" INTEGER NOT NULL DEFAULT 2,
+    "pingTimeoutSeconds" INTEGER NOT NULL DEFAULT 1,
+    "rtoThresholdSeconds" INTEGER NOT NULL DEFAULT 10,
+    "notificationCooldownSeconds" INTEGER NOT NULL DEFAULT 3600,
+    "maintenance" BOOLEAN NOT NULL DEFAULT false,
+    "maintenanceLabel" TEXT,
+    "notifyRecovery" BOOLEAN NOT NULL DEFAULT true,
+    "alertTemplate" TEXT NOT NULL DEFAULT '*ALERT RTO*
+{label} ({host}) mengalami RTO dalam {outageSeconds} detik yang lalu.
+Waktu: {time}',
+    "recoveryTemplate" TEXT NOT NULL DEFAULT '*PULIH*
+{label} ({host}) kembali terhubung.
+Latency: {latencyMs} ms
+Waktu: {time}',
+    "status" "PingMonitorStatus" NOT NULL DEFAULT 'UNKNOWN',
+    "lastLatencyMs" DOUBLE PRECISION,
+    "lastCheckedAt" TIMESTAMP(3),
+    "outageStartedAt" TIMESTAMP(3),
+    "lastAlertAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PingMonitor_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PingMonitorRecipient" (
+    "pingMonitorId" INTEGER NOT NULL,
+    "pingRecipientId" INTEGER NOT NULL,
+
+    CONSTRAINT "PingMonitorRecipient_pkey" PRIMARY KEY ("pingMonitorId","pingRecipientId")
 );
 
 -- CreateTable
@@ -162,6 +231,9 @@ CREATE UNIQUE INDEX "PrtgGroup_name_key" ON "PrtgGroup"("name");
 CREATE UNIQUE INDEX "PrtgConfig_sensorId_key" ON "PrtgConfig"("sensorId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "PingMonitor_host_key" ON "PingMonitor"("host");
+
+-- CreateIndex
 CREATE INDEX "MonitoringHistory_configId_timestamp_idx" ON "MonitoringHistory"("configId", "timestamp");
 
 -- CreateIndex
@@ -177,24 +249,16 @@ ALTER TABLE "PrtgConfig" ADD CONSTRAINT "PrtgConfig_cookieId_fkey" FOREIGN KEY (
 ALTER TABLE "PrtgRecipient" ADD CONSTRAINT "PrtgRecipient_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "PrtgGroup"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "MonitoringRecipient" ADD CONSTRAINT "MonitoringRecipient_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "PrtgGroup"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PingMonitorRecipient" ADD CONSTRAINT "PingMonitorRecipient_pingMonitorId_fkey" FOREIGN KEY ("pingMonitorId") REFERENCES "PingMonitor"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PingMonitorRecipient" ADD CONSTRAINT "PingMonitorRecipient_pingRecipientId_fkey" FOREIGN KEY ("pingRecipientId") REFERENCES "PingRecipient"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "PrtgSchedule" ADD CONSTRAINT "PrtgSchedule_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "PrtgGroup"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MonitoringHistory" ADD CONSTRAINT "MonitoringHistory_configId_fkey" FOREIGN KEY ("configId") REFERENCES "PrtgConfig"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- CreateTable
-CREATE TABLE "MonitoringRecipient" (
-    "id" SERIAL NOT NULL,
-    "label" TEXT,
-    "phoneNumber" TEXT NOT NULL,
-    "targetType" "RecipientTargetType" NOT NULL DEFAULT 'manual',
-    "enabled" BOOLEAN NOT NULL DEFAULT true,
-    "groupId" INTEGER,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "MonitoringRecipient_pkey" PRIMARY KEY ("id")
-);
-
--- AddForeignKey
-ALTER TABLE "MonitoringRecipient" ADD CONSTRAINT "MonitoringRecipient_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "PrtgGroup"("id") ON DELETE SET NULL ON UPDATE CASCADE;
