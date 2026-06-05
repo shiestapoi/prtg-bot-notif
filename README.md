@@ -69,7 +69,7 @@ git push heroku main
 Release Heroku otomatis menjalankan:
 
 1. `prisma migrate deploy` untuk migration resmi.
-2. `prisma db push` tanpa `--accept-data-loss`, jadi hanya menyelaraskan tabel/kolom yang kurang dan akan gagal jika perubahan berisiko menghapus data.
+2. Bootstrap SQL idempotent yang hanya membuat tabel/kolom yang belum ada, tanpa drop tabel/kolom apa pun.
 3. `tsx prisma/seed-deploy.ts` yang memakai upsert dan tidak menghapus data.
 
 Build Heroku menjalankan `npm run heroku-postbuild`, yaitu Prisma generate dan
