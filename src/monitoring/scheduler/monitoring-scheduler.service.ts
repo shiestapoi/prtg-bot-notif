@@ -90,7 +90,15 @@ export class MonitoringSchedulerService implements OnModuleInit, OnModuleDestroy
   }
 
   async onModuleInit(): Promise<void> {
-    await this.startAllEnabled();
+    try {
+      await this.startAllEnabled();
+    } catch (error) {
+      this.logger.warn(
+        `Monitoring scheduler start skipped; database may not be ready: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
     // Periodically check for new/changed configs every 30 seconds
     this.syncInterval = setInterval(() => this.syncConfigs(), 30000);
   }

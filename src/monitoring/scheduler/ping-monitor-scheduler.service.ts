@@ -80,7 +80,7 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
       typeof error === 'object' &&
       error !== null &&
       'code' in error &&
-      (error as { code?: string }).code === 'P2021'
+      ['P1001', 'P2021'].includes((error as { code?: string }).code ?? '')
     );
   }
 

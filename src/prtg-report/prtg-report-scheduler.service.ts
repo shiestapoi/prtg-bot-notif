@@ -30,7 +30,15 @@ export class PrtgReportSchedulerService implements OnModuleInit, OnModuleDestroy
   ) {}
 
   async onModuleInit() {
-    await this.syncSchedules();
+    try {
+      await this.syncSchedules();
+    } catch (error) {
+      this.logger.warn(
+        `PRTG schedule sync skipped; database may not be ready: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   async onModuleDestroy() {

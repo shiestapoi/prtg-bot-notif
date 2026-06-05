@@ -1,16 +1,44 @@
 import { execFileSync } from 'child_process';
+import { Pool } from 'pg';
 import { createPostgresPoolConfig } from '../prisma/postgres-options';
 
 function run(command: string, args: string[]) {
-  const executable = process.platform === 'win32' ? `${command}.cmd` : command;
-  execFileSync(executable, args, {
+  execFileSync(command, args, {
     cwd: process.cwd(),
     env: process.env,
     stdio: 'inherit',
+    shell: process.platform === 'win32',
   });
 }
 
-export function ensureDatabaseReady() {
+function sleep(ms: number) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function runWithRetry(label: string, command: string, args: string[]) {
+  const maxAttempts = Number(process.env.DB_BOOTSTRAP_RETRIES ?? 6);
+  const baseDelayMs = Number(process.env.DB_BOOTSTRAP_RETRY_DELAY_MS ?? 5000);
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      run(command, args);
+      return true;
+    } catch (error) {
+      const isLast = attempt === maxAttempts;
+      console.warn(
+        `[db-bootstrap] ${label} failed (${attempt}/${maxAttempts}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      if (isLast) return false;
+      sleep(baseDelayMs * attempt);
+    }
+  }
+
+  return false;
+}
+
+export async function ensureDatabaseReady() {
   if (process.env.SKIP_DB_BOOTSTRAP === 'true') {
     console.log('[db-bootstrap] Skipped because SKIP_DB_BOOTSTRAP=true');
     return;
@@ -22,15 +50,53 @@ export function ensureDatabaseReady() {
   }
 
   console.log('[db-bootstrap] Ensuring database schema and seed data are ready...');
-  run('npx', ['prisma', 'migrate', 'deploy']);
+  if (!runWithRetry('prisma migrate deploy', 'npx', ['prisma', 'migrate', 'deploy'])) {
+    console.warn(
+      '[db-bootstrap] Database is not reachable after retries. Starting app in degraded mode; it will recover when the database is reachable.',
+    );
+    return;
+  }
 
-  ensureNonDestructiveSchema();
+  if (!(await ensureNonDestructiveSchema())) {
+    console.warn(
+      '[db-bootstrap] Non-destructive schema bootstrap failed after retries. Starting app in degraded mode.',
+    );
+    return;
+  }
 
-  run('npx', ['tsx', 'prisma/seed-deploy.ts']);
+  if (!runWithRetry('seed deploy', 'npx', ['tsx', 'prisma/seed-deploy.ts'])) {
+    console.warn(
+      '[db-bootstrap] Seed deploy failed after retries. Starting app; seed will be retried on next boot/release.',
+    );
+    return;
+  }
   console.log('[db-bootstrap] Database is ready.');
 }
 
-export function ensureNonDestructiveSchema() {
+async function queryWithRetry(pool: Pool, label: string, statement: string) {
+  const maxAttempts = Number(process.env.DB_BOOTSTRAP_RETRIES ?? 6);
+  const baseDelayMs = Number(process.env.DB_BOOTSTRAP_RETRY_DELAY_MS ?? 5000);
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await pool.query(statement);
+      return true;
+    } catch (error) {
+      const isLast = attempt === maxAttempts;
+      console.warn(
+        `[db-bootstrap] ${label} failed (${attempt}/${maxAttempts}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      if (isLast) return false;
+      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+    }
+  }
+
+  return false;
+}
+
+export async function ensureNonDestructiveSchema() {
   const statements = [
     `
     DO $$
@@ -117,20 +183,15 @@ Waktu: {time}',
     `,
   ];
 
-  for (const statement of statements) {
-    execFileSync(
-      'node',
-      [
-        '-e',
-        `
-        const { Pool } = require('pg');
-        const pool = new Pool(${JSON.stringify(createPostgresPoolConfig(process.env.DATABASE_URL))});
-        pool.query(${JSON.stringify(statement)})
-          .then(() => pool.end())
-          .catch(async (error) => { await pool.end(); console.error(error); process.exit(1); });
-        `,
-      ],
-      { stdio: 'inherit' },
-    );
+  const pool = new Pool(createPostgresPoolConfig(process.env.DATABASE_URL));
+  try {
+    for (const statement of statements) {
+      const ok = await queryWithRetry(pool, 'non-destructive schema statement', statement);
+      if (!ok) return false;
+    }
+  } finally {
+    await pool.end();
   }
+
+  return true;
 }

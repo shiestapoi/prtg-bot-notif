@@ -1,4 +1,7 @@
 import 'dotenv/config';
 import { ensureDatabaseReady } from './database-bootstrap';
 
-ensureDatabaseReady();
+ensureDatabaseReady().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

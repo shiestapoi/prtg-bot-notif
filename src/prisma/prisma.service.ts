@@ -23,7 +23,12 @@ export class PrismaService
   }
 
   async onModuleInit() {
-    await this.$connect();
+    if (!(await this.connectWithRetry())) {
+      this.logger.warn(
+        'Database is not reachable after retries. App will continue in degraded mode.',
+      );
+      return;
+    }
     await this.autoMigrate();
   }
 
@@ -75,5 +80,27 @@ export class PrismaService
         );
       }
     }
+  }
+
+  private async connectWithRetry() {
+    const maxAttempts = Number(process.env.DB_CONNECT_RETRIES ?? 6);
+    const baseDelayMs = Number(process.env.DB_CONNECT_RETRY_DELAY_MS ?? 5000);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await this.$connect();
+        return true;
+      } catch (error) {
+        this.logger.warn(
+          `Database connection failed (${attempt}/${maxAttempts}): ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        if (attempt === maxAttempts) return false;
+        await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+      }
+    }
+
+    return false;
   }
 }
