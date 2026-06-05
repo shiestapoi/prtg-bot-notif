@@ -233,17 +233,17 @@ async function main() {
 
   await prisma.pingMonitor.create({
     data: {
-      name: 'IP Public Solnet',
-      host: '223.130.21.34',
+      name: 'Web PRTG R1NET',
+      host: 'http://prtg.r1net.id',
       enabled: true,
       intervalSeconds: 2,
-      pingTimeoutSeconds: 1,
+      pingTimeoutSeconds: 5,
       rtoThresholdSeconds: 10,
       notificationCooldownSeconds: 3600,
       maintenance: false,
       notifyRecovery: true,
-      alertTemplate: '*ALERT RTO*\nIP Public Solnet ({host}) RTO dalam {outageSeconds} detik yang lalu.\nWaktu: {time}',
-      recoveryTemplate: '*PULIH*\nIP Public Solnet ({host}) kembali terhubung.\nLatency: {latencyMs} ms\nWaktu: {time}',
+      alertTemplate: '*ALERT WEB PRTG*\nWeb PRTG R1NET ({host}) tidak bisa diakses dalam {outageSeconds} detik yang lalu.\nWaktu: {time}',
+      recoveryTemplate: '*PULIH*\nWeb PRTG R1NET ({host}) kembali bisa diakses.\nResponse: {latencyMs} ms\nWaktu: {time}',
     },
   });
 

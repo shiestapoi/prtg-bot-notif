@@ -10,8 +10,8 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 
-const defaultAlert = '*ALERT RTO*\nIP Public Solnet ({host}) RTO dalam {outageSeconds} detik yang lalu.\nWaktu: {time}';
-const defaultRecovery = '*PULIH*\nIP Public Solnet ({host}) kembali terhubung.\nLatency: {latencyMs} ms\nWaktu: {time}';
+const defaultAlert = '*ALERT WEB PRTG*\nWeb PRTG R1NET ({host}) tidak bisa diakses dalam {outageSeconds} detik yang lalu.\nWaktu: {time}';
+const defaultRecovery = '*PULIH*\nWeb PRTG R1NET ({host}) kembali bisa diakses.\nResponse: {latencyMs} ms\nWaktu: {time}';
 
 type FormState = Pick<PingMonitor,
   'name' | 'host' | 'enabled' | 'intervalSeconds' | 'pingTimeoutSeconds' |
@@ -21,11 +21,11 @@ type FormState = Pick<PingMonitor,
 >;
 
 const emptyForm: FormState = {
-  name: 'IP Public Solnet',
-  host: '223.130.21.34',
+  name: 'Web PRTG R1NET',
+  host: 'http://prtg.r1net.id',
   enabled: true,
   intervalSeconds: 2,
-  pingTimeoutSeconds: 1,
+  pingTimeoutSeconds: 5,
   rtoThresholdSeconds: 10,
   notificationCooldownSeconds: 3600,
   maintenance: false,

@@ -274,7 +274,7 @@ export default function NocTvDashboardPage() {
     const previousStatus = pingStatusRef.current.get(event.monitorId);
     pingStatusRef.current.set(event.monitorId, event.status);
 
-    if (soundEnabled && event.host === '223.130.21.34' && !event.maintenance) {
+    if (soundEnabled && event.host.includes('prtg.r1net.id') && !event.maintenance) {
       if (event.status === 'RTO' && previousStatus !== 'RTO') {
         playAlarm();
       } else if (event.status === 'UP' && previousStatus === 'RTO') {
@@ -451,7 +451,7 @@ export default function NocTvDashboardPage() {
 
   const hasDown = useMemo(() => items.some((i) => (i.lastStatus === 'DOWN' || i.lastStatus === 'NO_TRAFFIC') && !i.maintenance), [items]);
   const publicIpMonitor = useMemo(
-    () => pingMonitors.find((monitor) => monitor.host === '223.130.21.34') ?? pingMonitors[0] ?? null,
+    () => pingMonitors.find((monitor) => monitor.host.includes('prtg.r1net.id')) ?? pingMonitors[0] ?? null,
     [pingMonitors],
   );
 
@@ -556,7 +556,7 @@ export default function NocTvDashboardPage() {
           {publicIpMonitor && (
             <div className="flex items-center gap-1">
               <span className={`inline-block h-2 w-2 rounded-full ${publicIpMonitor.maintenance ? 'bg-yellow-400' : publicIpMonitor.status === 'RTO' ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
-              <span className="text-[10px] text-gray-400">{publicIpMonitor.maintenance ? (publicIpMonitor.maintenanceLabel ?? 'MAINTENANCE') : 'IP PUBLIC SOLNET'}</span>
+              <span className="text-[10px] text-gray-400">{publicIpMonitor.maintenance ? (publicIpMonitor.maintenanceLabel ?? 'MAINTENANCE') : 'WEB PRTG'}</span>
               <span className={`font-mono text-[10px] font-bold tabular-nums ${publicIpMonitor.maintenance ? 'text-yellow-300' : publicIpMonitor.status === 'RTO' ? 'text-red-400' : 'text-emerald-400'}`}>
                 {publicIpMonitor.maintenance ? 'MAINT' : publicIpMonitor.lastLatencyMs === null ? publicIpMonitor.status : `${publicIpMonitor.lastLatencyMs.toFixed(1)} ms`}
               </span>

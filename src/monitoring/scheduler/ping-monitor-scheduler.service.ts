@@ -1,6 +1,4 @@
-import * as net from 'net';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ping = require('ping');
+import axios from 'axios';
 import {
   Injectable,
   Logger,
@@ -126,7 +124,7 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
     if (this.running.has(monitor.id)) return;
     this.running.add(monitor.id);
     try {
-      const result = await this.executePing(monitor.host, monitor.pingTimeoutSeconds);
+      const result = await this.executeCheck(monitor.host, monitor.pingTimeoutSeconds);
       await this.applyResult(monitor, result);
     } catch (error) {
       this.logger.error(
@@ -137,96 +135,23 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
     }
   }
 
-  private async executePing(host: string, timeoutSeconds: number): Promise<PingResult> {
+  private async executeCheck(host: string, timeoutSeconds: number): Promise<PingResult> {
     const timeoutMs = timeoutSeconds * 1000;
-
-    // Parse the host and port
-    let targetHost = host;
-    let targetPort: number | null = null;
-
-    if (host.includes('[')) {
-      const match = host.match(/^\[(.*)\]:(\d+)$/);
-      if (match) {
-        targetHost = match[1];
-        targetPort = parseInt(match[2], 10);
-      } else {
-        targetHost = host.replace(/[\[\]]/g, '');
-      }
-    } else {
-      const parts = host.split(':');
-      if (parts.length === 2) {
-        targetHost = parts[0];
-        targetPort = parseInt(parts[1], 10);
-      }
-    }
-
-    // If port is explicitly specified, use TCP ping directly
-    if (targetPort !== null) {
-      return this.tcpPing(targetHost, targetPort, timeoutMs);
-    }
-
-    // Otherwise, try standard ICMP ping via the npm 'ping' library
+    const url = /^https?:\/\//i.test(host) ? host : `http://${host}`;
+    const startedAt = Date.now();
     try {
-      const res = await ping.promise.probe(targetHost, {
-        timeout: timeoutSeconds,
+      const response = await axios.get(url, {
+        timeout: timeoutMs,
+        validateStatus: () => true,
       });
-
-      if (res.alive) {
-        return {
-          reachable: true,
-          latencyMs: typeof res.time === 'number' ? res.time : null,
-        };
-      }
-    } catch (error) {
-      this.logger.debug(`npm ping library check encountered an error: ${error}`);
-    }
-
-    // Fall back to TCP ping on port 80 if ICMP ping failed or returned inactive
-    this.logger.debug(
-      `ICMP ping to ${host} failed or returned inactive. Falling back to TCP ping on port 80.`,
-    );
-    return this.tcpPing(targetHost, 80, timeoutMs);
-  }
-
-  private tcpPing(host: string, port: number, timeoutMs: number): Promise<PingResult> {
-    return new Promise((resolve) => {
-      const socket = new net.Socket();
-      const startTime = process.hrtime();
-      let resolved = false;
-
-      const done = (reachable: boolean) => {
-        if (resolved) return;
-        resolved = true;
-        socket.destroy();
-        const diff = process.hrtime(startTime);
-        const latencyMs = (diff[0] * 1e9 + diff[1]) / 1e6;
-        resolve({
-          reachable,
-          latencyMs: reachable ? latencyMs : null,
-        });
+      return {
+        reachable: response.status > 0 && response.status < 500,
+        latencyMs: Date.now() - startedAt,
       };
-
-      socket.setTimeout(timeoutMs);
-
-      socket.on('connect', () => {
-        done(true);
-      });
-
-      socket.on('timeout', () => {
-        done(false);
-      });
-
-      socket.on('error', (err: any) => {
-        // ECONNREFUSED means the host is online and responded with RST, so it is reachable
-        if (err.code === 'ECONNREFUSED') {
-          done(true);
-        } else {
-          done(false);
-        }
-      });
-
-      socket.connect(port, host);
-    });
+    } catch (error) {
+      this.logger.debug(`HTTP check to ${url} failed: ${error}`);
+      return { reachable: false, latencyMs: null };
+    }
   }
 
   private async applyResult(monitor: PingMonitor, result: PingResult) {
