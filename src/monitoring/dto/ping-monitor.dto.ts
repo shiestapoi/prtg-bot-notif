@@ -11,6 +11,8 @@ import {
   Min,
 } from 'class-validator';
 
+const hostOrUrlPattern = /^(https?:\/\/)?[a-zA-Z0-9.-]+(?::\d+)?(?:\/.*)?$/;
+
 export class UpdatePingMonitorDto {
   @IsOptional()
   @IsString()
@@ -18,7 +20,7 @@ export class UpdatePingMonitorDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^[a-zA-Z0-9.-]+$/, { message: 'host must be an IP address or hostname' })
+  @Matches(hostOrUrlPattern, { message: 'host must be an IP address, hostname, or URL' })
   host?: string;
 
   @IsOptional()
@@ -86,6 +88,6 @@ export class CreatePingMonitorDto extends UpdatePingMonitorDto {
   declare name: string;
 
   @IsString()
-  @Matches(/^[a-zA-Z0-9.-]+$/, { message: 'host must be an IP address or hostname' })
+  @Matches(hostOrUrlPattern, { message: 'host must be an IP address, hostname, or URL' })
   declare host: string;
 }
