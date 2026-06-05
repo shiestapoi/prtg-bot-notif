@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { StatusBadge } from '@/components/noc/StatusBadge';
-import { useSSE } from '@/hooks/use-sse';
+import { useMonitoringSSE } from '@/hooks/use-sse';
 import { monitoringApi, prtgGroupApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -59,7 +59,30 @@ export default function NocDashboardPage() {
   const [emergencyModal, setEmergencyModal] = useState<'disable' | 'enable' | null>(null);
   const [emergencyLoading, setEmergencyLoading] = useState(false);
 
-  const { events, isConnected, error: sseError } = useSSE('/api/monitoring/events');
+  const refetchSummary = useCallback(async () => {
+    try {
+      const data = await monitoringApi.summary();
+      setItems(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load');
+    }
+  }, []);
+
+  // Apply SSE events for instant updates
+  const applyEvent = useCallback((event: MonitoringStatusEvent) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.configId === event.configId
+          ? { ...item, lastStatus: event.currentStatus, lastPolledAt: event.timestamp, lastMetric: event.metric }
+          : item,
+      ),
+    );
+  }, []);
+
+  const { events, isConnected, error: sseError } = useMonitoringSSE(applyEvent, {
+    onConfigUpdated: refetchSummary,
+  });
 
   // Group items by groupName, sort problematic items first within each group
   const groupedItems = useMemo(() => {
@@ -102,22 +125,6 @@ export default function NocDashboardPage() {
     const interval = setInterval(fetchSummary, 30000);
     return () => { cancelled = true; clearInterval(interval); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Apply SSE events for instant updates
-  const applyEvent = useCallback((event: MonitoringStatusEvent) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.configId === event.configId
-          ? { ...item, lastStatus: event.currentStatus, lastPolledAt: event.timestamp, lastMetric: event.metric }
-          : item,
-      ),
-    );
-  }, []);
-
-  useEffect(() => {
-    if (events.length === 0) return;
-    applyEvent(events[0] as unknown as MonitoringStatusEvent);
-  }, [events, applyEvent]);
 
   if (loading) {
     return (

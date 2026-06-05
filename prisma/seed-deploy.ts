@@ -1,6 +1,6 @@
 /**
  * Deploy seed — safe for production/Heroku.
- * Uses upsert so it won't destroy existing data.
+ * Uses upsert/check-before-insert so it won't destroy existing data.
  * Only inserts defaults if they don't already exist.
  *
  * Run with: npx tsx prisma/seed-deploy.ts
@@ -17,7 +17,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Running deploy seed (safe upsert mode)...');
+  console.log('Running deploy seed (safe check-before-insert mode)...');
 
   // ─── PrtgSetting (upsert — never overwrite existing) ─────────────────────
   const existingSetting = await prisma.prtgSetting.findFirst({ where: { id: 1 } });
@@ -97,11 +97,23 @@ async function main() {
   ];
 
   for (const group of defaultGroups) {
-    await prisma.prtgGroup.upsert({
+    const existingGroup = await prisma.prtgGroup.findUnique({
       where: { name: group.name },
-      create: { id: group.id, name: group.name, enabled: true },
-      update: {},
     });
+    if (!existingGroup) {
+      const existingById = await prisma.prtgGroup.findUnique({
+        where: { id: group.id },
+      });
+      if (existingById) {
+        await prisma.prtgGroup.create({
+          data: { name: group.name, enabled: true },
+        });
+      } else {
+        await prisma.prtgGroup.create({
+          data: { id: group.id, name: group.name, enabled: true },
+        });
+      }
+    }
   }
   console.log(`✓ ${defaultGroups.length} groups ensured`);
 
@@ -125,10 +137,14 @@ async function main() {
   ];
 
   for (const config of defaultConfigs) {
-    await prisma.prtgConfig.upsert({
+    const existingConfig = await prisma.prtgConfig.findUnique({
       where: { sensorId: config.sensorId },
-      create: {
-        id: config.id,
+    });
+    if (!existingConfig) {
+      const existingById = await prisma.prtgConfig.findUnique({
+        where: { id: config.id },
+      });
+      const data = {
         title: config.title,
         sensorId: config.sensorId,
         groupId: config.groupId,
@@ -139,9 +155,15 @@ async function main() {
         notifyLowTraffic: true,
         notifyFlapping: false,
         notifyRecovery: false,
-      },
-      update: {},
-    });
+      };
+      if (existingById) {
+        await prisma.prtgConfig.create({ data });
+      } else {
+        await prisma.prtgConfig.create({
+          data: { ...data, id: config.id },
+        });
+      }
+    }
   }
   console.log(`✓ ${defaultConfigs.length} configs ensured`);
 
@@ -170,17 +192,24 @@ async function main() {
       where: { phoneNumber: r.phoneNumber, groupId: r.groupId },
     });
     if (!existing) {
-      await prisma.prtgRecipient.create({
-        data: {
-          id: r.id,
-          label: r.label,
-          phoneNumber: r.phoneNumber,
-          targetType: r.targetType,
-          enabled: true,
-          isAdmin: r.isAdmin,
-          groupId: r.groupId,
-        },
+      const existingById = await prisma.prtgRecipient.findUnique({
+        where: { id: r.id },
       });
+      const data = {
+        label: r.label,
+        phoneNumber: r.phoneNumber,
+        targetType: r.targetType,
+        enabled: true,
+        isAdmin: r.isAdmin,
+        groupId: r.groupId,
+      };
+      if (existingById) {
+        await prisma.prtgRecipient.create({ data });
+      } else {
+        await prisma.prtgRecipient.create({
+          data: { ...data, id: r.id },
+        });
+      }
     }
   }
   console.log(`✓ ${defaultRecipients.length} recipients ensured`);

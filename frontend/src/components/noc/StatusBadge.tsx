@@ -34,7 +34,10 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = statusConfig[status];
+  const config = statusConfig[status] || {
+    label: status || 'UNKNOWN',
+    className: 'bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400',
+  };
 
   return (
     <span
@@ -51,6 +54,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
           'bg-yellow-500': status === 'LOW_TRAFFIC',
           'bg-orange-500': status === 'HIGH_UTILIZATION',
           'bg-red-500': status === 'DOWN' || status === 'NO_TRAFFIC' || status === 'POSSIBLE_FLAPPING',
+          'bg-gray-500': !statusConfig[status],
         })}
         aria-hidden="true"
       />
