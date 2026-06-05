@@ -1,4 +1,5 @@
 import { execFile } from 'child_process';
+import * as net from 'net';
 import {
   Injectable,
   Logger,
@@ -138,19 +139,114 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
   private executePing(host: string, timeoutSeconds: number): Promise<PingResult> {
     const timeoutMs = timeoutSeconds * 1000;
     const isWindows = process.platform === 'win32';
-    const args = isWindows
-      ? ['-n', '1', '-w', String(timeoutMs), host]
-      : ['-c', '1', '-W', String(timeoutSeconds), host];
 
-    return new Promise((resolve) => {
-      execFile('ping', args, { timeout: timeoutMs + 1500 }, (error, stdout) => {
-        const text = String(stdout ?? '');
-        const match = text.match(/time[=<]\s*([\d.]+)\s*ms/i);
-        resolve({
-          reachable: !error && Boolean(match),
-          latencyMs: match ? Number(match[1]) : null,
+    if (isWindows) {
+      const args = ['-n', '1', '-w', String(timeoutMs), host];
+      return new Promise((resolve) => {
+        execFile('ping', args, { timeout: timeoutMs + 1500 }, (error, stdout) => {
+          const text = String(stdout ?? '');
+          const match = text.match(/time[=<]\s*([\d.]+)\s*ms/i);
+          resolve({
+            reachable: !error && Boolean(match),
+            latencyMs: match ? Number(match[1]) : null,
+          });
         });
       });
+    }
+
+    // On Linux/macOS (e.g. Heroku), parse the host and port
+    let targetHost = host;
+    let targetPort: number | null = null;
+
+    if (host.includes('[')) {
+      const match = host.match(/^\[(.*)\]:(\d+)$/);
+      if (match) {
+        targetHost = match[1];
+        targetPort = parseInt(match[2], 10);
+      } else {
+        targetHost = host.replace(/[\[\]]/g, '');
+      }
+    } else {
+      const parts = host.split(':');
+      if (parts.length === 2) {
+        targetHost = parts[0];
+        targetPort = parseInt(parts[1], 10);
+      }
+    }
+
+    // If port is explicitly specified, use TCP ping directly
+    if (targetPort !== null) {
+      return this.tcpPing(targetHost, targetPort, timeoutMs);
+    }
+
+    // Otherwise, try standard ICMP ping, and if it fails due to permissions, fall back to TCP ping on port 80
+    const args = ['-c', '1', '-W', String(timeoutSeconds), host];
+    return new Promise((resolve) => {
+      execFile('ping', args, { timeout: timeoutMs + 1500 }, (error, stdout, stderr) => {
+        const text = String(stdout ?? '');
+        const errText = String(stderr ?? '');
+        
+        const isPermissionError =
+          errText.includes('Operation not permitted') ||
+          errText.includes('Permission denied') ||
+          text.includes('Operation not permitted') ||
+          text.includes('Permission denied') ||
+          (error && (error as any).code === 'EACCES');
+
+        if (isPermissionError) {
+          this.logger.debug(
+            `ICMP ping to ${host} failed due to platform restrictions (Operation not permitted). Falling back to TCP ping on port 80.`,
+          );
+          resolve(this.tcpPing(targetHost, 80, timeoutMs));
+        } else {
+          const match = text.match(/time[=<]\s*([\d.]+)\s*ms/i);
+          resolve({
+            reachable: !error && Boolean(match),
+            latencyMs: match ? Number(match[1]) : null,
+          });
+        }
+      });
+    });
+  }
+
+  private tcpPing(host: string, port: number, timeoutMs: number): Promise<PingResult> {
+    return new Promise((resolve) => {
+      const socket = new net.Socket();
+      const startTime = process.hrtime();
+      let resolved = false;
+
+      const done = (reachable: boolean) => {
+        if (resolved) return;
+        resolved = true;
+        socket.destroy();
+        const diff = process.hrtime(startTime);
+        const latencyMs = (diff[0] * 1e9 + diff[1]) / 1e6;
+        resolve({
+          reachable,
+          latencyMs: reachable ? latencyMs : null,
+        });
+      };
+
+      socket.setTimeout(timeoutMs);
+
+      socket.on('connect', () => {
+        done(true);
+      });
+
+      socket.on('timeout', () => {
+        done(false);
+      });
+
+      socket.on('error', (err: any) => {
+        // ECONNREFUSED means the host is online and responded with RST, so it is reachable
+        if (err.code === 'ECONNREFUSED') {
+          done(true);
+        } else {
+          done(false);
+        }
+      });
+
+      socket.connect(port, host);
     });
   }
 
