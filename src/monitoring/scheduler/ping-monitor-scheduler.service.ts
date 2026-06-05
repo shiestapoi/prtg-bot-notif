@@ -41,9 +41,20 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
   }
 
   async sync() {
-    const monitors = await this.prisma.pingMonitor.findMany({
-      where: { enabled: true },
-    });
+    let monitors: PingMonitor[] = [];
+    try {
+      monitors = await this.prisma.pingMonitor.findMany({
+        where: { enabled: true },
+      });
+    } catch (error) {
+      if (this.isMissingPingTable(error)) {
+        this.logger.warn(
+          'PingMonitor table is not ready yet; ping scheduler will retry after database bootstrap.',
+        );
+        return;
+      }
+      throw error;
+    }
     const ids = new Set(monitors.map((monitor) => monitor.id));
 
     for (const [id, timer] of this.timers) {
@@ -62,6 +73,15 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
         this.schedule(monitor);
       }
     }
+  }
+
+  private isMissingPingTable(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === 'P2021'
+    );
   }
 
   async pollNow(id: number) {
