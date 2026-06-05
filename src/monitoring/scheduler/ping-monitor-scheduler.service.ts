@@ -1,5 +1,6 @@
-import { execFile } from 'child_process';
 import * as net from 'net';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const ping = require('ping');
 import {
   Injectable,
   Logger,
@@ -136,25 +137,10 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
     }
   }
 
-  private executePing(host: string, timeoutSeconds: number): Promise<PingResult> {
+  private async executePing(host: string, timeoutSeconds: number): Promise<PingResult> {
     const timeoutMs = timeoutSeconds * 1000;
-    const isWindows = process.platform === 'win32';
 
-    if (isWindows) {
-      const args = ['-n', '1', '-w', String(timeoutMs), host];
-      return new Promise((resolve) => {
-        execFile('ping', args, { timeout: timeoutMs + 1500 }, (error, stdout) => {
-          const text = String(stdout ?? '');
-          const match = text.match(/time[=<]\s*([\d.]+)\s*ms/i);
-          resolve({
-            reachable: !error && Boolean(match),
-            latencyMs: match ? Number(match[1]) : null,
-          });
-        });
-      });
-    }
-
-    // On Linux/macOS (e.g. Heroku), parse the host and port
+    // Parse the host and port
     let targetHost = host;
     let targetPort: number | null = null;
 
@@ -179,34 +165,27 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
       return this.tcpPing(targetHost, targetPort, timeoutMs);
     }
 
-    // Otherwise, try standard ICMP ping, and if it fails due to permissions, fall back to TCP ping on port 80
-    const args = ['-c', '1', '-W', String(timeoutSeconds), host];
-    return new Promise((resolve) => {
-      execFile('ping', args, { timeout: timeoutMs + 1500 }, (error, stdout, stderr) => {
-        const text = String(stdout ?? '');
-        const errText = String(stderr ?? '');
-        
-        const isPermissionError =
-          errText.includes('Operation not permitted') ||
-          errText.includes('Permission denied') ||
-          text.includes('Operation not permitted') ||
-          text.includes('Permission denied') ||
-          (error && (error as any).code === 'EACCES');
-
-        if (isPermissionError) {
-          this.logger.debug(
-            `ICMP ping to ${host} failed due to platform restrictions (Operation not permitted). Falling back to TCP ping on port 80.`,
-          );
-          resolve(this.tcpPing(targetHost, 80, timeoutMs));
-        } else {
-          const match = text.match(/time[=<]\s*([\d.]+)\s*ms/i);
-          resolve({
-            reachable: !error && Boolean(match),
-            latencyMs: match ? Number(match[1]) : null,
-          });
-        }
+    // Otherwise, try standard ICMP ping via the npm 'ping' library
+    try {
+      const res = await ping.promise.probe(targetHost, {
+        timeout: timeoutSeconds,
       });
-    });
+
+      if (res.alive) {
+        return {
+          reachable: true,
+          latencyMs: typeof res.time === 'number' ? res.time : null,
+        };
+      }
+    } catch (error) {
+      this.logger.debug(`npm ping library check encountered an error: ${error}`);
+    }
+
+    // Fall back to TCP ping on port 80 if ICMP ping failed or returned inactive
+    this.logger.debug(
+      `ICMP ping to ${host} failed or returned inactive. Falling back to TCP ping on port 80.`,
+    );
+    return this.tcpPing(targetHost, 80, timeoutMs);
   }
 
   private tcpPing(host: string, port: number, timeoutMs: number): Promise<PingResult> {
