@@ -6,6 +6,8 @@ RUN npm ci --legacy-peer-deps --ignore-scripts
 
 FROM node:22-bookworm-slim AS prod-deps
 WORKDIR /app
+# Wait for build-deps to finish by depending on its output to prevent concurrent npm ci
+COPY --from=build-deps /app/package.json ./_wait.json
 COPY .npmrc package.json package-lock.json ./
 COPY prisma ./prisma
 RUN npm ci --omit=dev --legacy-peer-deps --ignore-scripts
