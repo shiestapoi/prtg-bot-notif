@@ -59,10 +59,26 @@ export class ReceiptReportService {
     };
     const incidentsByConfig = new Map<number, Incident[]>();
 
-    // Track previous state and running averages to detect transitions
+    // Pass 1: Compute global average over the entire period for each config
+    const periodAverages = new Map<number, { avgIn: number | null; avgOut: number | null }>();
+    for (const configId of configIds) {
+      const validHistories = histories.filter(h => h.configId === configId && h.inboundBitrate !== null);
+      if (validHistories.length > 0) {
+        const sumIn = validHistories.reduce((acc, h) => acc + h.inboundBitrate!, 0);
+        const sumOut = validHistories.reduce((acc, h) => acc + h.outboundBitrate!, 0);
+        periodAverages.set(configId, { 
+          avgIn: sumIn / validHistories.length, 
+          avgOut: sumOut / validHistories.length 
+        });
+      } else {
+        periodAverages.set(configId, { avgIn: null, avgOut: null });
+      }
+    }
+
+    // Track previous state to detect transitions
     const previousState = new Map<
       number,
-      { status: NocStatus; inbound: number | null; outbound: number | null; sumIn: number; countIn: number; sumOut: number; countOut: number }
+      { status: NocStatus; inbound: number | null; outbound: number | null }
     >();
 
     for (const history of histories) {
@@ -70,10 +86,6 @@ export class ReceiptReportService {
         status: NocStatus.NORMAL,
         inbound: null,
         outbound: null,
-        sumIn: 0,
-        countIn: 0,
-        sumOut: 0,
-        countOut: 0,
       };
 
       if (history.status !== prev.status) {
@@ -86,9 +98,8 @@ export class ReceiptReportService {
           }
         }
 
-        // Calculate average for LOW_TRAFFIC
-        const avgIn = prev.countIn > 0 ? prev.sumIn / prev.countIn : prev.inbound;
-        const avgOut = prev.countOut > 0 ? prev.sumOut / prev.countOut : prev.outbound;
+        // Get global average for LOW_TRAFFIC
+        const averages = periodAverages.get(history.configId);
 
         // We ALWAYS capture DOWN and LOW_TRAFFIC for the web view snapshot
         if (
@@ -101,8 +112,8 @@ export class ReceiptReportService {
           incidentsByConfig.get(history.configId)!.push({
             status: history.status,
             time: history.timestamp,
-            inboundBefore: history.status === NocStatus.LOW_TRAFFIC ? avgIn : prev.inbound,
-            outboundBefore: history.status === NocStatus.LOW_TRAFFIC ? avgOut : prev.outbound,
+            inboundBefore: history.status === NocStatus.LOW_TRAFFIC ? (averages?.avgIn ?? prev.inbound) : prev.inbound,
+            outboundBefore: history.status === NocStatus.LOW_TRAFFIC ? (averages?.avgOut ?? prev.outbound) : prev.outbound,
             inboundDuring: history.inboundBitrate,
             outboundDuring: history.outboundBitrate,
           });
@@ -120,10 +131,6 @@ export class ReceiptReportService {
           history.outboundBitrate !== null
             ? history.outboundBitrate
             : prev.outbound,
-        sumIn: history.inboundBitrate !== null ? prev.sumIn + history.inboundBitrate : prev.sumIn,
-        countIn: history.inboundBitrate !== null ? prev.countIn + 1 : prev.countIn,
-        sumOut: history.outboundBitrate !== null ? prev.sumOut + history.outboundBitrate : prev.sumOut,
-        countOut: history.outboundBitrate !== null ? prev.countOut + 1 : prev.countOut,
       });
     }
 
