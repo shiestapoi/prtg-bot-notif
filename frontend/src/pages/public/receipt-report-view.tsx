@@ -100,7 +100,10 @@ export default function PublicReceiptReportViewPage() {
         <div className="max-w-[1440px] mx-auto w-full flex items-center justify-between text-[12px] tracking-[-0.12px]">
           <span className="font-semibold">NOC Report</span>
           <span className="opacity-80">
-            {new Date(snapshot.startDate).toLocaleDateString('id-ID')} — {new Date(snapshot.endDate).toLocaleDateString('id-ID')}
+            {snapshot.period === 'DAILY' 
+              ? `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} 00:00 WIB — 23:59 WIB`
+              : `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} — ${new Date(snapshot.endDate).toLocaleDateString('id-ID')}`
+            }
           </span>
         </div>
       </header>
@@ -108,7 +111,14 @@ export default function PublicReceiptReportViewPage() {
       <main className="w-full">
         {/* Hero Section */}
         <section className="bg-[#ffffff] pt-[80px] pb-[64px] px-4 sm:px-6 flex flex-col items-center text-center">
-          <p className="text-[#0066cc] text-[17px] sm:text-[21px] font-semibold tracking-[0.231px] mb-2 sm:mb-4">Laporan {periodLabel}</p>
+          <p className="text-[#0066cc] text-[17px] sm:text-[21px] font-semibold tracking-[0.231px] mb-2 sm:mb-4">
+            Laporan {periodLabel}
+            {snapshot.period === 'DAILY' && (
+              <span className="block text-[15px] sm:text-[17px] font-medium text-[#86868b] mt-1">
+                {new Date(snapshot.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} (00:00 WIB — 23:59 WIB)
+              </span>
+            )}
+          </p>
           <h1 className="text-[36px] sm:text-[40px] md:text-[56px] font-semibold tracking-[-0.28px] leading-[1.07] text-[#1d1d1f] mb-4 sm:mb-6">
             Bandwidth <br className="sm:hidden" /> Report.
           </h1>

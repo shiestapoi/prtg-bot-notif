@@ -8,7 +8,7 @@ import axios from 'axios';
 import https from 'node:https';
 import cron from 'node-cron';
 import { chromium } from 'playwright';
-import type { Page } from 'playwright';
+import type { Page, Browser, BrowserContext } from 'playwright';
 import sharp from 'sharp';
 // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
 // import { CookieVaultService } from '../cookie-vault/cookie-vault.service';
@@ -47,7 +47,7 @@ const allowedScheduleTargetModes = [
 type ScheduleTargetMode = (typeof allowedScheduleTargetModes)[number];
 const defaultPrtgImageScale = 2;
 const defaultPrtgRenderViewport = { width: 1366, height: 768 };
-const defaultPrtgCaptureConcurrency = 2;
+const defaultPrtgCaptureConcurrency = 10;
 const defaultPrtgLoginUrl = 'http://prtg.r1net.id/index.htm';
 
 function normalizeWhatsappIdentifier(value: string) {
@@ -1297,12 +1297,37 @@ export class PrtgReportService {
       );
     }
 
-    const captures = await mapWithConcurrency(
-      configs,
-      this.getPrtgCaptureConcurrency(),
-      async (config) => {
-        const requestUrl = `http://prtg.r1net.id/graphzoom.htm?id=${config.sensorId}&graphid=1&clgid=&dynamicgraph=1`;
-        const imageBuffer = await this.fetchPrtgImage(requestUrl, settings);
+    const browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-zygote',
+        '--single-process'
+      ],
+    });
+
+    let captures: any[];
+    try {
+      const sharedContext = await browser.newContext({
+        ignoreHTTPSErrors: true,
+        viewport: this.getPrtgRenderViewport(),
+        deviceScaleFactor: this.getPrtgImageScale(),
+        extraHTTPHeaders: {
+          'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+        },
+      });
+
+      captures = await mapWithConcurrency(
+        configs,
+        this.getPrtgCaptureConcurrency(),
+        async (config) => {
+          const requestUrl = `http://prtg.r1net.id/graphzoom.htm?id=${config.sensorId}&graphid=1&clgid=&dynamicgraph=1`;
+          const imageBuffer = await this.fetchPrtgImage(requestUrl, settings, sharedContext);
 
         const timeStr = new Date().toLocaleTimeString('id-ID', {
           hour: '2-digit',
@@ -1409,6 +1434,9 @@ export class PrtgReportService {
         };
       },
     );
+    } finally {
+      await browser.close().catch(() => {});
+    }
     let sentRecipients = 0;
 
     for (const capture of captures) {
@@ -1553,6 +1581,7 @@ export class PrtgReportService {
       loginUsername: string | null;
       loginPassword: string | null;
     },
+    sharedContext?: BrowserContext,
   ) {
     const authUrl = this.appendAuthParams(url, settings);
     const isHttps = url.startsWith('https://');
@@ -1585,7 +1614,7 @@ export class PrtgReportService {
       this.isPrtgLoginUrl(finalUrl, settings.loginUrl) ||
       this.looksLikeHtml(buffer)
     ) {
-      return this.renderPrtgPageToPng(url, settings);
+      return this.renderPrtgPageToPng(url, settings, sharedContext);
     }
 
     return buffer;
@@ -1598,12 +1627,13 @@ export class PrtgReportService {
       loginUsername: string | null;
       loginPassword: string | null;
     },
+    sharedContext?: BrowserContext,
   ) {
     if (this.shouldRenderPrtgPage(url)) {
-      return this.renderPrtgPageToPng(url, settings);
+      return this.renderPrtgPageToPng(url, settings, sharedContext);
     }
 
-    const svgBuffer = await this.fetchSvg(url, settings);
+    const svgBuffer = await this.fetchSvg(url, settings, sharedContext);
     if (this.isPngBuffer(svgBuffer)) {
       return svgBuffer;
     }
@@ -1628,24 +1658,40 @@ export class PrtgReportService {
       loginUsername: string | null;
       loginPassword: string | null;
     },
+    sharedContext?: BrowserContext,
   ) {
     const authUrl = this.appendAuthParams(url, settings);
-    const browser = await chromium.launch({ headless: true });
+    
+    let browser: Browser | null = null;
+    let context = sharedContext;
+    let page: Page | null = null;
 
     try {
-      const context = await browser.newContext({
-        ignoreHTTPSErrors: true,
-        viewport: this.getPrtgRenderViewport(),
-        deviceScaleFactor: this.getPrtgImageScale(),
-        extraHTTPHeaders: {
-          // Cookie tidak dipakai lagi — auth via username/passhash query params
-          'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
-        },
-      });
+      if (!context) {
+        browser = await chromium.launch({
+          headless: true,
+          args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-zygote',
+            '--single-process'
+          ],
+        });
+        context = await browser.newContext({
+          ignoreHTTPSErrors: true,
+          viewport: this.getPrtgRenderViewport(),
+          deviceScaleFactor: this.getPrtgImageScale(),
+          extraHTTPHeaders: {
+            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+          },
+        });
+      }
 
-      const page = await context.newPage();
+      page = await context.newPage();
       await page.goto(authUrl, { waitUntil: 'networkidle', timeout: 45000 });
       await page.waitForTimeout(1500);
 
@@ -1660,7 +1706,12 @@ export class PrtgReportService {
         fullPage: false,
       });
     } finally {
-      await browser.close();
+      if (page) {
+        await page.close().catch(() => {});
+      }
+      if (browser) {
+        await browser.close().catch(() => {});
+      }
     }
   }
 
@@ -1847,7 +1898,7 @@ export class PrtgReportService {
       return defaultPrtgCaptureConcurrency;
     }
 
-    return Math.min(Math.round(concurrency), 6);
+    return Math.round(concurrency);
   }
 
   private getPrtgRenderViewport() {
