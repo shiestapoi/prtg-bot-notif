@@ -215,7 +215,7 @@ export default function PublicReceiptReportViewPage() {
                             <img 
                               src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
                               alt={`Chart for ${config.title}`} 
-                              className="w-[92%] sm:w-[90%] h-auto block relative z-10 my-4 sm:my-6 rounded-md shadow-sm transition-transform duration-500 group-hover:scale-105"
+                              className="w-[92%] sm:w-[90%] h-auto block relative z-10 my-4 sm:my-6 bg-[#ffffff] rounded-md shadow-sm transition-transform duration-500 group-hover:scale-105"
                               loading="lazy"
                               onLoad={(e) => {
                                 const target = e.target as HTMLImageElement;
