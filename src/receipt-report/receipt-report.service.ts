@@ -50,10 +50,8 @@ export class ReceiptReportService {
       const prev = previousStatus.get(history.configId) || NocStatus.NORMAL;
       
       if (history.status !== prev) {
-        if (
-          (schedule.includeDown && history.status === NocStatus.DOWN) ||
-          (schedule.includeLowTraffic && history.status === NocStatus.LOW_TRAFFIC)
-        ) {
+        // We ALWAYS capture DOWN and LOW_TRAFFIC for the web view snapshot
+        if (history.status === NocStatus.DOWN || history.status === NocStatus.LOW_TRAFFIC) {
           if (!incidentsByConfig.has(history.configId)) {
             incidentsByConfig.set(history.configId, []);
           }
@@ -88,6 +86,7 @@ export class ReceiptReportService {
     let fullMessage = `*LAPORAN ${periodText} BW*\n====================\n`;
     
     const configMessages: string[] = [];
+    const reportDataPayload: any[] = [];
 
     for (const [configId, incidents] of incidentsByConfig.entries()) {
       if (incidents.length === 0) continue;
@@ -95,19 +94,36 @@ export class ReceiptReportService {
       const config = configs.find(c => c.id === configId);
       if (!config) continue;
 
-      const downCount = incidents.filter(i => i.status === NocStatus.DOWN).length;
-      const lowTrafficCount = incidents.filter(i => i.status === NocStatus.LOW_TRAFFIC).length;
+      // Add to snapshot payload (includes ALL DOWN and LOW TRAFFIC regardless of schedule settings)
+      reportDataPayload.push({
+        configId: config.id,
+        title: config.title,
+        groupName: config.group?.name || 'N/A',
+        downCount,
+        lowTrafficCount,
+        incidents: incidents.map(i => ({
+          status: i.status,
+          time: i.time.toISOString(),
+          formattedTime: `${this.formatTimeWib(i.time)} WIB`
+        }))
+      });
+
+      // Filter for WhatsApp based on schedule settings
+      const waDownCount = schedule.includeDown ? downCount : 0;
+      const waLowTrafficCount = schedule.includeLowTraffic ? lowTrafficCount : 0;
+
+      if (waDownCount === 0 && waLowTrafficCount === 0) continue;
 
       let detailsStr = '';
-      if (downCount > 0) {
-        detailsStr += `DOWN : ${downCount}x\ndijam :\n`;
+      if (waDownCount > 0) {
+        detailsStr += `DOWN : ${waDownCount}x\ndijam :\n`;
         incidents.filter(i => i.status === NocStatus.DOWN).forEach(i => {
           detailsStr += `- ${this.formatTimeWib(i.time)} WIB\n`;
         });
       }
-      if (lowTrafficCount > 0) {
+      if (waLowTrafficCount > 0) {
         if (detailsStr) detailsStr += '\n';
-        detailsStr += `LOW TRAFFIC : ${lowTrafficCount}x\ndijam :\n`;
+        detailsStr += `LOW TRAFFIC : ${waLowTrafficCount}x\ndijam :\n`;
         incidents.filter(i => i.status === NocStatus.LOW_TRAFFIC).forEach(i => {
           detailsStr += `- ${this.formatTimeWib(i.time)} WIB\n`;
         });
@@ -121,7 +137,26 @@ export class ReceiptReportService {
       configMessages.push(configMsg);
     }
     
-    fullMessage += configMessages.join('\n\n');
+    // Save Snapshot to Database
+    const snapshot = await this.prisma.receiptReportSnapshot.create({
+      data: {
+        scheduleId: schedule.id,
+        period: schedule.period,
+        groupName: schedule.group?.name,
+        startDate: startDate,
+        endDate: new Date(),
+        reportData: reportDataPayload,
+      }
+    });
+
+    const publicUrl = `http://prtg.harutaka.web.id/public/report/${snapshot.id}`;
+
+    if (configMessages.length > 0) {
+      fullMessage += configMessages.join('\n\n');
+      fullMessage += `\n\nLihat detail laporan lengkap:\n${publicUrl}`;
+    } else {
+      fullMessage += `Tidak ada insiden yang memenuhi kriteria pengiriman WhatsApp.\n\nLihat detail laporan lengkap:\n${publicUrl}`;
+    }
 
     const recipients = await this.getRecipientsForSchedule(schedule);
     for (const recipient of recipients) {

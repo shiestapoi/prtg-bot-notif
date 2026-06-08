@@ -12,6 +12,7 @@ import ReportRecipientsPage from '@/pages/report/recipients';
 import NocDashboardPage from '@/pages/noc/dashboard';
 import NocHistoryPage from '@/pages/noc/history';
 import NocTvDashboardPage from '@/pages/noc/tv';
+import PublicReceiptReportViewPage from '@/pages/public/receipt-report-view';
 import MonitoringRecipientsPage from '@/pages/monitoring/recipients';
 import PingMonitorsPage from '@/pages/monitoring/ping-monitors';
 import PingRecipientsPage from '@/pages/monitoring/ping-recipients';
@@ -28,6 +29,11 @@ export const router = createBrowserRouter([
   {
     path: '/tv',
     element: <NocTvDashboardPage />,
+  },
+  // Public Web View for Receipt Report
+  {
+    path: '/public/report/:id',
+    element: <PublicReceiptReportViewPage />,
   },
   {
     path: '/',

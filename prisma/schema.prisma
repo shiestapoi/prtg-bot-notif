@@ -265,6 +265,7 @@ model ReceiptSchedule {
   enabled           Boolean            @default(true)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+  snapshots         ReceiptReportSnapshot[]
 }
 
 model ReceiptRecipient {
@@ -277,4 +278,16 @@ model ReceiptRecipient {
   group       PrtgGroup?          @relation(fields: [groupId], references: [id], onDelete: Cascade)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
+}
+
+model ReceiptReportSnapshot {
+  id          String           @id @default(uuid())
+  scheduleId  Int?
+  schedule    ReceiptSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  period      ReceiptPeriod
+  groupName   String?
+  startDate   DateTime
+  endDate     DateTime
+  reportData  Json             // Full structured data of configs and incidents
+  createdAt   DateTime         @default(now())
 }

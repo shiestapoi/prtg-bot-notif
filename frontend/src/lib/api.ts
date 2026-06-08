@@ -362,6 +362,11 @@ export const receiptScheduleApi = {
     api.post(`/api/receipt-schedules/${id}/dispatch`).then((r) => r.data),
 };
 
+export const publicReportApi = {
+  fetchReportSnapshot: (id: string) =>
+    api.get(`/api/public/receipt-reports/${id}`).then((r) => r.data),
+};
+
 // ─── Receipt Report Recipients API ───────────────────────────────────────────
 
 import type { ReceiptRecipient } from './types';
