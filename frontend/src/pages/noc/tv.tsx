@@ -238,7 +238,7 @@ export default function NocTvDashboardPage() {
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [alarmModalOpen, setAlarmModalOpen] = useState(false);
-  const { playAlarm, playRecovery, alarmType, setAlarmType } = useAlertSound();
+  const { playAlarm, alarmType, setAlarmType } = useAlertSound();
   useWakeLock();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
 
@@ -277,8 +277,6 @@ export default function NocTvDashboardPage() {
     if (soundEnabled && event.host.includes('prtg.r1net.id') && !event.maintenance) {
       if (event.status === 'RTO' && previousStatus !== 'RTO') {
         playAlarm();
-      } else if (event.status === 'UP' && previousStatus === 'RTO') {
-        playRecovery();
       }
     }
 
@@ -297,7 +295,7 @@ export default function NocTvDashboardPage() {
           }
         : monitor,
     ));
-  }, [soundEnabled, playAlarm, playRecovery]);
+  }, [soundEnabled, playAlarm]);
 
   const { isConnected } = useMonitoringSSE(onStatusChange, { onConfigUpdated: refetchSummary, onPingStatus });
 

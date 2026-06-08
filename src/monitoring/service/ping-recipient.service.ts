@@ -19,7 +19,10 @@ function inferTargetType(target: string): TargetType {
   return 'manual';
 }
 
-function resolveTargetType(value: string | undefined, target: string): TargetType {
+function resolveTargetType(
+  value: string | undefined,
+  target: string,
+): TargetType {
   if (value && (allowedTargetTypes as readonly string[]).includes(value)) {
     return value as TargetType;
   }
@@ -74,7 +77,9 @@ export class PingRecipientService {
       enabled?: boolean;
     },
   ) {
-    const existing = await this.prisma.pingRecipient.findUnique({ where: { id } });
+    const existing = await this.prisma.pingRecipient.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException('Ping recipient not found.');
 
     const phoneNumber = payload.phoneNumber
@@ -103,7 +108,9 @@ export class PingRecipientService {
   }
 
   async remove(id: number) {
-    const existing = await this.prisma.pingRecipient.findUnique({ where: { id } });
+    const existing = await this.prisma.pingRecipient.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException('Ping recipient not found.');
     await this.prisma.pingRecipient.delete({ where: { id } });
     return { id };

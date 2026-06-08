@@ -11,6 +11,7 @@ import { PrtgNocModule } from './prtg-noc/prtg-noc.module';
 import { PrtgReportModule } from './prtg-report/prtg-report.module';
 import { PrtgSettingModule } from './prtg-setting/prtg-setting.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { ReceiptReportModule } from './receipt-report/receipt-report.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     CookieVaultModule, // DEPRECATED: Cookie tidak dipakai lagi untuk auth PRTG, tapi endpoint tetap ada
     PrtgSettingModule,
     PrtgReportModule,
+    ReceiptReportModule,
     PrtgNocModule,
     MonitoringModule,
     // ServeStaticModule serves the React SPA from public/app/

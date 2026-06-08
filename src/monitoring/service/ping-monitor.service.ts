@@ -4,7 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreatePingMonitorDto, UpdatePingMonitorDto } from '../dto/ping-monitor.dto';
+import {
+  CreatePingMonitorDto,
+  UpdatePingMonitorDto,
+} from '../dto/ping-monitor.dto';
 
 export const DEFAULT_PING_ALERT_TEMPLATE =
   '*ALERT RTO*\n{label} ({host}) RTO dalam {outageSeconds} detik yang lalu.\nWaktu: {time}';
@@ -74,7 +77,9 @@ export class PingMonitorService {
         where: { id: { in: recipientIds } },
       });
       if (count !== recipientIds.length) {
-        throw new BadRequestException('One or more ping recipients do not exist.');
+        throw new BadRequestException(
+          'One or more ping recipients do not exist.',
+        );
       }
     }
 
@@ -82,20 +87,46 @@ export class PingMonitorService {
       ...(name !== undefined ? { name } : {}),
       ...(host !== undefined ? { host } : {}),
       ...(dto.enabled !== undefined ? { enabled: dto.enabled } : {}),
-      ...(dto.intervalSeconds !== undefined ? { intervalSeconds: dto.intervalSeconds } : {}),
-      ...(dto.pingTimeoutSeconds !== undefined ? { pingTimeoutSeconds: dto.pingTimeoutSeconds } : {}),
-      ...(dto.rtoThresholdSeconds !== undefined ? { rtoThresholdSeconds: dto.rtoThresholdSeconds } : {}),
-      ...(dto.notificationCooldownSeconds !== undefined ? { notificationCooldownSeconds: dto.notificationCooldownSeconds } : {}),
-      ...(dto.maintenance !== undefined ? { maintenance: dto.maintenance } : {}),
-      ...(dto.maintenanceLabel !== undefined ? { maintenanceLabel: dto.maintenanceLabel?.trim() || null } : {}),
-      ...(dto.notifyRecovery !== undefined ? { notifyRecovery: dto.notifyRecovery } : {}),
-      ...(dto.alertTemplate !== undefined ? { alertTemplate: dto.alertTemplate.trim() || DEFAULT_PING_ALERT_TEMPLATE } : {}),
-      ...(dto.recoveryTemplate !== undefined ? { recoveryTemplate: dto.recoveryTemplate.trim() || DEFAULT_PING_RECOVERY_TEMPLATE } : {}),
+      ...(dto.intervalSeconds !== undefined
+        ? { intervalSeconds: dto.intervalSeconds }
+        : {}),
+      ...(dto.pingTimeoutSeconds !== undefined
+        ? { pingTimeoutSeconds: dto.pingTimeoutSeconds }
+        : {}),
+      ...(dto.rtoThresholdSeconds !== undefined
+        ? { rtoThresholdSeconds: dto.rtoThresholdSeconds }
+        : {}),
+      ...(dto.notificationCooldownSeconds !== undefined
+        ? { notificationCooldownSeconds: dto.notificationCooldownSeconds }
+        : {}),
+      ...(dto.maintenance !== undefined
+        ? { maintenance: dto.maintenance }
+        : {}),
+      ...(dto.maintenanceLabel !== undefined
+        ? { maintenanceLabel: dto.maintenanceLabel?.trim() || null }
+        : {}),
+      ...(dto.notifyRecovery !== undefined
+        ? { notifyRecovery: dto.notifyRecovery }
+        : {}),
+      ...(dto.alertTemplate !== undefined
+        ? {
+            alertTemplate:
+              dto.alertTemplate.trim() || DEFAULT_PING_ALERT_TEMPLATE,
+          }
+        : {}),
+      ...(dto.recoveryTemplate !== undefined
+        ? {
+            recoveryTemplate:
+              dto.recoveryTemplate.trim() || DEFAULT_PING_RECOVERY_TEMPLATE,
+          }
+        : {}),
       ...(recipientIds !== undefined
         ? {
             recipients: {
               deleteMany: {},
-              create: recipientIds.map((pingRecipientId) => ({ pingRecipientId })),
+              create: recipientIds.map((pingRecipientId) => ({
+                pingRecipientId,
+              })),
             },
           }
         : {}),
@@ -106,8 +137,10 @@ export class PingMonitorService {
         data: {
           name: name!,
           host: host!,
-          alertTemplate: dto.alertTemplate?.trim() || DEFAULT_PING_ALERT_TEMPLATE,
-          recoveryTemplate: dto.recoveryTemplate?.trim() || DEFAULT_PING_RECOVERY_TEMPLATE,
+          alertTemplate:
+            dto.alertTemplate?.trim() || DEFAULT_PING_ALERT_TEMPLATE,
+          recoveryTemplate:
+            dto.recoveryTemplate?.trim() || DEFAULT_PING_RECOVERY_TEMPLATE,
           ...data,
         },
       });

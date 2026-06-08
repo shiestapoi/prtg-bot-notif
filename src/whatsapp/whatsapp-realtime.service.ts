@@ -17,7 +17,9 @@ const initialStatus: WhatsappStatusResponse = {
 
 @Injectable()
 export class WhatsappRealtimeService {
-  private readonly statusSubject = new BehaviorSubject<WhatsappStatusResponse>(initialStatus);
+  private readonly statusSubject = new BehaviorSubject<WhatsappStatusResponse>(
+    initialStatus,
+  );
 
   publish(status: WhatsappStatusResponse) {
     this.statusSubject.next(status);

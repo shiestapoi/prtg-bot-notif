@@ -19,7 +19,9 @@ interface ScheduledEntry {
 }
 
 @Injectable()
-export class PrtgReportSchedulerService implements OnModuleInit, OnModuleDestroy {
+export class PrtgReportSchedulerService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrtgReportSchedulerService.name);
   private readonly tasks = new Map<number, ScheduledEntry>();
   private readonly runningSchedules = new Set<number>();
@@ -165,7 +167,11 @@ export class PrtgReportSchedulerService implements OnModuleInit, OnModuleDestroy
           scheduleName: schedule.name,
           groupName: schedule.group?.name ?? null,
           targetMode: schedule.targetMode,
-          result: { sentRecipients: 0, totalConfigs: 0, skippedConfigs: 0 } as any,
+          result: {
+            sentRecipients: 0,
+            totalConfigs: 0,
+            skippedConfigs: 0,
+          } as any,
         };
       }
       // Cron trigger while already running — skip silently
@@ -175,7 +181,11 @@ export class PrtgReportSchedulerService implements OnModuleInit, OnModuleDestroy
         scheduleName: schedule.name,
         groupName: schedule.group?.name ?? null,
         targetMode: schedule.targetMode,
-        result: { sentRecipients: 0, totalConfigs: 0, skippedConfigs: 0 } as any,
+        result: {
+          sentRecipients: 0,
+          totalConfigs: 0,
+          skippedConfigs: 0,
+        } as any,
       };
     }
 

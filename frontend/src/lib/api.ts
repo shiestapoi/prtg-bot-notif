@@ -12,6 +12,7 @@ import type {
   PrtgConfig,
   PrtgRecipient,
   PrtgSchedule,
+  ReceiptSchedule,
   PingMonitor,
 } from './types';
 
@@ -338,6 +339,24 @@ export const monitoringRecipientApi = {
 
   remove: (id: number) =>
     api.delete(`/api/monitoring/recipients/${id}`).then((r) => r.data),
+};
+
+// ─── Receipt Report Schedules API ───────────────────────────────────────────
+
+export const receiptScheduleApi = {
+  getAll: () => api.get<ReceiptSchedule[]>('/api/receipt-schedules').then((r) => r.data),
+
+  create: (data: { name: string; groupId: number | null; cron: string; period: string; includeDown: boolean; includeLowTraffic: boolean; targetMode?: string; enabled?: boolean }) =>
+    api.post<ReceiptSchedule>('/api/receipt-schedules', data).then((r) => r.data),
+
+  update: (id: number, data: Partial<{ name: string; groupId: number | null; cron: string; period: string; includeDown: boolean; includeLowTraffic: boolean; targetMode: string; enabled: boolean }>) =>
+    api.put<ReceiptSchedule>(`/api/receipt-schedules/${id}`, data).then((r) => r.data),
+
+  remove: (id: number) =>
+    api.delete(`/api/receipt-schedules/${id}`).then((r) => r.data),
+
+  run: (id: number) =>
+    api.post(`/api/receipt-schedules/${id}/dispatch`).then((r) => r.data),
 };
 
 // ─── Default Export ─────────────────────────────────────────────────────────

@@ -14,7 +14,13 @@ export const MEDIA_MESSAGE_TYPES = [
 ] as const;
 
 export type SupportedMediaType = (typeof MEDIA_MESSAGE_TYPES)[number];
-export type IncomingMediaKind = 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'unknown';
+export type IncomingMediaKind =
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'document'
+  | 'sticker'
+  | 'unknown';
 
 export interface ExtractedMediaInfo {
   type: SupportedMediaType | null;
@@ -30,7 +36,9 @@ export interface ExtractedMediaInfo {
 }
 
 function isSupportedMediaType(type: string | null): type is SupportedMediaType {
-  return Boolean(type && MEDIA_MESSAGE_TYPES.includes(type as SupportedMediaType));
+  return Boolean(
+    type && MEDIA_MESSAGE_TYPES.includes(type as SupportedMediaType),
+  );
 }
 
 function getMediaKind(type: SupportedMediaType | null): IncomingMediaKind {
@@ -52,12 +60,15 @@ function getMediaKind(type: SupportedMediaType | null): IncomingMediaKind {
 }
 
 export function extractMediaInfo(message: WAMessage): ExtractedMediaInfo {
-  const normalizedMessage = normalizeMessageContent(message.message) ?? undefined;
+  const normalizedMessage =
+    normalizeMessageContent(message.message) ?? undefined;
   const rawType = getContentType(normalizedMessage) ?? null;
   const type = isSupportedMediaType(rawType) ? rawType : null;
   const content =
     type && normalizedMessage
-      ? (normalizedMessage[type as keyof typeof normalizedMessage] as Record<string, unknown> | undefined)
+      ? (normalizedMessage[type as keyof typeof normalizedMessage] as
+          | Record<string, unknown>
+          | undefined)
       : undefined;
 
   const kind = getMediaKind(type);

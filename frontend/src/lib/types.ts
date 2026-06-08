@@ -146,6 +146,20 @@ export interface PrtgSchedule {
   updatedAt: string;
 }
 
+export interface ReceiptSchedule {
+  id: number;
+  name: string;
+  groupId: number | null;
+  cron: string;
+  period: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  includeDown: boolean;
+  includeLowTraffic: boolean;
+  targetMode: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PrtgSetting {
   loginUrl: string;
   loginUsername: string;

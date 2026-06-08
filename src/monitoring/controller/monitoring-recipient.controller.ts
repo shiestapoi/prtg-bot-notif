@@ -12,9 +12,7 @@ import { MonitoringRecipientService } from '../service/monitoring-recipient.serv
 
 @Controller('api/monitoring/recipients')
 export class MonitoringRecipientController {
-  constructor(
-    private readonly recipientService: MonitoringRecipientService,
-  ) {}
+  constructor(private readonly recipientService: MonitoringRecipientService) {}
 
   @Get()
   findAll() {

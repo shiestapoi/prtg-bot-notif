@@ -45,7 +45,10 @@ export interface PingStatusEvent {
   maintenanceLabel: string | null;
 }
 
-export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent | PingStatusEvent;
+export type MonitoringEvent =
+  | MonitoringStatusEvent
+  | ConfigUpdatedEvent
+  | PingStatusEvent;
 
 /**
  * Simple EventEmitter-based service for broadcasting monitoring status events.
@@ -70,7 +73,10 @@ export class MonitoringEventService {
   /**
    * Emit a config updated event to all subscribers.
    */
-  emitConfigUpdated(action: 'created' | 'updated' | 'deleted', configId: number): void {
+  emitConfigUpdated(
+    action: 'created' | 'updated' | 'deleted',
+    configId: number,
+  ): void {
     const event: ConfigUpdatedEvent = {
       type: 'config_updated',
       action,

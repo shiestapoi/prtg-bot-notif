@@ -53,21 +53,12 @@ async function main() {
           '📤 Out: ```{trafficOut}```',
           '━━━━━━━━━━━━━━━━',
         ].join('\n'),
+        receiptMessageTemplate: '*{title}*\nGROUP : {groupName}\n{details}',
       },
     });
     console.log('✓ PrtgSetting created');
   } else {
-    // Update credentials from env if provided
-    const updates: Record<string, string> = {};
-    if (process.env.PRTG_USERNAME) updates.loginUsername = process.env.PRTG_USERNAME;
-    if (process.env.PRTG_PASSWORD) updates.loginPassword = process.env.PRTG_PASSWORD;
-    if (process.env.PRTG_LOGIN_URL) updates.loginUrl = process.env.PRTG_LOGIN_URL;
-    if (Object.keys(updates).length > 0) {
-      await prisma.prtgSetting.update({ where: { id: 1 }, data: updates });
-      console.log('✓ PrtgSetting credentials updated from env');
-    } else {
-      console.log('  PrtgSetting already exists, skipping');
-    }
+    console.log('  PrtgSetting already exists, skipping');
   }
 
   // ─── Default admin user ───────────────────────────────────────────────────

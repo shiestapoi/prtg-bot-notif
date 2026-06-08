@@ -407,25 +407,63 @@ export class PrtgReportService {
         enabled: payload.enabled ?? true,
         cookieId: payload.cookieId ?? null,
         // Monitoring fields
-        ...(payload.monitoringEnabled !== undefined && { monitoringEnabled: payload.monitoringEnabled }),
-        ...(payload.pollingInterval !== undefined && { pollingInterval: payload.pollingInterval }),
-        ...(payload.thresholdLow !== undefined && { thresholdLow: payload.thresholdLow }),
-        ...(payload.thresholdHigh !== undefined && { thresholdHigh: payload.thresholdHigh }),
-        ...(payload.sensitivity !== undefined && { sensitivity: payload.sensitivity }),
-        ...(payload.cooldownInterval !== undefined && { cooldownInterval: payload.cooldownInterval }),
-        ...(payload.noTrafficCount !== undefined && { noTrafficCount: payload.noTrafficCount }),
-        ...(payload.flappingWindow !== undefined && { flappingWindow: payload.flappingWindow }),
-        ...(payload.flappingCount !== undefined && { flappingCount: payload.flappingCount }),
-        ...(payload.downCount !== undefined && { downCount: payload.downCount }),
-        ...(payload.rollingWindowSize !== undefined && { rollingWindowSize: payload.rollingWindowSize }),
-        ...(payload.notifyDown !== undefined && { notifyDown: payload.notifyDown }),
-        ...(payload.notifyNoTraffic !== undefined && { notifyNoTraffic: payload.notifyNoTraffic }),
-        ...(payload.notifyLowTraffic !== undefined && { notifyLowTraffic: payload.notifyLowTraffic }),
-        ...(payload.notifyFlapping !== undefined && { notifyFlapping: payload.notifyFlapping }),
-        ...(payload.notifyRecovery !== undefined && { notifyRecovery: payload.notifyRecovery }),
-        ...(payload.maintenance !== undefined && { maintenance: payload.maintenance }),
-        ...(payload.maintenanceLabel !== undefined && { maintenanceLabel: payload.maintenanceLabel }),
-        ...(payload.minTrafficThreshold !== undefined && { minTrafficThreshold: payload.minTrafficThreshold }),
+        ...(payload.monitoringEnabled !== undefined && {
+          monitoringEnabled: payload.monitoringEnabled,
+        }),
+        ...(payload.pollingInterval !== undefined && {
+          pollingInterval: payload.pollingInterval,
+        }),
+        ...(payload.thresholdLow !== undefined && {
+          thresholdLow: payload.thresholdLow,
+        }),
+        ...(payload.thresholdHigh !== undefined && {
+          thresholdHigh: payload.thresholdHigh,
+        }),
+        ...(payload.sensitivity !== undefined && {
+          sensitivity: payload.sensitivity,
+        }),
+        ...(payload.cooldownInterval !== undefined && {
+          cooldownInterval: payload.cooldownInterval,
+        }),
+        ...(payload.noTrafficCount !== undefined && {
+          noTrafficCount: payload.noTrafficCount,
+        }),
+        ...(payload.flappingWindow !== undefined && {
+          flappingWindow: payload.flappingWindow,
+        }),
+        ...(payload.flappingCount !== undefined && {
+          flappingCount: payload.flappingCount,
+        }),
+        ...(payload.downCount !== undefined && {
+          downCount: payload.downCount,
+        }),
+        ...(payload.rollingWindowSize !== undefined && {
+          rollingWindowSize: payload.rollingWindowSize,
+        }),
+        ...(payload.notifyDown !== undefined && {
+          notifyDown: payload.notifyDown,
+        }),
+        ...(payload.notifyNoTraffic !== undefined && {
+          notifyNoTraffic: payload.notifyNoTraffic,
+        }),
+        ...(payload.notifyLowTraffic !== undefined && {
+          notifyLowTraffic: payload.notifyLowTraffic,
+        }),
+        ...(payload.notifyFlapping !== undefined && {
+          notifyFlapping: payload.notifyFlapping,
+        }),
+        ...(payload.notifyRecovery !== undefined && {
+          notifyRecovery: payload.notifyRecovery,
+        }),
+        ...(payload.maintenance !== undefined && {
+          maintenance: payload.maintenance,
+        }),
+        ...(payload.maintenanceLabel !== undefined && {
+          maintenanceLabel: payload.maintenanceLabel,
+        }),
+        ...(payload.minTrafficThreshold !== undefined && {
+          minTrafficThreshold: payload.minTrafficThreshold,
+        }),
       },
     });
 
@@ -490,9 +528,8 @@ export class PrtgReportService {
       groupId = payload.groupId;
     }
 
-    const cookieId = payload.cookieId !== undefined
-      ? payload.cookieId
-      : config.cookieId;
+    const cookieId =
+      payload.cookieId !== undefined ? payload.cookieId : config.cookieId;
 
     const updated = await this.prisma.prtgConfig.update({
       where: { id },
@@ -504,25 +541,63 @@ export class PrtgReportService {
         enabled: payload.enabled ?? config.enabled,
         cookieId,
         // Monitoring fields
-        ...(payload.monitoringEnabled !== undefined && { monitoringEnabled: payload.monitoringEnabled }),
-        ...(payload.pollingInterval !== undefined && { pollingInterval: payload.pollingInterval }),
-        ...(payload.thresholdLow !== undefined && { thresholdLow: payload.thresholdLow }),
-        ...(payload.thresholdHigh !== undefined && { thresholdHigh: payload.thresholdHigh }),
-        ...(payload.sensitivity !== undefined && { sensitivity: payload.sensitivity }),
-        ...(payload.cooldownInterval !== undefined && { cooldownInterval: payload.cooldownInterval }),
-        ...(payload.noTrafficCount !== undefined && { noTrafficCount: payload.noTrafficCount }),
-        ...(payload.flappingWindow !== undefined && { flappingWindow: payload.flappingWindow }),
-        ...(payload.flappingCount !== undefined && { flappingCount: payload.flappingCount }),
-        ...(payload.downCount !== undefined && { downCount: payload.downCount }),
-        ...(payload.rollingWindowSize !== undefined && { rollingWindowSize: payload.rollingWindowSize }),
-        ...(payload.notifyDown !== undefined && { notifyDown: payload.notifyDown }),
-        ...(payload.notifyNoTraffic !== undefined && { notifyNoTraffic: payload.notifyNoTraffic }),
-        ...(payload.notifyLowTraffic !== undefined && { notifyLowTraffic: payload.notifyLowTraffic }),
-        ...(payload.notifyFlapping !== undefined && { notifyFlapping: payload.notifyFlapping }),
-        ...(payload.notifyRecovery !== undefined && { notifyRecovery: payload.notifyRecovery }),
-        ...(payload.maintenance !== undefined && { maintenance: payload.maintenance }),
-        ...(payload.maintenanceLabel !== undefined && { maintenanceLabel: payload.maintenanceLabel }),
-        ...(payload.minTrafficThreshold !== undefined && { minTrafficThreshold: payload.minTrafficThreshold }),
+        ...(payload.monitoringEnabled !== undefined && {
+          monitoringEnabled: payload.monitoringEnabled,
+        }),
+        ...(payload.pollingInterval !== undefined && {
+          pollingInterval: payload.pollingInterval,
+        }),
+        ...(payload.thresholdLow !== undefined && {
+          thresholdLow: payload.thresholdLow,
+        }),
+        ...(payload.thresholdHigh !== undefined && {
+          thresholdHigh: payload.thresholdHigh,
+        }),
+        ...(payload.sensitivity !== undefined && {
+          sensitivity: payload.sensitivity,
+        }),
+        ...(payload.cooldownInterval !== undefined && {
+          cooldownInterval: payload.cooldownInterval,
+        }),
+        ...(payload.noTrafficCount !== undefined && {
+          noTrafficCount: payload.noTrafficCount,
+        }),
+        ...(payload.flappingWindow !== undefined && {
+          flappingWindow: payload.flappingWindow,
+        }),
+        ...(payload.flappingCount !== undefined && {
+          flappingCount: payload.flappingCount,
+        }),
+        ...(payload.downCount !== undefined && {
+          downCount: payload.downCount,
+        }),
+        ...(payload.rollingWindowSize !== undefined && {
+          rollingWindowSize: payload.rollingWindowSize,
+        }),
+        ...(payload.notifyDown !== undefined && {
+          notifyDown: payload.notifyDown,
+        }),
+        ...(payload.notifyNoTraffic !== undefined && {
+          notifyNoTraffic: payload.notifyNoTraffic,
+        }),
+        ...(payload.notifyLowTraffic !== undefined && {
+          notifyLowTraffic: payload.notifyLowTraffic,
+        }),
+        ...(payload.notifyFlapping !== undefined && {
+          notifyFlapping: payload.notifyFlapping,
+        }),
+        ...(payload.notifyRecovery !== undefined && {
+          notifyRecovery: payload.notifyRecovery,
+        }),
+        ...(payload.maintenance !== undefined && {
+          maintenance: payload.maintenance,
+        }),
+        ...(payload.maintenanceLabel !== undefined && {
+          maintenanceLabel: payload.maintenanceLabel,
+        }),
+        ...(payload.minTrafficThreshold !== undefined && {
+          minTrafficThreshold: payload.minTrafficThreshold,
+        }),
       },
     });
 
@@ -530,37 +605,35 @@ export class PrtgReportService {
     return this.mapConfigToDto(updated);
   }
 
-  private mapConfigToDto(
-    config: {
-      id: number;
-      title: string;
-      sensorId: number;
-      groupId: number;
-      group: { name: string; enabled: boolean };
-      enabled: boolean;
-      cookieId: number | null;
-      monitoringEnabled: boolean;
-      pollingInterval: number;
-      thresholdLow: number;
-      thresholdHigh: number;
-      sensitivity: string;
-      cooldownInterval: number;
-      noTrafficCount: number;
-      flappingWindow: number;
-      flappingCount: number;
-      downCount: number;
-      rollingWindowSize: number;
-      notifyDown: boolean;
-      notifyNoTraffic: boolean;
-      notifyLowTraffic: boolean;
-      notifyFlapping: boolean;
-      notifyRecovery: boolean;
-      lastPolledAt: Date | null;
-      lastStatus: string;
-      createdAt: Date;
-      updatedAt: Date;
-    },
-  ): PrtgConfigDto {
+  private mapConfigToDto(config: {
+    id: number;
+    title: string;
+    sensorId: number;
+    groupId: number;
+    group: { name: string; enabled: boolean };
+    enabled: boolean;
+    cookieId: number | null;
+    monitoringEnabled: boolean;
+    pollingInterval: number;
+    thresholdLow: number;
+    thresholdHigh: number;
+    sensitivity: string;
+    cooldownInterval: number;
+    noTrafficCount: number;
+    flappingWindow: number;
+    flappingCount: number;
+    downCount: number;
+    rollingWindowSize: number;
+    notifyDown: boolean;
+    notifyNoTraffic: boolean;
+    notifyLowTraffic: boolean;
+    notifyFlapping: boolean;
+    notifyRecovery: boolean;
+    lastPolledAt: Date | null;
+    lastStatus: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): PrtgConfigDto {
     return {
       id: config.id,
       title: config.title,
@@ -593,10 +666,7 @@ export class PrtgReportService {
     };
   }
 
-  private async ensureUniqueSensorId(
-    sensorId: number,
-    excludeId?: number,
-  ) {
+  private async ensureUniqueSensorId(sensorId: number, excludeId?: number) {
     const existing = await this.prisma.prtgConfig.findFirst({
       where: {
         sensorId,
@@ -732,7 +802,7 @@ export class PrtgReportService {
       id: recipient.id,
       label: recipient.label,
       phoneNumber: recipient.phoneNumber,
-      targetType: recipient.targetType as RecipientTargetType,
+      targetType: recipient.targetType,
       enabled: recipient.enabled,
       isAdmin: recipient.isAdmin,
       groupId: recipient.groupId ?? null,
@@ -795,7 +865,7 @@ export class PrtgReportService {
       id: created.id,
       label: created.label,
       phoneNumber: created.phoneNumber,
-      targetType: created.targetType as RecipientTargetType,
+      targetType: created.targetType,
       enabled: created.enabled,
       isAdmin: created.isAdmin,
       groupId: created.groupId ?? null,
@@ -869,7 +939,7 @@ export class PrtgReportService {
       id: updated.id,
       label: updated.label,
       phoneNumber: updated.phoneNumber,
-      targetType: updated.targetType as RecipientTargetType,
+      targetType: updated.targetType,
       enabled: updated.enabled,
       isAdmin: updated.isAdmin,
       groupId: updated.groupId ?? null,
@@ -960,7 +1030,7 @@ export class PrtgReportService {
       groupId: schedule.groupId,
       groupName: schedule.group?.name ?? null,
       cron: schedule.cron,
-      targetMode: schedule.targetMode as ScheduleTargetMode,
+      targetMode: schedule.targetMode,
       enabled: schedule.enabled,
       createdAt: schedule.createdAt.toISOString(),
       updatedAt: schedule.updatedAt.toISOString(),
@@ -1019,7 +1089,7 @@ export class PrtgReportService {
       groupId: created.groupId,
       groupName: created.group?.name ?? null,
       cron: created.cron,
-      targetMode: created.targetMode as ScheduleTargetMode,
+      targetMode: created.targetMode,
       enabled: created.enabled,
       createdAt: created.createdAt.toISOString(),
       updatedAt: created.updatedAt.toISOString(),
@@ -1092,7 +1162,7 @@ export class PrtgReportService {
       groupId: updated.groupId,
       groupName: updated.group?.name ?? null,
       cron: updated.cron,
-      targetMode: updated.targetMode as ScheduleTargetMode,
+      targetMode: updated.targetMode,
       enabled: updated.enabled,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
@@ -1160,7 +1230,7 @@ export class PrtgReportService {
     return this.dispatchConfigs(
       configs,
       displayName,
-      isAll ? null : (groupId as number),
+      isAll ? null : groupId,
       targetMode,
     );
   }
@@ -1225,12 +1295,14 @@ export class PrtgReportService {
       this.getPrtgCaptureConcurrency(),
       async (config) => {
         const requestUrl = `http://prtg.r1net.id/graphzoom.htm?id=${config.sensorId}&graphid=1&clgid=&dynamicgraph=1`;
-        const imageBuffer = await this.fetchPrtgImage(
-          requestUrl,
-          settings,
-        );
+        const imageBuffer = await this.fetchPrtgImage(requestUrl, settings);
 
-        const timeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' });
+        const timeStr = new Date().toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: 'Asia/Jakarta',
+        });
 
         // Fetch latest monitoring data for traffic info
         let bitrateStr = '—';
@@ -1260,7 +1332,8 @@ export class PrtgReportService {
         let caption: string;
         if (isAnomalyWithNotify) {
           // Use alert template — config is in anomaly state and notify is enabled for that status
-          const alertTemplate = settings.alertMessageTemplate ??
+          const alertTemplate =
+            settings.alertMessageTemplate ??
             '━━━━━━━━━━━━━━━━\n⚠️ *ALERT: {status}*\n━━━━━━━━━━━━━━━━\n📍 {title}\n🏢 {groupName}\n⏰ {time} WIB\n📊 Traffic Total: {bitrate}\n📥 Traffic In: {trafficIn}\n📤 Traffic Out: {trafficOut}\n💬 {reason}\n━━━━━━━━━━━━━━━━';
           caption = alertTemplate
             .replace(/\{title\}/g, config.title)
@@ -1271,7 +1344,10 @@ export class PrtgReportService {
             .replace(/\{bitrate\}/g, bitrateStr)
             .replace(/\{trafficIn\}/g, trafficInStr)
             .replace(/\{trafficOut\}/g, trafficOutStr)
-            .replace(/\{reason\}/g, reasonStr || `Status: ${config.lastStatus}`);
+            .replace(
+              /\{reason\}/g,
+              reasonStr || `Status: ${config.lastStatus}`,
+            );
         } else {
           // Normal report template
           const values: Record<string, string> = {
@@ -1285,7 +1361,10 @@ export class PrtgReportService {
             trafficOut: trafficOutStr,
             status: config.lastStatus,
           };
-          caption = this.renderMessageTemplate(settings.messageTemplate, values);
+          caption = this.renderMessageTemplate(
+            settings.messageTemplate,
+            values,
+          );
         }
 
         // Prepend maintenance label if config is in maintenance mode
@@ -1460,7 +1539,14 @@ export class PrtgReportService {
   //   return created.id;
   // }
 
-  private async fetchSvg(url: string, settings: { loginUrl: string; loginUsername: string | null; loginPassword: string | null }) {
+  private async fetchSvg(
+    url: string,
+    settings: {
+      loginUrl: string;
+      loginUsername: string | null;
+      loginPassword: string | null;
+    },
+  ) {
     const authUrl = this.appendAuthParams(url, settings);
     const isHttps = url.startsWith('https://');
     const httpsAgent = isHttps
@@ -1498,7 +1584,14 @@ export class PrtgReportService {
     return buffer;
   }
 
-  private async fetchPrtgImage(url: string, settings: { loginUrl: string; loginUsername: string | null; loginPassword: string | null }) {
+  private async fetchPrtgImage(
+    url: string,
+    settings: {
+      loginUrl: string;
+      loginUsername: string | null;
+      loginPassword: string | null;
+    },
+  ) {
     if (this.shouldRenderPrtgPage(url)) {
       return this.renderPrtgPageToPng(url, settings);
     }
@@ -1521,7 +1614,14 @@ export class PrtgReportService {
     }
   }
 
-  private async renderPrtgPageToPng(url: string, settings: { loginUrl: string; loginUsername: string | null; loginPassword: string | null }) {
+  private async renderPrtgPageToPng(
+    url: string,
+    settings: {
+      loginUrl: string;
+      loginUsername: string | null;
+      loginPassword: string | null;
+    },
+  ) {
     const authUrl = this.appendAuthParams(url, settings);
     const browser = await chromium.launch({ headless: true });
 

@@ -103,7 +103,10 @@ export class MetricParserService {
 
       if (Array.isArray(dataArray) && dataArray.length > 0) {
         // Take the LAST entry (most recent) — PRTG returns data in ascending order
-        return this.parseNamedKeysEntry(dataArray[dataArray.length - 1], configId);
+        return this.parseNamedKeysEntry(
+          dataArray[dataArray.length - 1],
+          configId,
+        );
       }
     } catch {
       // JSON parse failed — fall through to regex-based parsing for duplicate-key format
@@ -128,11 +131,17 @@ export class MetricParserService {
     } else if (typeof entry.datetime === 'string') {
       const parsed = parsePrtgDatetime(entry.datetime);
       if (!parsed) {
-        throw new MetricParseError(configId, `Cannot parse datetime: "${entry.datetime}"`);
+        throw new MetricParseError(
+          configId,
+          `Cannot parse datetime: "${entry.datetime}"`,
+        );
       }
       timestamp = parsed;
     } else {
-      throw new MetricParseError(configId, 'Entry has no datetime or datetime_raw field');
+      throw new MetricParseError(
+        configId,
+        'Entry has no datetime or datetime_raw field',
+      );
     }
 
     // Match named keys to metric fields
@@ -146,7 +155,8 @@ export class MetricParserService {
     let coveragePercent: number | null = null;
 
     for (const [key, value] of Object.entries(entry)) {
-      if (key === 'datetime' || key === 'datetime_raw' || key === 'coverage') continue;
+      if (key === 'datetime' || key === 'datetime_raw' || key === 'coverage')
+        continue;
 
       const numValue = typeof value === 'number' ? value : null;
       if (numValue === null) continue;
@@ -182,7 +192,11 @@ export class MetricParserService {
     }
 
     // Validate we got at least some traffic data
-    if (totalTrafficBitrate === null && inboundBitrate === null && outboundBitrate === null) {
+    if (
+      totalTrafficBitrate === null &&
+      inboundBitrate === null &&
+      outboundBitrate === null
+    ) {
       this.logger.warn(
         `Config ${configId}: Named keys format but no traffic metrics found. Keys: ${Object.keys(entry).join(', ')}`,
       );
@@ -229,14 +243,22 @@ export class MetricParserService {
     const firstEntry = entries[0];
 
     // Extract datetime_raw
-    const datetimeRawMatch = firstEntry.match(/"datetime_raw"\s*:\s*"?([0-9.]+)"?/);
+    const datetimeRawMatch = firstEntry.match(
+      /"datetime_raw"\s*:\s*"?([0-9.]+)"?/,
+    );
     if (!datetimeRawMatch) {
-      throw new MetricParseError(configId, 'First entry does not contain a valid datetime_raw field');
+      throw new MetricParseError(
+        configId,
+        'First entry does not contain a valid datetime_raw field',
+      );
     }
 
     const oleDate = parseFloat(datetimeRawMatch[1]);
     if (isNaN(oleDate)) {
-      throw new MetricParseError(configId, 'datetime_raw is not a valid number');
+      throw new MetricParseError(
+        configId,
+        'datetime_raw is not a valid number',
+      );
     }
 
     const timestamp = oleToDate(oleDate);
@@ -251,7 +273,10 @@ export class MetricParserService {
     }
 
     if (valueRaws.length === 0) {
-      throw new MetricParseError(configId, 'No value_raw fields found in the first entry');
+      throw new MetricParseError(
+        configId,
+        'No value_raw fields found in the first entry',
+      );
     }
 
     if (valueRaws.length < EXPECTED_VALUE_RAW_COUNT) {
@@ -261,7 +286,9 @@ export class MetricParserService {
     }
 
     // Extract coverage
-    const coverageMatch = firstEntry.match(/"coverage_raw"\s*:\s*"?(-?[0-9.]+(?:e[+-]?\d+)?)"?/i);
+    const coverageMatch = firstEntry.match(
+      /"coverage_raw"\s*:\s*"?(-?[0-9.]+(?:e[+-]?\d+)?)"?/i,
+    );
     const coveragePercent = coverageMatch ? parseFloat(coverageMatch[1]) : null;
 
     return {
@@ -284,7 +311,10 @@ export class MetricParserService {
   private extractEntries(rawText: string, configId: string | number): string[] {
     const arrayStartMatch = rawText.match(/"(?:histdata|values)"\s*:\s*\[/);
     if (!arrayStartMatch || arrayStartMatch.index === undefined) {
-      throw new MetricParseError(configId, 'Could not locate the data array in response');
+      throw new MetricParseError(
+        configId,
+        'Could not locate the data array in response',
+      );
     }
 
     const arrayStart = arrayStartMatch.index + arrayStartMatch[0].length;

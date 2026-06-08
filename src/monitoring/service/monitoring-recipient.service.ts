@@ -19,7 +19,10 @@ function inferTargetType(target: string): TargetType {
   return 'manual';
 }
 
-function resolveTargetType(value: string | undefined, target: string): TargetType {
+function resolveTargetType(
+  value: string | undefined,
+  target: string,
+): TargetType {
   if (value && (allowedTargetTypes as readonly string[]).includes(value)) {
     return value as TargetType;
   }
@@ -69,7 +72,9 @@ export class MonitoringRecipientService {
         where: { id: payload.groupId },
       });
       if (!group) {
-        throw new NotFoundException(`Group with id ${payload.groupId} not found.`);
+        throw new NotFoundException(
+          `Group with id ${payload.groupId} not found.`,
+        );
       }
     }
 
@@ -128,18 +133,24 @@ export class MonitoringRecipientService {
         where: { id: payload.groupId },
       });
       if (!group) {
-        throw new NotFoundException(`Group with id ${payload.groupId} not found.`);
+        throw new NotFoundException(
+          `Group with id ${payload.groupId} not found.`,
+        );
       }
     }
 
     const updated = await this.prisma.monitoringRecipient.update({
       where: { id },
       data: {
-        label: payload.label !== undefined ? (normalizeInput(payload.label) || null) : existing.label,
+        label:
+          payload.label !== undefined
+            ? normalizeInput(payload.label) || null
+            : existing.label,
         phoneNumber,
         targetType,
         enabled: payload.enabled ?? existing.enabled,
-        groupId: payload.groupId !== undefined ? payload.groupId : existing.groupId,
+        groupId:
+          payload.groupId !== undefined ? payload.groupId : existing.groupId,
       },
       include: { group: { select: { name: true } } },
     });

@@ -20,7 +20,9 @@ export class UpdatePingMonitorDto {
 
   @IsOptional()
   @IsString()
-  @Matches(hostOrUrlPattern, { message: 'host must be an IP address, hostname, or URL' })
+  @Matches(hostOrUrlPattern, {
+    message: 'host must be an IP address, hostname, or URL',
+  })
   host?: string;
 
   @IsOptional()
@@ -88,6 +90,8 @@ export class CreatePingMonitorDto extends UpdatePingMonitorDto {
   declare name: string;
 
   @IsString()
-  @Matches(hostOrUrlPattern, { message: 'host must be an IP address, hostname, or URL' })
+  @Matches(hostOrUrlPattern, {
+    message: 'host must be an IP address, hostname, or URL',
+  })
   declare host: string;
 }

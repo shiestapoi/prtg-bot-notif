@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  NocStatus,
-  type MonitoringHistory,
-  type Prisma,
-} from '@prisma/client';
+import { NocStatus, type MonitoringHistory, type Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QueryMonitoringHistoryDto } from '../dto/query-history.dto';
 
@@ -48,7 +44,9 @@ export class MonitoringHistoryService {
    * Persist a new MonitoringHistory record.
    * Primarily used internally by the scheduler after each polling cycle.
    */
-  async persist(data: PersistMonitoringHistoryData): Promise<MonitoringHistory> {
+  async persist(
+    data: PersistMonitoringHistoryData,
+  ): Promise<MonitoringHistory> {
     return this.prisma.monitoringHistory.create({
       data: {
         configId: data.configId,

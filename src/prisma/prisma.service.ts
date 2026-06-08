@@ -70,7 +70,9 @@ export class PrismaService
         if (result.length === 0) {
           // Use $executeRawUnsafe because tagged template doesn't work well with DDL statements
           await this.$executeRawUnsafe(migration.sql);
-          this.logger.log(`Auto-migrated: Added "${migration.column}" column to ${migration.table}`);
+          this.logger.log(
+            `Auto-migrated: Added "${migration.column}" column to ${migration.table}`,
+          );
         }
       } catch (error) {
         // Non-fatal: column might already exist (race condition with multiple dynos)
@@ -97,7 +99,9 @@ export class PrismaService
           }`,
         );
         if (attempt === maxAttempts) return false;
-        await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+        await new Promise((resolve) =>
+          setTimeout(resolve, baseDelayMs * attempt),
+        );
       }
     }
 

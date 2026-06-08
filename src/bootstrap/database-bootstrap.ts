@@ -45,12 +45,22 @@ export async function ensureDatabaseReady() {
   }
 
   if (!process.env.DATABASE_URL) {
-    console.warn('[db-bootstrap] DATABASE_URL is not configured; skipping database bootstrap.');
+    console.warn(
+      '[db-bootstrap] DATABASE_URL is not configured; skipping database bootstrap.',
+    );
     return;
   }
 
-  console.log('[db-bootstrap] Ensuring database schema and seed data are ready...');
-  if (!runWithRetry('prisma migrate deploy', 'npx', ['prisma', 'migrate', 'deploy'])) {
+  console.log(
+    '[db-bootstrap] Ensuring database schema and seed data are ready...',
+  );
+  if (
+    !runWithRetry('prisma migrate deploy', 'npx', [
+      'prisma',
+      'migrate',
+      'deploy',
+    ])
+  ) {
     console.warn(
       '[db-bootstrap] Database is not reachable after retries. Starting app in degraded mode; it will recover when the database is reachable.',
     );
@@ -64,11 +74,36 @@ export async function ensureDatabaseReady() {
     return;
   }
 
-  if (!runWithRetry('seed deploy', 'npx', ['tsx', 'prisma/seed-deploy.ts'])) {
+  let needsSeed = false;
+  const pool = new Pool(createPostgresPoolConfig(process.env.DATABASE_URL));
+  try {
+    const res = await pool.query('SELECT COUNT(*) FROM "User"');
+    const userCount = parseInt(res.rows[0].count, 10);
+    needsSeed = userCount === 0;
+  } catch (error) {
     console.warn(
-      '[db-bootstrap] Seed deploy failed after retries. Starting app; seed will be retried on next boot/release.',
+      '[db-bootstrap] Error checking "User" table count. Assuming seed is needed.',
+      error,
     );
-    return;
+    needsSeed = true;
+  } finally {
+    await pool.end();
+  }
+
+  if (needsSeed) {
+    console.log(
+      '[db-bootstrap] Database table is empty. Running seed deploy...',
+    );
+    if (!runWithRetry('seed deploy', 'npx', ['tsx', 'prisma/seed-deploy.ts'])) {
+      console.warn(
+        '[db-bootstrap] Seed deploy failed after retries. Starting app; seed will be retried on next boot/release.',
+      );
+      return;
+    }
+  } else {
+    console.log(
+      '[db-bootstrap] Database already has data. Skipping seed deploy.',
+    );
   }
   console.log('[db-bootstrap] Database is ready.');
 }
@@ -89,7 +124,9 @@ async function queryWithRetry(pool: Pool, label: string, statement: string) {
         }`,
       );
       if (isLast) return false;
-      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+      await new Promise((resolve) =>
+        setTimeout(resolve, baseDelayMs * attempt),
+      );
     }
   }
 
@@ -184,12 +221,52 @@ Waktu: {time}',
     EXCEPTION WHEN duplicate_object THEN NULL;
     END $$;
     `,
+    `
+    DO $$
+    BEGIN
+      CREATE TYPE "ReceiptPeriod" AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY');
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+    `,
+    `
+    CREATE TABLE IF NOT EXISTS "ReceiptSchedule" (
+      "id" SERIAL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "groupId" INTEGER,
+      "cron" TEXT NOT NULL,
+      "period" "ReceiptPeriod" NOT NULL DEFAULT 'DAILY',
+      "includeDown" BOOLEAN NOT NULL DEFAULT true,
+      "includeLowTraffic" BOOLEAN NOT NULL DEFAULT false,
+      "targetMode" "ScheduleTargetMode" NOT NULL DEFAULT 'all',
+      "enabled" BOOLEAN NOT NULL DEFAULT true,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    `,
+    `
+    DO $$
+    BEGIN
+      ALTER TABLE "ReceiptSchedule"
+      ADD CONSTRAINT "ReceiptSchedule_groupId_fkey"
+      FOREIGN KEY ("groupId") REFERENCES "PrtgGroup"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+    `,
+    `
+    ALTER TABLE "PrtgSetting" ADD COLUMN IF NOT EXISTS "receiptMessageTemplate" TEXT NOT NULL DEFAULT '*{title}*
+GROUP : {groupName}
+{details}';
+    `,
   ];
 
   const pool = new Pool(createPostgresPoolConfig(process.env.DATABASE_URL));
   try {
     for (const statement of statements) {
-      const ok = await queryWithRetry(pool, 'non-destructive schema statement', statement);
+      const ok = await queryWithRetry(
+        pool,
+        'non-destructive schema statement',
+        statement,
+      );
       if (!ok) return false;
     }
   } finally {

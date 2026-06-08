@@ -16,7 +16,9 @@ interface PingResult {
 }
 
 @Injectable()
-export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
+export class PingMonitorSchedulerService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PingMonitorSchedulerService.name);
   private readonly timers = new Map<number, NodeJS.Timeout>();
   private readonly signatures = new Map<number, string>();
@@ -99,7 +101,9 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
     );
     this.timers.set(monitor.id, timer);
     this.signatures.set(monitor.id, this.signature(monitor));
-    this.logger.log(`Ping monitoring started for ${monitor.name} (${monitor.host})`);
+    this.logger.log(
+      `Ping monitoring started for ${monitor.name} (${monitor.host})`,
+    );
   }
 
   private signature(monitor: PingMonitor) {
@@ -124,7 +128,10 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
     if (this.running.has(monitor.id)) return;
     this.running.add(monitor.id);
     try {
-      const result = await this.executeCheck(monitor.host, monitor.pingTimeoutSeconds);
+      const result = await this.executeCheck(
+        monitor.host,
+        monitor.pingTimeoutSeconds,
+      );
       await this.applyResult(monitor, result);
     } catch (error) {
       this.logger.error(
@@ -135,7 +142,10 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
     }
   }
 
-  private async executeCheck(host: string, timeoutSeconds: number): Promise<PingResult> {
+  private async executeCheck(
+    host: string,
+    timeoutSeconds: number,
+  ): Promise<PingResult> {
     const timeoutMs = timeoutSeconds * 1000;
     const url = /^https?:\/\//i.test(host) ? host : `http://${host}`;
     const startedAt = Date.now();
@@ -165,7 +175,13 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
       status = 'UP';
       outageStartedAt = null;
       if (recovered && monitor.notifyRecovery && !monitor.maintenance) {
-        await this.notify(monitor, monitor.recoveryTemplate, result.latencyMs, now, monitor.outageStartedAt);
+        await this.notify(
+          monitor,
+          monitor.recoveryTemplate,
+          result.latencyMs,
+          now,
+          monitor.outageStartedAt,
+        );
       }
     } else {
       outageStartedAt ??= now;
@@ -177,7 +193,13 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
           now.getTime() - monitor.lastAlertAt.getTime() >=
             monitor.notificationCooldownSeconds * 1000;
         if (!monitor.maintenance && cooldownPassed) {
-          await this.notify(monitor, monitor.alertTemplate, null, now, outageStartedAt);
+          await this.notify(
+            monitor,
+            monitor.alertTemplate,
+            null,
+            now,
+            outageStartedAt,
+          );
           lastAlertAt = now;
         }
       }
@@ -231,7 +253,10 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
       latencyMs: latencyMs === null ? 'RTO' : latencyMs.toFixed(1),
       outageSeconds: String(
         outageStartedAt
-          ? Math.max(0, Math.floor((now.getTime() - outageStartedAt.getTime()) / 1000))
+          ? Math.max(
+              0,
+              Math.floor((now.getTime() - outageStartedAt.getTime()) / 1000),
+            )
           : 0,
       ),
       time: now.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
@@ -253,7 +278,8 @@ export class PingMonitorSchedulerService implements OnModuleInit, OnModuleDestro
 
   private renderTemplate(template: string, values: Record<string, string>) {
     return Object.entries(values).reduce(
-      (text, [key, value]) => text.replace(new RegExp(`\\{${key}\\}`, 'g'), value),
+      (text, [key, value]) =>
+        text.replace(new RegExp(`\\{${key}\\}`, 'g'), value),
       template,
     );
   }

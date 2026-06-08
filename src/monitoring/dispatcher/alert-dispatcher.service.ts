@@ -53,25 +53,44 @@ export function evaluateDispatch(
   cooldownInterval: number,
 ): DispatchDecision {
   // Recovery: anomaly → NORMAL
-  if (previousStatus !== NocStatus.NORMAL && currentStatus === NocStatus.NORMAL) {
-    return { shouldNotify: true, reason: 'recovered', templateType: 'recovery' };
+  if (
+    previousStatus !== NocStatus.NORMAL &&
+    currentStatus === NocStatus.NORMAL
+  ) {
+    return {
+      shouldNotify: true,
+      reason: 'recovered',
+      templateType: 'recovery',
+    };
   }
 
   // New anomaly: NORMAL → anomaly
-  if (previousStatus === NocStatus.NORMAL && currentStatus !== NocStatus.NORMAL) {
-    return { shouldNotify: true, reason: 'new_anomaly', templateType: 'anomaly' };
+  if (
+    previousStatus === NocStatus.NORMAL &&
+    currentStatus !== NocStatus.NORMAL
+  ) {
+    return {
+      shouldNotify: true,
+      reason: 'new_anomaly',
+      templateType: 'anomaly',
+    };
   }
 
   // Status escalation during anomaly (e.g., LOW_TRAFFIC → DOWN)
-  if (
-    previousStatus !== currentStatus &&
-    currentStatus !== NocStatus.NORMAL
-  ) {
-    return { shouldNotify: true, reason: 'status_escalation', templateType: 'anomaly' };
+  if (previousStatus !== currentStatus && currentStatus !== NocStatus.NORMAL) {
+    return {
+      shouldNotify: true,
+      reason: 'status_escalation',
+      templateType: 'anomaly',
+    };
   }
 
   // Same anomaly status (e.g., DOWN → DOWN) — NEVER re-notify
-  return { shouldNotify: false, reason: 'same_status_suppressed', templateType: null };
+  return {
+    shouldNotify: false,
+    reason: 'same_status_suppressed',
+    templateType: null,
+  };
 }
 
 // ─── Template Rendering ──────────────────────────────────────────────────────
@@ -167,7 +186,9 @@ export class AlertDispatcherService {
       const message = await this.buildMessage(context, decision.templateType!);
 
       // Send new message (image+caption)
-      const screenshot = await this.screenshotService.capture(context.requestUrl);
+      const screenshot = await this.screenshotService.capture(
+        context.requestUrl,
+      );
       await this.sendToRecipients(recipients, message, screenshot);
 
       this.logger.log(
@@ -193,12 +214,14 @@ export class AlertDispatcherService {
     groupId: number,
   ): Promise<ResolvedRecipient[]> {
     // Fetch monitoring-specific recipients
-    const monitoringRecipients = await this.prisma.monitoringRecipient.findMany({
-      where: {
-        enabled: true,
-        OR: [{ groupId: groupId }, { groupId: null }],
+    const monitoringRecipients = await this.prisma.monitoringRecipient.findMany(
+      {
+        where: {
+          enabled: true,
+          OR: [{ groupId: groupId }, { groupId: null }],
+        },
       },
-    });
+    );
 
     // Fetch regular report recipients as fallback/additional
     const reportRecipients = await this.prisma.prtgRecipient.findMany({

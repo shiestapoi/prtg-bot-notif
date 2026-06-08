@@ -32,6 +32,7 @@ model PrtgSetting {
   messageTemplate        String   @default("{title}\nGroup: {groupname}")
   alertMessageTemplate   String   @default("⚠️ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}")
   recoveryMessageTemplate String  @default("✅ Pulih — {title}\nGroup: {groupName}\nWaktu: {time}")
+  receiptMessageTemplate  String  @default("*{title}*\nGROUP : {groupName}\n{details}")
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -45,6 +46,7 @@ model PrtgGroup {
   updatedAt            DateTime               @updatedAt
   configs              PrtgConfig[]
   schedules            PrtgSchedule[]
+  receiptSchedules     ReceiptSchedule[]
   recipients           PrtgRecipient[]
   monitoringRecipients MonitoringRecipient[]
 }
@@ -238,4 +240,27 @@ model MonitoringHistory {
 
   @@index([configId, timestamp])
   @@index([status])
+}
+
+// ─── Receipt Report ──────────────────────────────────────────────────────────
+
+enum ReceiptPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model ReceiptSchedule {
+  id                Int                @id @default(autoincrement())
+  name              String
+  groupId           Int?
+  group             PrtgGroup?         @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  cron              String
+  period            ReceiptPeriod      @default(DAILY)
+  includeDown       Boolean            @default(true)
+  includeLowTraffic Boolean            @default(false)
+  targetMode        ScheduleTargetMode @default(all)
+  enabled           Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }

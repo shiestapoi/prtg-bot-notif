@@ -1,10 +1,4 @@
-import {
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsDateString,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsDateString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { NocStatus } from '@prisma/client';
 

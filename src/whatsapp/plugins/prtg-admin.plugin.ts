@@ -245,7 +245,9 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
         {
           groupId: group?.id,
           title: readField(fields, ['title', 'name', 'nama']),
-          sensorId: sensorIdValue ? parseId(sensorIdValue, 'sensor ID') : undefined,
+          sensorId: sensorIdValue
+            ? parseId(sensorIdValue, 'sensor ID')
+            : undefined,
           enabled: parseOptionalOnOff(readField(fields, ['enabled', 'status'])),
         },
       );
@@ -883,10 +885,16 @@ export class PrtgAdminPlugin implements WhatsappPlugin {
     }
 
     const lines = monitored.map((c) => {
-      const statusIcon = c.lastStatus === 'NORMAL' ? '🟢' :
-        c.lastStatus === 'DOWN' ? '🔴' :
-        c.lastStatus === 'NO_TRAFFIC' ? '🟠' :
-        c.lastStatus === 'LOW_TRAFFIC' ? '🟡' : '⚪';
+      const statusIcon =
+        c.lastStatus === 'NORMAL'
+          ? '🟢'
+          : c.lastStatus === 'DOWN'
+            ? '🔴'
+            : c.lastStatus === 'NO_TRAFFIC'
+              ? '🟠'
+              : c.lastStatus === 'LOW_TRAFFIC'
+                ? '🟡'
+                : '⚪';
       return `${statusIcon} ${c.title} [${c.groupName}] — ${c.lastStatus}`;
     });
 

@@ -9,7 +9,10 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { CreatePingMonitorDto, UpdatePingMonitorDto } from '../dto/ping-monitor.dto';
+import {
+  CreatePingMonitorDto,
+  UpdatePingMonitorDto,
+} from '../dto/ping-monitor.dto';
 import { PingMonitorSchedulerService } from '../scheduler/ping-monitor-scheduler.service';
 import { PingMonitorService } from '../service/ping-monitor.service';
 

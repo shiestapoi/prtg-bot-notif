@@ -21,7 +21,8 @@ function getKeyvStore() {
   }
 
   const postgresUrl =
-    process.env.WHATSAPP_AUTH_POSTGRES_URL?.trim() || process.env.DATABASE_URL?.trim();
+    process.env.WHATSAPP_AUTH_POSTGRES_URL?.trim() ||
+    process.env.DATABASE_URL?.trim();
 
   if (!postgresUrl) {
     throw new Error(
@@ -37,9 +38,14 @@ function getKeyvStore() {
   return keyvInstance;
 }
 
-export async function createAuthState(sessionName: string): Promise<KeyvBaileysAuthState> {
+export async function createAuthState(
+  sessionName: string,
+): Promise<KeyvBaileysAuthState> {
   const store = getKeyvStore();
-  const authState = (await makeKeyvAuthState(store as never, sessionName)) as KeyvBaileysAuthState;
+  const authState = (await makeKeyvAuthState(
+    store as never,
+    sessionName,
+  )) as KeyvBaileysAuthState;
   return authState;
 }
 

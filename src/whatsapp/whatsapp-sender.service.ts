@@ -45,7 +45,12 @@ export class WhatsappSenderService {
 
   async sendDocumentToNumbers(
     numbers: string[],
-    payload: { buffer: Buffer; fileName: string; caption?: string; mimeType?: string },
+    payload: {
+      buffer: Buffer;
+      fileName: string;
+      caption?: string;
+      mimeType?: string;
+    },
   ) {
     const socket = this.socketStore.getSocket();
     if (!socket) {

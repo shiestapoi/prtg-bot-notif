@@ -18,8 +18,10 @@ describe('PrtgSettingService', () => {
     loginUsername: null,
     loginPassword: null,
     messageTemplate: '{title}\nGroup: {groupname}',
-    alertMessageTemplate: '⚠️ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}',
-    recoveryMessageTemplate: '✅ Pulih — {title}\nGroup: {groupName}\nWaktu: {time}',
+    alertMessageTemplate:
+      '⚠️ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}',
+    recoveryMessageTemplate:
+      '✅ Pulih — {title}\nGroup: {groupName}\nWaktu: {time}',
     createdAt: now,
     updatedAt: now,
   };
@@ -50,8 +52,12 @@ describe('PrtgSettingService', () => {
       expect(result.loginUsername).toBeNull();
       expect(result.hasLoginPassword).toBe(false);
       expect(result.messageTemplate).toBe('{title}\nGroup: {groupname}');
-      expect(result.alertMessageTemplate).toBe('⚠️ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}');
-      expect(result.recoveryMessageTemplate).toBe('✅ Pulih — {title}\nGroup: {groupName}\nWaktu: {time}');
+      expect(result.alertMessageTemplate).toBe(
+        '⚠️ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}',
+      );
+      expect(result.recoveryMessageTemplate).toBe(
+        '✅ Pulih — {title}\nGroup: {groupName}\nWaktu: {time}',
+      );
       expect(result.createdAt).toBe(now.toISOString());
       expect(result.updatedAt).toBe(now.toISOString());
     });

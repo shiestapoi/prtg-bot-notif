@@ -90,10 +90,7 @@ export function calculateRollingAverage(
 
   if (recentNormal.length === 0) return 0;
 
-  const sum = recentNormal.reduce(
-    (acc, h) => acc + h.totalTrafficBitrate!,
-    0,
-  );
+  const sum = recentNormal.reduce((acc, h) => acc + h.totalTrafficBitrate!, 0);
   return sum / recentNormal.length;
 }
 
@@ -133,15 +130,19 @@ export class AnomalyEngineService {
     if (inboundBitrateMbps < DOWN_THRESHOLD_MBPS) {
       return {
         status: NocStatus.DOWN,
-        reason: inboundBitrateMbps === 0
-          ? 'Traffic In = 0 (link mati total)'
-          : `Traffic In ${inboundBitrateMbps.toFixed(2)} Mbit/s (di bawah 1 Mbit/s)`,
+        reason:
+          inboundBitrateMbps === 0
+            ? 'Traffic In = 0 (link mati total)'
+            : `Traffic In ${inboundBitrateMbps.toFixed(2)} Mbit/s (di bawah 1 Mbit/s)`,
       };
     }
 
     // Priority 2: LOW_TRAFFIC — sudden drop > thresholdLow% from rolling average
     const thresholdFraction = config.thresholdLow / 100;
-    const rollingAvgIn = this.calculateInboundRollingAverage(recentHistory, config.rollingWindowSize);
+    const rollingAvgIn = this.calculateInboundRollingAverage(
+      recentHistory,
+      config.rollingWindowSize,
+    );
 
     // If rolling average is 0 (no NORMAL baseline data), we can't determine LOW_TRAFFIC.
     // In this case, if the previous status was LOW_TRAFFIC or worse, maintain that status
@@ -158,15 +159,24 @@ export class AnomalyEngineService {
       }
     }
 
-    if (rollingAvgIn > 0 && inboundBitrateMbps < rollingAvgIn * (1 - thresholdFraction)) {
+    if (
+      rollingAvgIn > 0 &&
+      inboundBitrateMbps < rollingAvgIn * (1 - thresholdFraction)
+    ) {
       // Get previous NORMAL Traffic In value for display (not current, not avg)
       const prevNormal = recentHistory.find(
-        (h) => h.status === NocStatus.NORMAL && h.inboundBitrate !== null && h.inboundBitrate > 0,
+        (h) =>
+          h.status === NocStatus.NORMAL &&
+          h.inboundBitrate !== null &&
+          h.inboundBitrate > 0,
       );
       const prevInbound = prevNormal
         ? (prevNormal.inboundBitrate! / 1_000_000).toFixed(2)
         : rollingAvgIn.toFixed(2);
-      const dropPercent = ((1 - inboundBitrateMbps / rollingAvgIn) * 100).toFixed(0);
+      const dropPercent = (
+        (1 - inboundBitrateMbps / rollingAvgIn) *
+        100
+      ).toFixed(0);
       return {
         status: NocStatus.LOW_TRAFFIC,
         reason: `Traffic In turun ${dropPercent}% — dari ${prevInbound} Mbit/s ke ${inboundBitrateMbps.toFixed(2)} Mbit/s`,
@@ -188,13 +198,21 @@ export class AnomalyEngineService {
     windowSize: number,
   ): number {
     const recentNormal = history
-      .filter((h) => h.status === NocStatus.NORMAL && h.inboundBitrate !== null && h.inboundBitrate > 0)
+      .filter(
+        (h) =>
+          h.status === NocStatus.NORMAL &&
+          h.inboundBitrate !== null &&
+          h.inboundBitrate > 0,
+      )
       .slice(0, windowSize);
 
     if (recentNormal.length === 0) return 0;
 
-    const sum = recentNormal.reduce((acc, h) => acc + (h.inboundBitrate ?? 0), 0);
+    const sum = recentNormal.reduce(
+      (acc, h) => acc + (h.inboundBitrate ?? 0),
+      0,
+    );
     // Convert from bits/s to Mbit/s
-    return (sum / recentNormal.length) / 1_000_000;
+    return sum / recentNormal.length / 1_000_000;
   }
 }

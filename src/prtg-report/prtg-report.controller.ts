@@ -135,7 +135,9 @@ export class PrtgReportController {
           : undefined,
       messageTemplate: body.messageTemplate as string | undefined,
       alertMessageTemplate: body.alertMessageTemplate as string | undefined,
-      recoveryMessageTemplate: body.recoveryMessageTemplate as string | undefined,
+      recoveryMessageTemplate: body.recoveryMessageTemplate as
+        | string
+        | undefined,
     });
   }
 
@@ -200,7 +202,9 @@ export class PrtgReportController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: Record<string, unknown>,
   ) {
-    const payload: Parameters<typeof this.prtgReportService.updateRecipient>[1] = {
+    const payload: Parameters<
+      typeof this.prtgReportService.updateRecipient
+    >[1] = {
       label: body.label as string | undefined,
       phoneNumber: body.phoneNumber as string | undefined,
       targetType: body.targetType as string | undefined,

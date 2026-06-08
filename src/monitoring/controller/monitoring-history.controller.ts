@@ -1,4 +1,10 @@
-import { Controller, Get, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { MonitoringHistoryService } from '../service/monitoring-history.service';
 import { QueryMonitoringHistoryDto } from '../dto/query-history.dto';
@@ -57,8 +63,9 @@ export class MonitoringHistoryController {
     // Batch query: count distinct DAYS with DOWN/NO_TRAFFIC per config this month
     // Using raw query to get COUNT(DISTINCT DATE(timestamp)) per configId
     const configIds = configs.map((c) => c.id);
-    const downDayCounts: Array<{ configId: number; downDays: bigint }> = configIds.length > 0
-      ? await this.prisma.$queryRaw`
+    const downDayCounts: Array<{ configId: number; downDays: bigint }> =
+      configIds.length > 0
+        ? await this.prisma.$queryRaw`
           SELECT "configId", COUNT(DISTINCT DATE("timestamp")) as "downDays"
           FROM "MonitoringHistory"
           WHERE "configId" IN (${Prisma.join(configIds)})
@@ -66,9 +73,11 @@ export class MonitoringHistoryController {
             AND "timestamp" >= ${monthStart}
           GROUP BY "configId"
         `
-      : [];
+        : [];
 
-    const downDayMap = new Map(downDayCounts.map((d) => [d.configId, Number(d.downDays)]));
+    const downDayMap = new Map(
+      downDayCounts.map((d) => [d.configId, Number(d.downDays)]),
+    );
 
     // For each config, get the latest MonitoringHistory record for metric data
     const summaryItems = await Promise.all(

@@ -31,7 +31,13 @@ export async function handleConnectionUpdate({
   onQr,
   onStatusChange,
 }: ConnectionUpdateHandlerParams): Promise<void> {
-  const { connection, lastDisconnect, qr, isNewLogin, receivedPendingNotifications } = update;
+  const {
+    connection,
+    lastDisconnect,
+    qr,
+    isNewLogin,
+    receivedPendingNotifications,
+  } = update;
   const emitStatus = () => onStatusChange?.();
 
   if (typeof isNewLogin === 'boolean') {
@@ -81,7 +87,9 @@ export async function handleConnectionUpdate({
   }
 
   if (connection === 'close') {
-    const error = lastDisconnect?.error as { output?: { statusCode?: number } } | undefined;
+    const error = lastDisconnect?.error as
+      | { output?: { statusCode?: number } }
+      | undefined;
     const disconnectCode = error?.output?.statusCode;
     const shouldReconnect = disconnectCode !== DisconnectReason.loggedOut;
 
@@ -109,7 +117,9 @@ export async function handleConnectionUpdate({
       return;
     }
 
-    logger.warn(`WhatsApp session ${sessionName} disconnected. Reconnecting in 5 seconds...`);
+    logger.warn(
+      `WhatsApp session ${sessionName} disconnected. Reconnecting in 5 seconds...`,
+    );
     onReconnect();
     emitStatus();
   }

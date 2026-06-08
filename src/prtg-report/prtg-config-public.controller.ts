@@ -16,7 +16,9 @@ export class PrtgConfigPublicController {
   ) {
     return this.prtgReportService.updateConfig(id, {
       maintenance: body.maintenance,
-      maintenanceLabel: body.maintenance ? (body.maintenanceLabel ?? 'Maintenance') : null,
+      maintenanceLabel: body.maintenance
+        ? (body.maintenanceLabel ?? 'Maintenance')
+        : null,
     });
   }
 }

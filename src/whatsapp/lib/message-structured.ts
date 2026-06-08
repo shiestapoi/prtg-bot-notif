@@ -17,7 +17,8 @@ function serializeUnixSeconds(value: number | LongLike | null | undefined) {
     return null;
   }
 
-  const numericValue = typeof value === 'object' ? Number(value.toString()) : value;
+  const numericValue =
+    typeof value === 'object' ? Number(value.toString()) : value;
   if (!Number.isFinite(numericValue)) {
     return null;
   }
@@ -73,7 +74,8 @@ function extractPollMessage(message: Record<string, any> | undefined) {
 export function extractStructuredMessageContent(
   message: WAMessage,
 ): StructuredWhatsappMessageContent | null {
-  const normalizedMessage = normalizeMessageContent(message.message) ?? undefined;
+  const normalizedMessage =
+    normalizeMessageContent(message.message) ?? undefined;
   const contentType = getContentType(normalizedMessage) ?? null;
 
   if (!normalizedMessage || !contentType) {
