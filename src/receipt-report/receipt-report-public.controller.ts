@@ -1,5 +1,5 @@
 import { Controller, Get, Param, NotFoundException, Query, Res } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 
