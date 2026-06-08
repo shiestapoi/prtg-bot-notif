@@ -266,16 +266,18 @@ export default function PublicReceiptReportViewPage() {
                             )}
 
                             {/* PRTG Historical Chart */}
-                            <div className="mt-2 rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative min-h-[200px] flex items-center justify-center bg-white">
-                              <Zoom>
-                                <img 
-                                  src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
-                                  alt={`PRTG Chart for ${config.title}`} 
-                                  className="w-full h-auto object-contain relative z-10 bg-white"
-                                  loading="lazy"
-                                />
-                              </Zoom>
-                              <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400 z-0">
+                            <div className="mt-2 w-full overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800 shadow-sm relative bg-white">
+                              <div className="min-w-[600px] sm:min-w-full p-2 flex items-center justify-center bg-white relative z-10">
+                                <Zoom>
+                                  <img 
+                                    src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                                    alt={`PRTG Chart for ${config.title}`} 
+                                    className="max-w-full h-auto object-contain bg-white"
+                                    loading="lazy"
+                                  />
+                                </Zoom>
+                              </div>
+                              <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400 z-0 pointer-events-none">
                                 Memuat grafik PRTG...
                               </div>
                             </div>

@@ -53,9 +53,9 @@ export class ReceiptReportPublicController {
     const baseUrl = new URL(settings.loginUrl);
 
     // PRTG Historical Chart URL format:
-    // /chart.png?id=...&avg=60&sdate=...&edate=...&width=1320&height=620&graphstyling=baseFontSize='12'%20showLegend='1'&graphid=1
+    // /chart.png?id=...&avg=60&sdate=...&edate=...&width=1320&height=620&graphstyling=baseFontSize='12'%20showLegend='1'&graphid=-1
 
-    const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?id=${sensorId}&avg=60&sdate=${sdate}&edate=${edate}&width=1320&height=620&graphstyling=baseFontSize%3D%2712%27%20showLegend%3D%271%27&graphid=1&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
+    const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?id=${sensorId}&avg=60&sdate=${sdate}&edate=${edate}&width=1320&height=620&graphstyling=baseFontSize%3D%2712%27%20showLegend%3D%271%27&graphid=-1&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
 
     try {
       const response = await axios.get(chartUrl, {
