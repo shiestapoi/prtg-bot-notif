@@ -123,6 +123,14 @@ export class AnomalyEngineService {
       };
     }
 
+    // If config is in maintenance, override to MAINTENANCE status
+    if (config.maintenance) {
+      return {
+        status: NocStatus.MAINTENANCE,
+        reason: config.maintenanceLabel || 'Sedang dalam perbaikan / mati lampu',
+      };
+    }
+
     // ═══ All classification based on Traffic In speed ═══
     const inboundBitrateMbps = (metric.inboundBitrate ?? 0) / 1_000_000;
 

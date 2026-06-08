@@ -6,7 +6,8 @@ export type NocStatus =
   | 'NO_TRAFFIC'
   | 'HIGH_UTILIZATION'
   | 'POSSIBLE_FLAPPING'
-  | 'DOWN';
+  | 'DOWN'
+  | 'MAINTENANCE';
 
 export type NocSensitivity = 'LOW' | 'MEDIUM' | 'HIGH';
 
@@ -156,6 +157,17 @@ export interface ReceiptSchedule {
   includeLowTraffic: boolean;
   targetMode: string;
   enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReceiptRecipient {
+  id: number;
+  label: string | null;
+  phoneNumber: string;
+  targetType: RecipientTargetType;
+  enabled: boolean;
+  groupId: number | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -5,11 +5,13 @@ import { ReceiptScheduleService } from './receipt-schedule.service';
 import { ReceiptReportService } from './receipt-report.service';
 import { ReceiptSchedulerService } from './receipt-scheduler.service';
 import { ReceiptReportController } from './receipt-report.controller';
+import { ReceiptRecipientController } from './receipt-recipient.controller';
+import { ReceiptRecipientService } from './receipt-recipient.service';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => WhatsappModule)],
-  controllers: [ReceiptReportController],
-  providers: [ReceiptScheduleService, ReceiptReportService, ReceiptSchedulerService],
-  exports: [ReceiptScheduleService, ReceiptReportService, ReceiptSchedulerService],
+  controllers: [ReceiptReportController, ReceiptRecipientController],
+  providers: [ReceiptScheduleService, ReceiptReportService, ReceiptSchedulerService, ReceiptRecipientService],
+  exports: [ReceiptScheduleService, ReceiptReportService, ReceiptSchedulerService, ReceiptRecipientService],
 })
 export class ReceiptReportModule {}

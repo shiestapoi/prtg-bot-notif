@@ -26,6 +26,10 @@ const statusConfig: Record<NocStatus, { label: string; className: string }> = {
     label: 'High Util',
     className: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
   },
+  MAINTENANCE: {
+    label: 'Maintenance',
+    className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+  },
 };
 
 interface StatusBadgeProps {
@@ -54,6 +58,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
           'bg-yellow-500': status === 'LOW_TRAFFIC',
           'bg-orange-500': status === 'HIGH_UTILIZATION',
           'bg-red-500': status === 'DOWN' || status === 'NO_TRAFFIC' || status === 'POSSIBLE_FLAPPING',
+          'bg-blue-500': status === 'MAINTENANCE',
           'bg-gray-500': !statusConfig[status],
         })}
         aria-hidden="true"

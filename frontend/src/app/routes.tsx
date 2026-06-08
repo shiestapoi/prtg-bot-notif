@@ -7,6 +7,7 @@ import ReportGroupsPage from '@/pages/report/groups';
 import ReportConfigsPage from '@/pages/report/configs';
 import ReportSchedulesPage from '@/pages/report/schedules';
 import ReceiptSchedulesPage from '@/pages/report/receipt-schedules';
+import ReceiptRecipientsPage from '@/pages/report/receipt-recipients';
 import ReportRecipientsPage from '@/pages/report/recipients';
 import NocDashboardPage from '@/pages/noc/dashboard';
 import NocHistoryPage from '@/pages/noc/history';
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
       { path: 'report/configs', element: <ReportConfigsPage /> },
       { path: 'report/schedules', element: <ReportSchedulesPage /> },
       { path: 'report/receipt-schedules', element: <ReceiptSchedulesPage /> },
+      { path: 'report/receipt-recipients', element: <ReceiptRecipientsPage /> },
       { path: 'report/recipients', element: <ReportRecipientsPage /> },
       // NOC section
       { path: 'noc/dashboard', element: <NocDashboardPage /> },

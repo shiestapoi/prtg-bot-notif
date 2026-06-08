@@ -31,6 +31,8 @@ function formatLastPolled(lastPolledAt: string | null): string {
 }
 
 /** Priority for sorting — lower number = more critical = shown first */
+
+
 const STATUS_PRIORITY: Record<NocStatus, number> = {
   DOWN: 0,
   NO_TRAFFIC: 1,
@@ -38,6 +40,7 @@ const STATUS_PRIORITY: Record<NocStatus, number> = {
   HIGH_UTILIZATION: 3,
   LOW_TRAFFIC: 4,
   NORMAL: 5,
+  MAINTENANCE: 6,
 };
 
 function sortByStatus(a: MonitoringSummaryItem, b: MonitoringSummaryItem): number {

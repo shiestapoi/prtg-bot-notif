@@ -359,6 +359,23 @@ export const receiptScheduleApi = {
     api.post(`/api/receipt-schedules/${id}/dispatch`).then((r) => r.data),
 };
 
+// ─── Receipt Report Recipients API ───────────────────────────────────────────
+
+import type { ReceiptRecipient } from './types';
+
+export const receiptRecipientApi = {
+  getAll: () => api.get<ReceiptRecipient[]>('/api/receipt-recipients').then((r) => r.data),
+
+  create: (data: { label?: string; phoneNumber: string; targetType?: string; groupId?: number; enabled?: boolean }) =>
+    api.post<ReceiptRecipient>('/api/receipt-recipients', data).then((r) => r.data),
+
+  update: (id: number, data: Partial<{ label: string; phoneNumber: string; targetType: string; groupId: number | null; enabled: boolean }>) =>
+    api.put<ReceiptRecipient>(`/api/receipt-recipients/${id}`, data).then((r) => r.data),
+
+  remove: (id: number) =>
+    api.delete(`/api/receipt-recipients/${id}`).then((r) => r.data),
+};
+
 // ─── Default Export ─────────────────────────────────────────────────────────
 
 export default api;

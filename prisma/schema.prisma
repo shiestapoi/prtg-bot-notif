@@ -49,6 +49,7 @@ model PrtgGroup {
   receiptSchedules     ReceiptSchedule[]
   recipients           PrtgRecipient[]
   monitoringRecipients MonitoringRecipient[]
+  receiptRecipients    ReceiptRecipient[]
 }
 
 model PrtgConfig {
@@ -205,6 +206,7 @@ enum NocStatus {
   HIGH_UTILIZATION
   POSSIBLE_FLAPPING
   DOWN
+  MAINTENANCE
 }
 
 enum NocSensitivity {
@@ -263,4 +265,16 @@ model ReceiptSchedule {
   enabled           Boolean            @default(true)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+}
+
+model ReceiptRecipient {
+  id          Int                 @id @default(autoincrement())
+  label       String?
+  phoneNumber String
+  targetType  RecipientTargetType @default(manual)
+  enabled     Boolean             @default(true)
+  groupId     Int?
+  group       PrtgGroup?          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 }

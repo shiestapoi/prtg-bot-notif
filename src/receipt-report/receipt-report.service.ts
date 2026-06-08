@@ -155,7 +155,7 @@ export class ReceiptReportService {
   }
 
   private async getRecipientsForSchedule(schedule: ReceiptSchedule) {
-    // Only fetch PrtgRecipient (for schedules). MonitoringRecipients are for active alerts.
+    // Fetch ReceiptRecipient specifically
     const where: any = { enabled: true };
     if (schedule.targetMode === ScheduleTargetMode.group_only) {
       where.targetType = 'group';
@@ -163,7 +163,7 @@ export class ReceiptReportService {
       where.targetType = 'contact';
     }
 
-    const allRecipients = await this.prisma.prtgRecipient.findMany({ where });
+    const allRecipients = await this.prisma.receiptRecipient.findMany({ where });
 
     // Filter by group if needed
     // If recipient.groupId is null, they receive for all groups.

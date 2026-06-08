@@ -67,6 +67,33 @@ export async function ensureDatabaseReady() {
     return;
   }
 
+  // Check if tables actually exist (in case migrate deploy did nothing because there are no migrations)
+  let tablesMissing = false;
+  const poolCheck = new Pool(createPostgresPoolConfig(process.env.DATABASE_URL));
+  try {
+    await poolCheck.query('SELECT 1 FROM "PrtgSetting" LIMIT 1');
+  } catch (err) {
+    tablesMissing = true;
+  } finally {
+    await poolCheck.end();
+  }
+
+  if (tablesMissing) {
+    console.log('[db-bootstrap] Tables are missing (no migrations found). Running prisma db push...');
+    if (
+      !runWithRetry('prisma db push', 'npx', [
+        'prisma',
+        'db',
+        'push',
+        '--accept-data-loss',
+        '--skip-generate'
+      ])
+    ) {
+      console.warn('[db-bootstrap] Prisma DB Push failed.');
+      return;
+    }
+  }
+
   if (!(await ensureNonDestructiveSchema())) {
     console.warn(
       '[db-bootstrap] Non-destructive schema bootstrap failed after retries. Starting app in degraded mode.',
@@ -77,12 +104,14 @@ export async function ensureDatabaseReady() {
   let needsSeed = false;
   const pool = new Pool(createPostgresPoolConfig(process.env.DATABASE_URL));
   try {
-    const res = await pool.query('SELECT COUNT(*) FROM "User"');
-    const userCount = parseInt(res.rows[0].count, 10);
-    needsSeed = userCount === 0;
+    // Check if PrtgSetting exists to determine if database was already seeded.
+    // This is safer than checking 'User' because users might be manually deleted.
+    const res = await pool.query('SELECT COUNT(*) FROM "PrtgSetting"');
+    const count = parseInt(res.rows[0].count, 10);
+    needsSeed = count === 0;
   } catch (error) {
     console.warn(
-      '[db-bootstrap] Error checking "User" table count. Assuming seed is needed.',
+      '[db-bootstrap] Error checking "PrtgSetting" table count. Assuming seed is needed.',
       error,
     );
     needsSeed = true;
@@ -256,6 +285,34 @@ Waktu: {time}',
     ALTER TABLE "PrtgSetting" ADD COLUMN IF NOT EXISTS "receiptMessageTemplate" TEXT NOT NULL DEFAULT '*{title}*
 GROUP : {groupName}
 {details}';
+    `,
+    `
+    DO $$
+    BEGIN
+      ALTER TYPE "NocStatus" ADD VALUE IF NOT EXISTS 'MAINTENANCE';
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
+    `,
+    `
+    CREATE TABLE IF NOT EXISTS "ReceiptRecipient" (
+      "id" SERIAL PRIMARY KEY,
+      "label" TEXT,
+      "phoneNumber" TEXT NOT NULL,
+      "targetType" "RecipientTargetType" NOT NULL DEFAULT 'manual',
+      "enabled" BOOLEAN NOT NULL DEFAULT true,
+      "groupId" INTEGER,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    `,
+    `
+    DO $$
+    BEGIN
+      ALTER TABLE "ReceiptRecipient"
+      ADD CONSTRAINT "ReceiptRecipient_groupId_fkey"
+      FOREIGN KEY ("groupId") REFERENCES "PrtgGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END $$;
     `,
   ];
 

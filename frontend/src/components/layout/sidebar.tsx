@@ -31,7 +31,8 @@ const reportNavItems: NavItem[] = [
   { label: 'Groups', href: '/report/groups', icon: Layers },
   { label: 'Configs', href: '/report/configs', icon: BarChart3 },
   { label: 'Schedules', href: '/report/schedules', icon: Calendar },
-  { label: 'Receipts', href: '/report/receipt-schedules', icon: Send },
+  { label: 'Receipts', href: '/report/receipt-schedules', icon: Calendar },
+  { label: 'Receipt Recipients', href: '/report/receipt-recipients', icon: Send },
   { label: 'Recipients', href: '/report/recipients', icon: Send },
 ];
 

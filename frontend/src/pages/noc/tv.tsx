@@ -38,6 +38,7 @@ const STATUS_PRIORITY: Record<NocStatus, number> = {
   HIGH_UTILIZATION: 3,
   LOW_TRAFFIC: 4,
   NORMAL: 5,
+  MAINTENANCE: 6,
 };
 
 const STATUS_COLORS: Record<NocStatus, string> = {
@@ -47,6 +48,7 @@ const STATUS_COLORS: Record<NocStatus, string> = {
   HIGH_UTILIZATION: 'bg-yellow-500 text-black',
   LOW_TRAFFIC: 'bg-yellow-400 text-black',
   NORMAL: 'bg-green-600 text-white',
+  MAINTENANCE: 'bg-blue-600 text-white',
 };
 
 const STATUS_CARD_BORDER: Record<NocStatus, string> = {
@@ -56,6 +58,7 @@ const STATUS_CARD_BORDER: Record<NocStatus, string> = {
   HIGH_UTILIZATION: 'border-yellow-400',
   LOW_TRAFFIC: 'border-yellow-300',
   NORMAL: 'border-gray-700',
+  MAINTENANCE: 'border-blue-500',
 };
 
 // ─── Wake Lock (prevent screen sleep) ───────────────────────────────────────
