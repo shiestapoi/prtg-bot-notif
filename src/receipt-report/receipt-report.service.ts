@@ -146,6 +146,7 @@ export class ReceiptReportService {
             inboundDuring: i.inboundDuring,
             outboundBefore: i.outboundBefore,
             outboundDuring: i.outboundDuring,
+            threshold: config.minTrafficThreshold,
             sdate: this.formatPrtgDate(sdateObj),
             edate: this.formatPrtgDate(edateObj)
           };
@@ -181,24 +182,40 @@ export class ReceiptReportService {
       configMessages.push(configMsg);
     }
     
-    // Generate a short ID instead of UUID
-    const crypto = require('crypto');
-    const shortId = crypto.randomBytes(5).toString('hex');
-
-    // Save Snapshot to Database
-    const snapshot = await this.prisma.receiptReportSnapshot.create({
-      data: {
-        id: shortId,
+    let snapshotId = '';
+    const existingSnapshot = await this.prisma.receiptReportSnapshot.findFirst({
+      where: {
         scheduleId: schedule.id,
-        period: schedule.period,
-        groupName: schedule.group?.name,
         startDate: startDate,
-        endDate: new Date(),
-        reportData: reportDataPayload,
       }
     });
 
-    const publicUrl = `http://prtg.harutaka.web.id/report/${snapshot.id}`;
+    if (existingSnapshot) {
+      snapshotId = existingSnapshot.id;
+      await this.prisma.receiptReportSnapshot.update({
+        where: { id: existingSnapshot.id },
+        data: {
+          endDate: new Date(),
+          reportData: reportDataPayload,
+        }
+      });
+    } else {
+      const crypto = require('crypto');
+      snapshotId = crypto.randomBytes(5).toString('hex');
+      await this.prisma.receiptReportSnapshot.create({
+        data: {
+          id: snapshotId,
+          scheduleId: schedule.id,
+          period: schedule.period,
+          groupName: schedule.group?.name,
+          startDate: startDate,
+          endDate: new Date(),
+          reportData: reportDataPayload,
+        }
+      });
+    }
+
+    const publicUrl = `http://prtg.harutaka.web.id/report/${snapshotId}`;
 
     if (configMessages.length > 0) {
       fullMessage += configMessages.join('\n\n');

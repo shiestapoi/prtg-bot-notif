@@ -292,3 +292,8 @@ model ReceiptReportSnapshot {
   reportData  Json             // Full structured data of configs and incidents
   createdAt   DateTime         @default(now())
 }
+
+model keyv {
+  key   String @id @db.VarChar(255)
+  value String @db.Text
+}

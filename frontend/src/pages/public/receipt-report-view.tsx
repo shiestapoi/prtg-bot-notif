@@ -4,6 +4,8 @@ import { publicReportApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Activity, AlertTriangle, ArrowDownCircle, Calendar, Clock, LayoutDashboard, Server } from 'lucide-react';
+import Zoom from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
 
 interface Incident {
   status: string;
@@ -14,6 +16,7 @@ interface Incident {
   inboundDuring: number | null;
   outboundBefore: number | null;
   outboundDuring: number | null;
+  threshold?: number | null;
   sdate: string;
   edate: string;
 }
@@ -206,16 +209,16 @@ export default function PublicReceiptReportViewPage() {
                     </div>
 
                     {/* Right Column: Incident Timeline & Charts */}
-                    <div className="md:w-2/3 p-6 flex flex-col gap-6">
+                    <div className="md:w-2/3 p-4 md:p-6 flex flex-col gap-6 w-full max-w-full overflow-hidden">
                       <h5 className="text-sm font-semibold text-slate-900 dark:text-slate-200 flex items-center gap-2">
                         <Clock className="h-4 w-4 text-slate-400" /> Waktu & Detail Insiden
                       </h5>
-                      <div className="grid grid-cols-1 gap-6">
+                      <div className="grid grid-cols-1 gap-4 md:gap-6 w-full">
                         {config.incidents.map((incident, idx) => (
                           <div key={idx} className="flex flex-col gap-3 p-4 rounded-md bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/50">
                             
                             {/* Time & Status Header */}
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
                               <div className="flex items-center gap-3">
                                 <Badge 
                                   variant={incident.status === 'DOWN' ? 'destructive' : 'default'} 
@@ -251,17 +254,27 @@ export default function PublicReceiptReportViewPage() {
                                     <span className={incident.status === 'DOWN' ? 'text-red-500' : 'text-amber-500'}>{incident.outboundDuring ? (incident.outboundDuring / 1000 / 1000).toFixed(2) : '0'} Mbps</span>
                                   </div>
                                 </div>
+                                {incident.threshold && (
+                                  <div className="flex-1 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4 flex flex-col justify-center">
+                                    <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Batas Bawah (Threshold)</div>
+                                    <div className="font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 w-max px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900/50">
+                                      &lt; {incident.threshold} Mbps
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
 
                             {/* PRTG Historical Chart */}
-                            <div className="mt-2 rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative min-h-[200px] bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
-                              <img 
-                                src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
-                                alt={`PRTG Chart for ${config.title}`} 
-                                className="w-full h-auto object-cover relative z-10"
-                                loading="lazy"
-                              />
+                            <div className="mt-2 rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative min-h-[200px] flex items-center justify-center bg-white">
+                              <Zoom>
+                                <img 
+                                  src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                                  alt={`PRTG Chart for ${config.title}`} 
+                                  className="w-full h-auto object-contain relative z-10 bg-white"
+                                  loading="lazy"
+                                />
+                              </Zoom>
                               <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400 z-0">
                                 Memuat grafik PRTG...
                               </div>
