@@ -59,10 +59,10 @@ export class ReceiptReportService {
     };
     const incidentsByConfig = new Map<number, Incident[]>();
 
-    // Track previous state to detect transitions
+    // Track previous state and running averages to detect transitions
     const previousState = new Map<
       number,
-      { status: NocStatus; inbound: number | null; outbound: number | null }
+      { status: NocStatus; inbound: number | null; outbound: number | null; sumIn: number; countIn: number; sumOut: number; countOut: number }
     >();
 
     for (const history of histories) {
@@ -70,6 +70,10 @@ export class ReceiptReportService {
         status: NocStatus.NORMAL,
         inbound: null,
         outbound: null,
+        sumIn: 0,
+        countIn: 0,
+        sumOut: 0,
+        countOut: 0,
       };
 
       if (history.status !== prev.status) {
@@ -82,6 +86,10 @@ export class ReceiptReportService {
           }
         }
 
+        // Calculate average for LOW_TRAFFIC
+        const avgIn = prev.countIn > 0 ? prev.sumIn / prev.countIn : prev.inbound;
+        const avgOut = prev.countOut > 0 ? prev.sumOut / prev.countOut : prev.outbound;
+
         // We ALWAYS capture DOWN and LOW_TRAFFIC for the web view snapshot
         if (
           history.status === NocStatus.DOWN ||
@@ -93,8 +101,8 @@ export class ReceiptReportService {
           incidentsByConfig.get(history.configId)!.push({
             status: history.status,
             time: history.timestamp,
-            inboundBefore: prev.inbound,
-            outboundBefore: prev.outbound,
+            inboundBefore: history.status === NocStatus.LOW_TRAFFIC ? avgIn : prev.inbound,
+            outboundBefore: history.status === NocStatus.LOW_TRAFFIC ? avgOut : prev.outbound,
             inboundDuring: history.inboundBitrate,
             outboundDuring: history.outboundBitrate,
           });
@@ -112,6 +120,10 @@ export class ReceiptReportService {
           history.outboundBitrate !== null
             ? history.outboundBitrate
             : prev.outbound,
+        sumIn: history.inboundBitrate !== null ? prev.sumIn + history.inboundBitrate : prev.sumIn,
+        countIn: history.inboundBitrate !== null ? prev.countIn + 1 : prev.countIn,
+        sumOut: history.outboundBitrate !== null ? prev.sumOut + history.outboundBitrate : prev.sumOut,
+        countOut: history.outboundBitrate !== null ? prev.countOut + 1 : prev.countOut,
       });
     }
 

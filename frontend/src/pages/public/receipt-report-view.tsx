@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { publicReportApi } from '@/lib/api';
-import { Activity, ArrowDownCircle, Server } from 'lucide-react';
-import Zoom from 'react-medium-image-zoom';
-import 'react-medium-image-zoom/dist/styles.css';
+import { Activity, ArrowDownCircle, Server, ZoomIn } from 'lucide-react';
+import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import "yet-another-react-lightbox/styles.css";
 
 interface Incident {
   status: string;
@@ -50,6 +51,7 @@ export default function PublicReceiptReportViewPage() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openLightbox, setOpenLightbox] = useState<{ configId: number; index: number } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -159,12 +161,12 @@ export default function PublicReceiptReportViewPage() {
                     </div>
                   </div>
 
-                  <div className="w-full max-w-[1440px] px-4 sm:px-6 space-y-[48px] sm:space-y-[80px]">
+                  <div className="w-full max-w-[1440px] px-4 sm:px-6 space-y-6 sm:space-y-8">
                     {config.incidents.map((incident, idx) => (
                       <div key={idx} className="flex flex-col items-center">
                         
-                        {/* Traffic Info Utility Card */}
-                        <div className={`w-full max-w-3xl ${theme.cardBg} rounded-[18px] p-5 sm:p-8 mb-6 sm:mb-10 shadow-[0_5px_30px_rgba(0,0,0,0.04)]`}>
+                        {/* Traffic Info Utility Card with Inner Image */}
+                        <div className={`w-full max-w-3xl ${theme.cardBg} rounded-[18px] p-5 sm:p-8 mb-0 shadow-[0_5px_30px_rgba(0,0,0,0.04)] overflow-hidden`}>
                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 border-b border-[#e0e0e0] dark:border-[#333333] pb-4 gap-3 sm:gap-0">
                             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                               <span className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[12px] sm:text-[14px] font-semibold rounded-[9999px] ${incident.status === 'DOWN' ? 'bg-[#ff3b30] text-white' : 'bg-[#ff9500] text-white'}`}>
@@ -182,7 +184,7 @@ export default function PublicReceiptReportViewPage() {
                           {(incident.inboundBefore != null || incident.inboundDuring != null) && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
                               <div className="flex flex-col sm:block items-start">
-                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Download</p>
+                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Download {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
                                 <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
                                   <span className="text-[#34c759]">{incident.inboundBefore ? (incident.inboundBefore / 1000 / 1000).toFixed(2) : '0'}</span>
                                   <span className={`text-[20px] sm:text-[24px] ${theme.muted} mx-1 sm:mx-2 font-normal`}>→</span>
@@ -191,7 +193,7 @@ export default function PublicReceiptReportViewPage() {
                                 </p>
                               </div>
                               <div className="flex flex-col sm:block items-start">
-                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Upload</p>
+                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Upload {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
                                 <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
                                   <span className="text-[#34c759]">{incident.outboundBefore ? (incident.outboundBefore / 1000 / 1000).toFixed(2) : '0'}</span>
                                   <span className={`text-[20px] sm:text-[24px] ${theme.muted} mx-1 sm:mx-2 font-normal`}>→</span>
@@ -201,28 +203,48 @@ export default function PublicReceiptReportViewPage() {
                               </div>
                             </div>
                           )}
-                        </div>
 
-                        {/* Product Imagery (Chart) resting on surface */}
-                        <div className="w-full max-w-5xl flex justify-center mt-6">
-                           <Zoom>
-                             <div className="relative overflow-hidden shadow-[0_5px_30px_rgba(0,0,0,0.22)] rounded-[8px] bg-[#f5f5f7] min-h-[150px] sm:min-h-[300px] w-full max-w-[800px] flex items-center justify-center">
-                               <img 
-                                 src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
-                                 alt={`Chart for ${config.title}`} 
-                                 className="w-full h-auto block"
-                                 loading="lazy"
-                                 onLoad={(e) => {
-                                   const target = e.target as HTMLImageElement;
-                                   target.parentElement?.classList.remove('animate-pulse');
-                                 }}
-                               />
-                             </div>
-                           </Zoom>
+                          {/* Inner Chart Image - Embedded at bottom of card */}
+                          <div 
+                            className="mt-6 sm:mt-8 -mx-5 -mb-5 sm:-mx-8 sm:-mb-8 cursor-pointer relative bg-[#f5f5f7] dark:bg-[#1c1c1e] min-h-[150px] sm:min-h-[250px] flex items-center justify-center group border-t border-[#e0e0e0] dark:border-[#333333]"
+                            onClick={() => setOpenLightbox({ configId: config.configId, index: idx })}
+                          >
+                            <div className="absolute inset-0 flex items-center justify-center">
+                               <Activity className="h-8 w-8 text-[#0066cc] animate-pulse" />
+                            </div>
+                            <img 
+                              src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                              alt={`Chart for ${config.title}`} 
+                              className="w-[92%] sm:w-[90%] h-auto block relative z-10 my-4 sm:my-6 rounded-md shadow-sm transition-transform duration-500 group-hover:scale-105"
+                              loading="lazy"
+                              onLoad={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                const parent = target.previousElementSibling;
+                                if (parent) parent.remove();
+                              }}
+                            />
+                            <div className="absolute top-4 right-4 z-20 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <ZoomIn className="w-5 h-5" />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
+                  
+                  {/* Lightbox Gallery for this specific Sensor Config */}
+                  <Lightbox
+                    open={openLightbox?.configId === config.configId}
+                    close={() => setOpenLightbox(null)}
+                    index={openLightbox?.configId === config.configId ? openLightbox.index : 0}
+                    slides={config.incidents.map((inc) => ({
+                      src: `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${inc.sdate}&edate=${inc.edate}`,
+                      alt: `Chart for ${config.title} at ${inc.formattedTime}`,
+                    }))}
+                    plugins={[Zoom]}
+                    carousel={{ finite: false }}
+                    styles={{ container: { backgroundColor: "rgba(0, 0, 0, .9)" } }}
+                  />
                 </div>
               );
             })
