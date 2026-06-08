@@ -235,8 +235,8 @@ export default function NocTvDashboardPageV1() {
   const [items, setItems] = useState<MonitoringSummaryItem[]>([]);
   const [pingMonitors, setPingMonitors] = useState<PingMonitor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => !!(window as any).__tvSoundEnabled);
+  const [hasInteracted, setHasInteracted] = useState(() => !!(window as any).__tvInteracted);
   const [spotlightEnabled, setSpotlightEnabled] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -439,6 +439,8 @@ export default function NocTvDashboardPageV1() {
 
   // Enable sound on first user interaction (satisfies browser autoplay policy)
   const handleEnableSound = () => {
+    (window as any).__tvInteracted = true;
+    (window as any).__tvSoundEnabled = true;
     setHasInteracted(true);
     setSoundEnabled(true);
   };
@@ -622,7 +624,14 @@ export default function NocTvDashboardPageV1() {
 
           {/* Sound Toggle */}
           <button
-            onClick={(e) => { e.stopPropagation(); setSoundEnabled(!soundEnabled); setHasInteracted(true); }}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              const newVal = !soundEnabled;
+              (window as any).__tvSoundEnabled = newVal;
+              (window as any).__tvInteracted = true;
+              setSoundEnabled(newVal); 
+              setHasInteracted(true); 
+            }}
             className={`rounded px-2 py-1 text-[10px] font-medium transition ${soundEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600'}`}
           >
             {soundEnabled ? '🔊 ON' : '🔇 OFF'}
