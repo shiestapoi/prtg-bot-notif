@@ -8,11 +8,19 @@ import { Activity, AlertTriangle, ArrowDownCircle, Calendar, Clock, LayoutDashbo
 interface Incident {
   status: string;
   time: string;
+  recoveryTime: string | null;
   formattedTime: string;
+  inboundBefore: number | null;
+  inboundDuring: number | null;
+  outboundBefore: number | null;
+  outboundDuring: number | null;
+  sdate: string;
+  edate: string;
 }
 
 interface ConfigReport {
   configId: number;
+  sensorId: number;
   title: string;
   groupName: string;
   downCount: number;
@@ -197,21 +205,68 @@ export default function PublicReceiptReportViewPage() {
                       </div>
                     </div>
 
-                    {/* Right Column: Incident Timeline */}
-                    <div className="md:w-2/3 p-6">
-                      <h5 className="text-sm font-semibold text-slate-900 dark:text-slate-200 mb-4 flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-slate-400" /> Waktu Terjadinya Insiden
+                    {/* Right Column: Incident Timeline & Charts */}
+                    <div className="md:w-2/3 p-6 flex flex-col gap-6">
+                      <h5 className="text-sm font-semibold text-slate-900 dark:text-slate-200 flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-slate-400" /> Waktu & Detail Insiden
                       </h5>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-6">
                         {config.incidents.map((incident, idx) => (
-                          <div key={idx} className="flex items-center gap-3 p-2 rounded-md bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/50">
-                            <Badge 
-                              variant={incident.status === 'DOWN' ? 'destructive' : 'default'} 
-                              className={incident.status === 'LOW_TRAFFIC' ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}
-                            >
-                              {incident.status === 'LOW_TRAFFIC' ? 'LOW' : incident.status}
-                            </Badge>
-                            <span className="text-sm font-medium tabular-nums">{incident.formattedTime}</span>
+                          <div key={idx} className="flex flex-col gap-3 p-4 rounded-md bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/50">
+                            
+                            {/* Time & Status Header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Badge 
+                                  variant={incident.status === 'DOWN' ? 'destructive' : 'default'} 
+                                  className={incident.status === 'LOW_TRAFFIC' ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}
+                                >
+                                  {incident.status === 'LOW_TRAFFIC' ? 'LOW TRAFFIC' : incident.status}
+                                </Badge>
+                                <span className="text-sm font-medium tabular-nums">{incident.formattedTime}</span>
+                              </div>
+                              {incident.recoveryTime && (
+                                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-950 px-2 py-1 rounded">
+                                  Pulih: {new Date(incident.recoveryTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')} WIB
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Traffic Information */}
+                            {(incident.inboundBefore != null || incident.inboundDuring != null) && (
+                              <div className="flex flex-col sm:flex-row gap-4 text-sm mt-1 bg-white dark:bg-slate-900 p-3 rounded border border-slate-200 dark:border-slate-800">
+                                <div className="flex-1">
+                                  <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Traffic IN (Download)</div>
+                                  <div className="font-medium text-slate-800 dark:text-slate-200">
+                                    <span className="text-emerald-600 dark:text-emerald-500">{incident.inboundBefore ? (incident.inboundBefore / 1000 / 1000).toFixed(2) : '0'} Mbps</span>
+                                    <span className="mx-2 text-slate-400">→</span>
+                                    <span className={incident.status === 'DOWN' ? 'text-red-500' : 'text-amber-500'}>{incident.inboundDuring ? (incident.inboundDuring / 1000 / 1000).toFixed(2) : '0'} Mbps</span>
+                                  </div>
+                                </div>
+                                <div className="flex-1 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4">
+                                  <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Traffic OUT (Upload)</div>
+                                  <div className="font-medium text-slate-800 dark:text-slate-200">
+                                    <span className="text-emerald-600 dark:text-emerald-500">{incident.outboundBefore ? (incident.outboundBefore / 1000 / 1000).toFixed(2) : '0'} Mbps</span>
+                                    <span className="mx-2 text-slate-400">→</span>
+                                    <span className={incident.status === 'DOWN' ? 'text-red-500' : 'text-amber-500'}>{incident.outboundDuring ? (incident.outboundDuring / 1000 / 1000).toFixed(2) : '0'} Mbps</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* PRTG Historical Chart */}
+                            <div className="mt-2 rounded-md overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm relative min-h-[200px] bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                              <img 
+                                src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                                alt={`PRTG Chart for ${config.title}`} 
+                                className="w-full h-auto object-cover relative z-10"
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400 z-0">
+                                Memuat grafik PRTG...
+                              </div>
+                            </div>
+
                           </div>
                         ))}
                       </div>

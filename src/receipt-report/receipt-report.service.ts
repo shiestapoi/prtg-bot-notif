@@ -40,16 +40,24 @@ export class ReceiptReportService {
 
     // 3. Process incidents per config
     // We detect transitions into DOWN or LOW_TRAFFIC
-    type Incident = { status: NocStatus; time: Date };
+    type Incident = { 
+      status: NocStatus; 
+      time: Date;
+      recoveryTime?: Date;
+      inboundBefore?: number | null;
+      outboundBefore?: number | null;
+      inboundDuring?: number | null;
+      outboundDuring?: number | null;
+    };
     const incidentsByConfig = new Map<number, Incident[]>();
     
-    // Track previous status to detect transitions
-    const previousStatus = new Map<number, NocStatus>();
+    // Track previous state to detect transitions
+    const previousState = new Map<number, { status: NocStatus; inbound: number | null; outbound: number | null }>();
 
     for (const history of histories) {
-      const prev = previousStatus.get(history.configId) || NocStatus.NORMAL;
+      const prev = previousState.get(history.configId) || { status: NocStatus.NORMAL, inbound: null, outbound: null };
       
-      if (history.status !== prev) {
+      if (history.status !== prev.status) {
         // We ALWAYS capture DOWN and LOW_TRAFFIC for the web view snapshot
         if (history.status === NocStatus.DOWN || history.status === NocStatus.LOW_TRAFFIC) {
           if (!incidentsByConfig.has(history.configId)) {
@@ -58,10 +66,29 @@ export class ReceiptReportService {
           incidentsByConfig.get(history.configId)!.push({
             status: history.status,
             time: history.timestamp,
+            inboundBefore: prev.inbound,
+            outboundBefore: prev.outbound,
+            inboundDuring: history.inboundBitrate,
+            outboundDuring: history.outboundBitrate,
           });
+        } else if (history.status === NocStatus.NORMAL) {
+          // Find the last ongoing incident and mark recovery
+          const configIncidents = incidentsByConfig.get(history.configId);
+          if (configIncidents && configIncidents.length > 0) {
+            const lastIncident = configIncidents[configIncidents.length - 1];
+            if (!lastIncident.recoveryTime) {
+              lastIncident.recoveryTime = history.timestamp;
+            }
+          }
         }
       }
-      previousStatus.set(history.configId, history.status);
+      
+      // Update previous state
+      previousState.set(history.configId, {
+        status: history.status,
+        inbound: history.inboundBitrate !== null ? history.inboundBitrate : prev.inbound,
+        outbound: history.outboundBitrate !== null ? history.outboundBitrate : prev.outbound,
+      });
     }
 
     let totalIncidentsFound = 0;
@@ -102,13 +129,27 @@ export class ReceiptReportService {
         configId: config.id,
         title: config.title,
         groupName: config.group?.name || 'N/A',
+        sensorId: config.sensorId,
         downCount,
         lowTrafficCount,
-        incidents: incidents.map(i => ({
-          status: i.status,
-          time: i.time.toISOString(),
-          formattedTime: `${this.formatTimeWib(i.time)} WIB`
-        }))
+        incidents: incidents.map(i => {
+          const sdateObj = new Date(i.time.getTime() - 60 * 60 * 1000); // 1 hour before
+          const recoveryObj = i.recoveryTime || new Date();
+          const edateObj = new Date(recoveryObj.getTime() + 60 * 60 * 1000); // 1 hour after recovery
+
+          return {
+            status: i.status,
+            time: i.time.toISOString(),
+            recoveryTime: i.recoveryTime ? i.recoveryTime.toISOString() : null,
+            formattedTime: `${this.formatTimeWib(i.time)} WIB`,
+            inboundBefore: i.inboundBefore,
+            inboundDuring: i.inboundDuring,
+            outboundBefore: i.outboundBefore,
+            outboundDuring: i.outboundDuring,
+            sdate: this.formatPrtgDate(sdateObj),
+            edate: this.formatPrtgDate(edateObj)
+          };
+        })
       });
 
       // Filter for WhatsApp based on schedule settings
@@ -185,6 +226,11 @@ export class ReceiptReportService {
       minute: '2-digit',
       timeZone: 'Asia/Jakarta',
     }).format(date).replace('.', ':');
+  }
+
+  private formatPrtgDate(date: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
   }
 
   private getStartDate(period: ReceiptPeriod): Date {
