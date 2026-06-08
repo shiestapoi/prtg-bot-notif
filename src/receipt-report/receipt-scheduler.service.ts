@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReceiptReportService } from './receipt-report.service';
 import cron, { type ScheduledTask } from 'node-cron';
@@ -22,7 +27,9 @@ export class ReceiptSchedulerService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.syncSchedules();
     } catch (error) {
-      this.logger.warn(`Receipt schedule sync skipped; database may not be ready: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.warn(
+        `Receipt schedule sync skipped; database may not be ready: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -52,7 +59,9 @@ export class ReceiptSchedulerService implements OnModuleInit, OnModuleDestroy {
     // Add or update active schedules
     for (const schedule of activeSchedules) {
       if (!cron.validate(schedule.cron)) {
-        this.logger.warn(`Skipping receipt schedule ${schedule.id} (${schedule.name}) due to invalid cron: ${schedule.cron}`);
+        this.logger.warn(
+          `Skipping receipt schedule ${schedule.id} (${schedule.name}) due to invalid cron: ${schedule.cron}`,
+        );
         continue;
       }
 
@@ -71,7 +80,9 @@ export class ReceiptSchedulerService implements OnModuleInit, OnModuleDestroy {
           await this.receiptReportService.dispatchSchedule(schedule);
           this.logger.log(`Receipt schedule ${schedule.name} dispatched.`);
         } catch (error) {
-          this.logger.error(`Receipt schedule ${schedule.name} failed: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.error(
+            `Receipt schedule ${schedule.name} failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       });
 

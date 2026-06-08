@@ -70,7 +70,9 @@ export async function ensureDatabaseReady() {
 
   // Check if tables actually exist (in case migrate deploy did nothing because there are no migrations)
   let tablesMissing = false;
-  const poolCheck = new Pool(createPostgresPoolConfig(process.env.DATABASE_URL));
+  const poolCheck = new Pool(
+    createPostgresPoolConfig(process.env.DATABASE_URL),
+  );
   try {
     await poolCheck.query('SELECT 1 FROM "PrtgSetting" LIMIT 1');
   } catch (err) {
@@ -80,14 +82,16 @@ export async function ensureDatabaseReady() {
   }
 
   if (tablesMissing) {
-    console.log('[db-bootstrap] Tables are missing (no migrations found). Running prisma db push...');
+    console.log(
+      '[db-bootstrap] Tables are missing (no migrations found). Running prisma db push...',
+    );
     if (
       !runWithRetry('prisma db push', 'npx', [
         'prisma',
         'db',
         'push',
         '--accept-data-loss',
-        '--skip-generate'
+        '--skip-generate',
       ])
     ) {
       console.warn('[db-bootstrap] Prisma DB Push failed.');

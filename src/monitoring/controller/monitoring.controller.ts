@@ -180,8 +180,9 @@ export class MonitoringController {
     // 2. Take screenshot (with upscale via Playwright)
     let screenshotBase64: string | null = null;
     try {
-      const sdateObj = new Date(now.getTime() - 2 * 60 * 60 * 1000); // 2 hours before
-      const edateObj = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes after
+      const currentTime = new Date();
+      const sdateObj = new Date(currentTime.getTime() - 2 * 60 * 60 * 1000); // 2 hours before
+      const edateObj = new Date(currentTime.getTime() + 5 * 60 * 1000); // 5 minutes after
       const formatDateUrl = (d: Date) =>
         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}-${String(d.getSeconds()).padStart(2, '0')}`;
       const screenshotUrl = `http://prtg.r1net.id/chart.png?id=${config.sensorId}&avg=60&sdate=${formatDateUrl(sdateObj)}&edate=${formatDateUrl(edateObj)}&width=800&height=400&graphstyling=baseFontSize%3D%2712%27%20showLegend%3D%271%27&graphid=-1`;

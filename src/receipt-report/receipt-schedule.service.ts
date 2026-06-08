@@ -7,7 +7,9 @@ import { ReceiptScheduleDto } from './receipt-report.types';
 export class ReceiptScheduleService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.ReceiptScheduleUncheckedCreateInput): Promise<ReceiptScheduleDto> {
+  async create(
+    data: Prisma.ReceiptScheduleUncheckedCreateInput,
+  ): Promise<ReceiptScheduleDto> {
     return this.prisma.receiptSchedule.create({
       data,
       include: { group: true },
@@ -26,7 +28,8 @@ export class ReceiptScheduleService {
       where: { id },
       include: { group: true },
     });
-    if (!schedule) throw new NotFoundException(`Receipt schedule with ID ${id} not found`);
+    if (!schedule)
+      throw new NotFoundException(`Receipt schedule with ID ${id} not found`);
     return schedule;
   }
 

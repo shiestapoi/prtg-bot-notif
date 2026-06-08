@@ -13,8 +13,23 @@ import { ReceiptReportHistoryController } from './receipt-report-history.control
 
 @Module({
   imports: [PrismaModule, AuthModule, forwardRef(() => WhatsappModule)],
-  controllers: [ReceiptReportController, ReceiptRecipientController, ReceiptReportPublicController, ReceiptReportHistoryController],
-  providers: [ReceiptScheduleService, ReceiptReportService, ReceiptSchedulerService, ReceiptRecipientService],
-  exports: [ReceiptScheduleService, ReceiptReportService, ReceiptSchedulerService, ReceiptRecipientService],
+  controllers: [
+    ReceiptReportController,
+    ReceiptRecipientController,
+    ReceiptReportPublicController,
+    ReceiptReportHistoryController,
+  ],
+  providers: [
+    ReceiptScheduleService,
+    ReceiptReportService,
+    ReceiptSchedulerService,
+    ReceiptRecipientService,
+  ],
+  exports: [
+    ReceiptScheduleService,
+    ReceiptReportService,
+    ReceiptSchedulerService,
+    ReceiptRecipientService,
+  ],
 })
 export class ReceiptReportModule {}

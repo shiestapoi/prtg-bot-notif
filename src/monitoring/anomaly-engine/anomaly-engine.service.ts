@@ -127,7 +127,8 @@ export class AnomalyEngineService {
     if (config.maintenance) {
       return {
         status: NocStatus.MAINTENANCE,
-        reason: config.maintenanceLabel || 'Sedang dalam perbaikan / mati lampu',
+        reason:
+          config.maintenanceLabel || 'Sedang dalam perbaikan / mati lampu',
       };
     }
 

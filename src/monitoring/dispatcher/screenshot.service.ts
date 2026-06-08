@@ -40,7 +40,9 @@ export class ScreenshotService {
         if (response.status === 200) {
           return Buffer.from(response.data);
         }
-        this.logger.warn(`Failed to fetch image via axios. HTTP ${response.status}`);
+        this.logger.warn(
+          `Failed to fetch image via axios. HTTP ${response.status}`,
+        );
         return null;
       }
 

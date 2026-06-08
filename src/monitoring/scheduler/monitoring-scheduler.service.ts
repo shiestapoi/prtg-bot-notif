@@ -576,7 +576,7 @@ export class MonitoringSchedulerService
     const edateObj = new Date(eventTime.getTime() + 5 * 60 * 1000); // 5 minutes after
     const formatDateUrl = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}-${String(d.getSeconds()).padStart(2, '0')}`;
-    
+
     const requestUrl = `http://prtg.r1net.id/chart.png?id=${config.sensorId}&avg=60&sdate=${formatDateUrl(sdateObj)}&edate=${formatDateUrl(edateObj)}&width=800&height=400&graphstyling=baseFontSize%3D%2712%27%20showLegend%3D%271%27&graphid=-1`;
 
     // Log status change for debugging
@@ -685,11 +685,21 @@ export class MonitoringSchedulerService
     } else if (!isRecovering && classification.status !== NocStatus.NORMAL) {
       if (this.isNotifyEnabledForStatus(classification.status, config)) {
         const isFirstTransition = previousStatus === NocStatus.NORMAL;
-        
-        const isWorsening = previousStatus === NocStatus.LOW_TRAFFIC && (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC);
-        const isPartialRecovery = (previousStatus === NocStatus.DOWN || previousStatus === NocStatus.NO_TRAFFIC) && classification.status === NocStatus.LOW_TRAFFIC;
-        
-        const isOtherEscalation = previousStatus !== classification.status && !isWorsening && !isPartialRecovery && !isFirstTransition;
+
+        const isWorsening =
+          previousStatus === NocStatus.LOW_TRAFFIC &&
+          (classification.status === NocStatus.DOWN ||
+            classification.status === NocStatus.NO_TRAFFIC);
+        const isPartialRecovery =
+          (previousStatus === NocStatus.DOWN ||
+            previousStatus === NocStatus.NO_TRAFFIC) &&
+          classification.status === NocStatus.LOW_TRAFFIC;
+
+        const isOtherEscalation =
+          previousStatus !== classification.status &&
+          !isWorsening &&
+          !isPartialRecovery &&
+          !isFirstTransition;
 
         if (isFirstTransition || isWorsening) {
           // First time anomaly or worsening (LOW_TRAFFIC -> DOWN) — send immediately!

@@ -9,7 +9,9 @@ describe('ReceiptReportHistoryController', () => {
       controllers: [ReceiptReportHistoryController],
     }).compile();
 
-    controller = module.get<ReceiptReportHistoryController>(ReceiptReportHistoryController);
+    controller = module.get<ReceiptReportHistoryController>(
+      ReceiptReportHistoryController,
+    );
   });
 
   it('should be defined', () => {

@@ -1,10 +1,20 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { ReceiptRecipientService } from './receipt-recipient.service';
 import { Prisma } from '@prisma/client';
 
 @Controller('api/receipt-recipients')
 export class ReceiptRecipientController {
-  constructor(private readonly receiptRecipientService: ReceiptRecipientService) {}
+  constructor(
+    private readonly receiptRecipientService: ReceiptRecipientService,
+  ) {}
 
   @Post()
   create(@Body() createDto: Prisma.ReceiptRecipientUncheckedCreateInput) {

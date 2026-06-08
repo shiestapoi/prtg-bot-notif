@@ -1,4 +1,11 @@
-import { Controller, Get, Param, NotFoundException, Query, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  NotFoundException,
+  Query,
+  Res,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,7 +21,9 @@ export class ReceiptReportPublicController {
     });
 
     if (!snapshot) {
-      throw new NotFoundException('Laporan tidak ditemukan atau link sudah kadaluarsa.');
+      throw new NotFoundException(
+        'Laporan tidak ditemukan atau link sudah kadaluarsa.',
+      );
     }
 
     return snapshot;
@@ -42,10 +51,10 @@ export class ReceiptReportPublicController {
     }
 
     const baseUrl = new URL(settings.loginUrl);
-    
+
     // PRTG Historical Chart URL format:
     // /chart.png?id=...&avg=60&sdate=...&edate=...&width=1320&height=620&graphstyling=baseFontSize='12'%20showLegend='1'&graphid=1
-    
+
     const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?id=${sensorId}&avg=60&sdate=${sdate}&edate=${edate}&width=1320&height=620&graphstyling=baseFontSize%3D%2712%27%20showLegend%3D%271%27&graphid=1&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
 
     try {

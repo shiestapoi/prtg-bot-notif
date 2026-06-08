@@ -24,24 +24,31 @@ export class ReceiptReportHistoryController {
         startDate: true,
         endDate: true,
         createdAt: true,
-      }
+      },
     });
   }
 
   @Post('manual-generate')
-  async manualGenerate(@Body() body: { scheduleId?: number; period?: 'DAILY' | 'WEEKLY' | 'MONTHLY'; groupId?: number }) {
+  async manualGenerate(
+    @Body()
+    body: {
+      scheduleId?: number;
+      period?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+      groupId?: number;
+    },
+  ) {
     // If scheduleId is provided, generate based on that schedule
     if (body.scheduleId) {
       const schedule = await this.prisma.receiptSchedule.findUnique({
         where: { id: body.scheduleId },
-        include: { group: true }
+        include: { group: true },
       });
       if (schedule) {
         return this.receiptReportService.dispatchSchedule(schedule);
       }
     }
-    
-    // Otherwise ad-hoc generation is not fully supported in dispatchSchedule right now 
+
+    // Otherwise ad-hoc generation is not fully supported in dispatchSchedule right now
     // unless we create a fake schedule object.
     const fakeSchedule: any = {
       id: 0,
@@ -52,7 +59,11 @@ export class ReceiptReportHistoryController {
       includeDown: true,
       includeLowTraffic: true,
       includeLink: true,
-      group: body.groupId ? await this.prisma.prtgGroup.findUnique({ where: { id: body.groupId } }) : null
+      group: body.groupId
+        ? await this.prisma.prtgGroup.findUnique({
+            where: { id: body.groupId },
+          })
+        : null,
     };
 
     return this.receiptReportService.dispatchSchedule(fakeSchedule);

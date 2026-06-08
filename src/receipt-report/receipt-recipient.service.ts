@@ -22,7 +22,8 @@ export class ReceiptRecipientService {
       where: { id },
       include: { group: true },
     });
-    if (!recipient) throw new NotFoundException(`ReceiptRecipient ${id} not found`);
+    if (!recipient)
+      throw new NotFoundException(`ReceiptRecipient ${id} not found`);
     return recipient;
   }
 

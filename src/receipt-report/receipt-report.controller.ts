@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { ReceiptScheduleService } from './receipt-schedule.service';
 import { ReceiptSchedulerService } from './receipt-scheduler.service';
 import { Prisma } from '@prisma/client';
