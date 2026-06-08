@@ -166,7 +166,7 @@ export default function PublicReceiptReportViewPage() {
                       <div key={idx} className="flex flex-col items-center">
                         
                         {/* Traffic Info Utility Card with Inner Image */}
-                        <div className={`w-full max-w-3xl ${theme.cardBg} rounded-[18px] p-5 sm:p-8 mb-0 shadow-[0_5px_30px_rgba(0,0,0,0.04)] overflow-hidden`}>
+                        <div className={`w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl ${theme.cardBg} rounded-[18px] p-5 sm:p-8 mb-0 shadow-[0_5px_30px_rgba(0,0,0,0.04)] overflow-hidden`}>
                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 border-b border-[#e0e0e0] dark:border-[#333333] pb-4 gap-3 sm:gap-0">
                             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                               <span className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[12px] sm:text-[14px] font-semibold rounded-[9999px] ${incident.status === 'DOWN' ? 'bg-[#ff3b30] text-white' : 'bg-[#ff9500] text-white'}`}>
