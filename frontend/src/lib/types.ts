@@ -151,10 +151,12 @@ export interface ReceiptSchedule {
   id: number;
   name: string;
   groupId: number | null;
+  group?: NocGroup | null;
   cron: string;
   period: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   includeDown: boolean;
   includeLowTraffic: boolean;
+  includeLink: boolean;
   targetMode: string;
   enabled: boolean;
   createdAt: string;

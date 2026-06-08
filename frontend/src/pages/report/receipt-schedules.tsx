@@ -24,13 +24,14 @@ interface ReceiptScheduleForm {
   period: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   includeDown: boolean;
   includeLowTraffic: boolean;
+  includeLink: boolean;
   targetMode: string;
   enabled: boolean;
 }
 
 const emptyForm: ReceiptScheduleForm = { 
   name: '', groupId: null, cron: '0 8 * * *', period: 'DAILY', 
-  includeDown: true, includeLowTraffic: false, targetMode: 'all', enabled: true 
+  includeDown: true, includeLowTraffic: false, includeLink: true, targetMode: 'all', enabled: true 
 };
 
 const targetModeLabels: Record<string, string> = {
@@ -87,9 +88,10 @@ export default function ReceiptSchedulesPage() {
       name: schedule.name,
       groupId: schedule.groupId || null,
       cron: schedule.cron,
-      period: schedule.period,
+      period: schedule.period as 'DAILY'|'WEEKLY'|'MONTHLY',
       includeDown: schedule.includeDown,
       includeLowTraffic: schedule.includeLowTraffic,
+      includeLink: schedule.includeLink ?? true,
       targetMode: schedule.targetMode,
       enabled: schedule.enabled,
     });
@@ -197,6 +199,7 @@ export default function ReceiptSchedulesPage() {
                     <div className="flex gap-1">
                       {schedule.includeDown && <Badge variant="destructive">DOWN</Badge>}
                       {schedule.includeLowTraffic && <Badge variant="secondary">LOW</Badge>}
+                      {schedule.includeLink && <Badge variant="outline" className="text-blue-500 border-blue-500">LINK</Badge>}
                     </div>
                   </TableCell>
                   <TableCell><code className="rounded bg-muted px-1.5 py-0.5 text-xs">{schedule.cron}</code></TableCell>
@@ -264,8 +267,8 @@ export default function ReceiptSchedulesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Include Events</Label>
-              <p className="text-xs text-muted-foreground">Only send if these events occurred.</p>
+              <Label>Include Options</Label>
+              <p className="text-xs text-muted-foreground">Pilih event yang disertakan dan apakah melampirkan link Web View.</p>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2">
                   <input type="checkbox" checked={form.includeDown} onChange={(e) => setForm({ ...form, includeDown: e.target.checked })} className="size-4 rounded border-input" />
@@ -274,6 +277,10 @@ export default function ReceiptSchedulesPage() {
                 <label className="flex items-center gap-2">
                   <input type="checkbox" checked={form.includeLowTraffic} onChange={(e) => setForm({ ...form, includeLowTraffic: e.target.checked })} className="size-4 rounded border-input" />
                   <span className="text-sm">LOW TRAFFIC</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={form.includeLink} onChange={(e) => setForm({ ...form, includeLink: e.target.checked })} className="size-4 rounded border-input" />
+                  <span className="text-sm text-blue-600 font-medium">Include Web Link</span>
                 </label>
               </div>
             </div>

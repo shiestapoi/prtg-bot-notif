@@ -261,6 +261,7 @@ model ReceiptSchedule {
   period            ReceiptPeriod      @default(DAILY)
   includeDown       Boolean            @default(true)
   includeLowTraffic Boolean            @default(false)
+  includeLink       Boolean            @default(true)
   targetMode        ScheduleTargetMode @default(all)
   enabled           Boolean            @default(true)
   createdAt         DateTime           @default(now())

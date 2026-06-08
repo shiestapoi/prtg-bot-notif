@@ -349,10 +349,10 @@ export const monitoringRecipientApi = {
 export const receiptScheduleApi = {
   getAll: () => api.get<ReceiptSchedule[]>('/api/receipt-schedules').then((r) => r.data),
 
-  create: (data: { name: string; groupId: number | null; cron: string; period: string; includeDown: boolean; includeLowTraffic: boolean; targetMode?: string; enabled?: boolean }) =>
+  create: (data: { name: string; groupId: number | null; cron: string; period: string; includeDown: boolean; includeLowTraffic: boolean; includeLink: boolean; targetMode?: string; enabled?: boolean }) =>
     api.post<ReceiptSchedule>('/api/receipt-schedules', data).then((r) => r.data),
 
-  update: (id: number, data: Partial<{ name: string; groupId: number | null; cron: string; period: string; includeDown: boolean; includeLowTraffic: boolean; targetMode: string; enabled: boolean }>) =>
+  update: (id: number, data: Partial<{ name: string; groupId: number | null; cron: string; period: string; includeDown: boolean; includeLowTraffic: boolean; includeLink: boolean; targetMode: string; enabled: boolean }>) =>
     api.put<ReceiptSchedule>(`/api/receipt-schedules/${id}`, data).then((r) => r.data),
 
   remove: (id: number) =>

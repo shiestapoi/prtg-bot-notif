@@ -153,9 +153,14 @@ export class ReceiptReportService {
 
     if (configMessages.length > 0) {
       fullMessage += configMessages.join('\n\n');
-      fullMessage += `\n\nLihat detail laporan lengkap:\n${publicUrl}`;
+      if (schedule.includeLink) {
+        fullMessage += `\n\nLihat detail laporan lengkap:\n${publicUrl}`;
+      }
     } else {
-      fullMessage += `Tidak ada insiden yang memenuhi kriteria pengiriman WhatsApp.\n\nLihat detail laporan lengkap:\n${publicUrl}`;
+      fullMessage += `Tidak ada insiden yang memenuhi kriteria pengiriman WhatsApp.`;
+      if (schedule.includeLink) {
+        fullMessage += `\n\nLihat detail laporan lengkap:\n${publicUrl}`;
+      }
     }
 
     const recipients = await this.getRecipientsForSchedule(schedule);
