@@ -220,7 +220,7 @@ export class MonitoringController {
   ): Promise<void> {
     const settings = await this.prtgSetting.getSettingRaw();
     const baseUrl = new URL(settings.loginUrl);
-    const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?type=graph&graphid=0&graphtitle=%40%40notitle%40%40&width=925&height=300&bgcolor=%23f3f2f2&graphstylefile=graphstyling.htm&animationandinteraction=1&datastylefile=graphdatastyling.htm&animationstylefile=graphanimationstyling.htm&graphstyling=baseFontSize%3D%2710%27%20showLegend%3D%270%27&tooltexts=1&datastyling=drawAnchors%3D%271%27%20anchorRadius%3D%271%27%20lineThickness%3D%272%27&refreshable=true&columns=datetime%2Cvalue_%2Ccoverage&_=1778313214275&myid=03298781&hide=NaN&id=${sensorId}&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
+    const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?type=graph&graphid=0&graphtitle=%40%40notitle%40%40&width=1850&height=600&bgcolor=%23ffffff&graphstylefile=graphstyling.htm&animationandinteraction=1&datastylefile=graphdatastyling.htm&animationstylefile=graphanimationstyling.htm&graphstyling=baseFontSize%3D%2716%27%20showLegend%3D%270%27&tooltexts=1&datastyling=drawAnchors%3D%271%27%20anchorRadius%3D%272%27%20lineThickness%3D%273%27&refreshable=true&columns=datetime%2Cvalue_%2Ccoverage&_=1778313214275&myid=03298781&hide=NaN&id=${sensorId}&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
 
     try {
       const response = await axios.get(chartUrl, {
@@ -235,10 +235,11 @@ export class MonitoringController {
         return;
       }
 
-      // Automatically add a white background to the transparent PNG
+      // Automatically add a white background and sharpen the HD image
       const imageWithWhiteBg = await sharp(response.data)
         .flatten({ background: { r: 255, g: 255, b: 255 } })
-        .png()
+        .sharpen()
+        .png({ quality: 100 })
         .toBuffer();
 
       res.set('Content-Type', 'image/png');

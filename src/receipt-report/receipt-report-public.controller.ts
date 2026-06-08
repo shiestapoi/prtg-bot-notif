@@ -53,10 +53,9 @@ export class ReceiptReportPublicController {
 
     const baseUrl = new URL(settings.loginUrl);
 
-    // PRTG Historical Chart URL format:
-    // /chart.png?id=...&avg=60&sdate=...&edate=...&width=1320&height=620&graphstyling=baseFontSize='12'%20showLegend='1'&graphid=-1
-
-    const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?id=${sensorId}&avg=60&sdate=${sdate}&edate=${edate}&width=1320&height=620&graphstyling=baseFontSize%3D%2712%27%20showLegend%3D%271%27&graphid=-1&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
+    // PRTG Historical Chart URL format: Request 2x HD resolution
+    // width=2640&height=1240 with larger font size
+    const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?id=${sensorId}&avg=60&sdate=${sdate}&edate=${edate}&width=2640&height=1240&graphstyling=baseFontSize%3D%2720%27%20showLegend%3D%271%27&graphid=-1&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
 
     try {
       const response = await axios.get(chartUrl, {
@@ -64,10 +63,11 @@ export class ReceiptReportPublicController {
         timeout: 30000,
       });
 
-      // Automatically add a white background to the transparent PNG
+      // Automatically add a white background and sharpen the HD image
       const imageWithWhiteBg = await sharp(response.data)
         .flatten({ background: { r: 255, g: 255, b: 255 } })
-        .png()
+        .sharpen()
+        .png({ quality: 100 })
         .toBuffer();
 
       res.set('Content-Type', 'image/png');
