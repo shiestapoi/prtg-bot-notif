@@ -55,10 +55,11 @@ export async function ensureDatabaseReady() {
     '[db-bootstrap] Ensuring database schema and seed data are ready...',
   );
   if (
-    !runWithRetry('prisma migrate deploy', 'npx', [
+    !runWithRetry('prisma db push', 'npx', [
       'prisma',
-      'migrate',
-      'deploy',
+      'db',
+      'push',
+      '--accept-data-loss',
     ])
   ) {
     console.warn(
