@@ -42,23 +42,23 @@ const STATUS_PRIORITY: Record<NocStatus, number> = {
 };
 
 const STATUS_COLORS: Record<NocStatus, string> = {
-  DOWN: 'bg-red-600 text-white animate-pulse',
-  NO_TRAFFIC: 'bg-red-500 text-white',
-  POSSIBLE_FLAPPING: 'bg-orange-500 text-white',
-  HIGH_UTILIZATION: 'bg-yellow-500 text-black',
-  LOW_TRAFFIC: 'bg-yellow-400 text-black',
-  NORMAL: 'bg-green-600 text-white',
-  MAINTENANCE: 'bg-[#fadb14] text-black font-bold text-white',
+  DOWN: 'bg-[#ef4444] text-white animate-pulse',
+  NO_TRAFFIC: 'bg-[#ef4444] text-white',
+  POSSIBLE_FLAPPING: 'bg-[#f59e0b] text-black',
+  HIGH_UTILIZATION: 'bg-[#f59e0b] text-black',
+  LOW_TRAFFIC: 'bg-[#fadb14] text-[#0a0a0a] font-bold',
+  NORMAL: 'bg-[#22c55e] text-black',
+  MAINTENANCE: 'bg-[#fadb14] text-[#0a0a0a] font-bold',
 };
 
 const STATUS_CARD_BORDER: Record<NocStatus, string> = {
-  DOWN: 'border-red-500 ring-2 ring-red-500/50',
-  NO_TRAFFIC: 'border-red-400',
-  POSSIBLE_FLAPPING: 'border-orange-400',
-  HIGH_UTILIZATION: 'border-yellow-400',
-  LOW_TRAFFIC: 'border-yellow-300',
-  NORMAL: 'border-[#333333]',
-  MAINTENANCE: 'border-blue-500',
+  DOWN: 'border-[#ef4444] ring-1 ring-[#ef4444]',
+  NO_TRAFFIC: 'border-[#ef4444]',
+  POSSIBLE_FLAPPING: 'border-[#f59e0b]',
+  HIGH_UTILIZATION: 'border-[#f59e0b]',
+  LOW_TRAFFIC: 'border-[#fadb14]',
+  NORMAL: 'border-[#2a2a2a]',
+  MAINTENANCE: 'border-[#fadb14]',
 };
 
 // ─── Wake Lock (prevent screen sleep) ───────────────────────────────────────
@@ -532,66 +532,60 @@ export default function NocTvDashboardPageV2() {
 
   return (
     <div
-      className={`min-h-screen text-white p-2 select-none text-[12px] transition-colors duration-700 ${hasDown ? 'bg-[#0a0a0a] bg-gradient-to-br from-red-950/30 to-gray-950' : 'bg-[#0a0a0a]'}`}
+      className={`min-h-screen font-sans text-white p-6 select-none transition-colors duration-700 bg-[#0a0a0a]`}
       onClick={() => { if (!hasInteracted) handleEnableSound(); }}
     >
       {/* Connection Lost Overlay */}
       {!isConnected && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="text-center">
-            <div className="text-4xl mb-3 animate-pulse">📡</div>
-            <h2 className="text-xl font-bold text-red-400 mb-1">CONNECTION LOST</h2>
-            <p className="text-sm text-gray-400">Reconnecting... Auto-reload dalam 30 detik</p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0a0a]/90 backdrop-blur-sm">
+          <div className="bg-[#1a1a1a] p-12 rounded-[12px] border border-[#2a2a2a] text-center shadow-2xl">
+            <div className="text-[56px] font-bold text-[#ef4444] mb-4 tracking-[-2px] animate-pulse">OFFLINE</div>
+            <p className="text-[16px] text-[#cccccc]">Reconnecting... Auto-reload in 30 seconds</p>
           </div>
         </div>
       )}
 
-      {/* Header Bar — always on top */}
-      <header className="sticky top-0 z-[60] flex items-center justify-between mb-2 px-1 py-1 bg-[#0a0a0a]/95 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <h1 className="text-base font-bold tracking-tight">PRTG MONITORING</h1>
-          <div className="flex items-center gap-1">
-            <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} />
-            <span className="text-[10px] text-gray-400">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
+      {/* Header Bar */}
+      <header className="sticky top-0 z-[60] flex items-center justify-between mb-8 pb-4 border-b border-[#2a2a2a] bg-[#0a0a0a]">
+        <div className="flex items-center gap-6">
+          <h1 className="text-[24px] font-bold tracking-[-0.3px] text-white">CLICKHOUSE NOC</h1>
+          <div className="flex items-center gap-2">
+            <span className={`inline-block h-3 w-3 rounded-full ${isConnected ? 'bg-[#22c55e]' : 'bg-[#ef4444] animate-pulse'}`} />
+            <span className="text-[14px] font-medium text-[#cccccc] uppercase tracking-[1.5px]">{isConnected ? 'LIVE' : 'DISCONNECTED'}</span>
           </div>
           {publicIpMonitor && (
-            <div className="flex items-center gap-1">
-              <span className={`inline-block h-2 w-2 rounded-full ${publicIpMonitor.maintenance ? 'bg-yellow-400' : publicIpMonitor.status === 'RTO' ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
-              <span className="text-[10px] text-gray-400">{publicIpMonitor.maintenance ? (publicIpMonitor.maintenanceLabel ?? 'MAINTENANCE') : 'WEB PRTG'}</span>
-              <span className={`font-mono text-[10px] font-bold tabular-nums ${publicIpMonitor.maintenance ? 'text-yellow-300' : publicIpMonitor.status === 'RTO' ? 'text-red-400' : 'text-emerald-400'}`}>
-                {publicIpMonitor.maintenance ? 'MAINT' : publicIpMonitor.lastLatencyMs === null ? publicIpMonitor.status : `${publicIpMonitor.lastLatencyMs.toFixed(1)} ms`}
+            <div className="flex items-center gap-2 ml-4">
+              <span className={`inline-block h-3 w-3 rounded-full ${publicIpMonitor.maintenance ? 'bg-[#fadb14]' : publicIpMonitor.status === 'RTO' ? 'bg-[#ef4444] animate-pulse' : 'bg-[#22c55e]'}`} />
+              <span className="text-[14px] font-medium text-[#cccccc] uppercase tracking-[1.5px]">{publicIpMonitor.maintenance ? (publicIpMonitor.maintenanceLabel ?? 'MAINT') : 'WEB PRTG'}</span>
+              <span className={`font-mono text-[14px] font-normal ${publicIpMonitor.maintenance ? 'text-[#fadb14]' : publicIpMonitor.status === 'RTO' ? 'text-[#ef4444]' : 'text-[#22c55e]'}`}>
+                {publicIpMonitor.maintenance ? 'MAINT' : publicIpMonitor.lastLatencyMs === null ? publicIpMonitor.status : `${publicIpMonitor.lastLatencyMs.toFixed(1)}ms`}
               </span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {/* Status Summary */}
-          <div className="flex items-center gap-2 text-[10px]">
+          <div className="flex items-center gap-3 mr-4">
             {downCount > 0 && (
-              <span className="flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 font-bold animate-pulse">
-                🔴 {downCount} DOWN
+              <span className="font-bold text-[18px] text-[#ef4444] animate-pulse tracking-[-0.5px]">
+                {downCount} DOWN
               </span>
             )}
             {warningCount > 0 && (
-              <span className="flex items-center gap-1 rounded-full bg-yellow-500 px-2 py-0.5 font-bold text-black">
-                ⚠️ {warningCount}
+              <span className="font-bold text-[18px] text-[#fadb14] tracking-[-0.5px]">
+                {warningCount} WARN
               </span>
             )}
-            <span className="flex items-center gap-1 rounded-full bg-green-600 px-2 py-0.5 font-bold">
-              ✅ {normalCount}
-            </span>
           </div>
 
-          {/* Fullscreen Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-            className="rounded bg-gray-700 hover:bg-gray-600 px-2 py-1 text-[10px] font-medium transition"
+            className="rounded-[8px] bg-[#1a1a1a] hover:bg-[#242424] text-white px-[20px] py-[12px] text-[14px] font-semibold transition border border-[#2a2a2a]"
           >
-            {isFullscreen ? '⬜ Exit' : '⛶ Full'}
+            {isFullscreen ? 'Exit Full' : 'Fullscreen'}
           </button>
 
-          {/* View Mode Toggle — cycle button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -599,49 +593,31 @@ export default function NocTvDashboardPageV2() {
               const currentIdx = modes.indexOf(viewMode);
               setViewMode(modes[(currentIdx + 1) % modes.length]);
             }}
-            className="rounded bg-gray-700 hover:bg-gray-600 px-2 py-1 text-[10px] font-medium transition"
+            className="rounded-[8px] bg-[#1a1a1a] hover:bg-[#242424] text-white px-[20px] py-[12px] text-[14px] font-semibold transition border border-[#2a2a2a] capitalize"
           >
-            {viewMode === 'grid' ? '▦ Grid' : viewMode === 'compact' ? '▤ Compact' : '☰ List'}
+            View: {viewMode}
           </button>
 
-          {/* Spotlight Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); setSpotlightEnabled(!spotlightEnabled); }}
-            className={`rounded px-2 py-1 text-[10px] font-medium transition ${spotlightEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+            className={`rounded-[8px] px-[20px] py-[12px] text-[14px] font-semibold transition ${spotlightEnabled ? 'bg-[#fadb14] text-[#0a0a0a]' : 'bg-[#1a1a1a] text-white hover:bg-[#242424] border border-[#2a2a2a]'}`}
           >
-            {spotlightEnabled ? '📺 Rotate ON' : '📺 Rotate OFF'}
+            Spotlight {spotlightEnabled ? 'ON' : 'OFF'}
           </button>
 
-          {/* Alarm Type Selector — opens modal */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setAlarmModalOpen(true); }}
-            className="rounded bg-gray-700 hover:bg-gray-600 px-2 py-1 text-[10px] font-medium transition"
-          >
-            {ALARM_LABELS[alarmType]}
-          </button>
-
-          {/* Sound Toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); setSoundEnabled(!soundEnabled); setHasInteracted(true); }}
-            className={`rounded px-2 py-1 text-[10px] font-medium transition ${soundEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+            className={`rounded-[8px] px-[20px] py-[12px] text-[14px] font-semibold transition ${soundEnabled ? 'bg-[#22c55e] text-[#0a0a0a]' : 'bg-[#1a1a1a] text-white hover:bg-[#242424] border border-[#2a2a2a]'}`}
           >
-            {soundEnabled ? '🔊 ON' : '🔇 OFF'}
-          </button>
-
-          {/* Test Alarm */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setHasInteracted(true); playAlarm(); }}
-            className="rounded bg-red-700 hover:bg-red-600 px-2 py-1 text-[10px] font-medium transition"
-          >
-            🚨 Test
+            Sound {soundEnabled ? 'ON' : 'OFF'}
           </button>
 
           {/* Clock */}
-          <div className="text-right">
-            <div className="text-sm font-mono font-bold tabular-nums">
+          <div className="text-right ml-4">
+            <div className="text-[24px] font-mono font-bold tracking-[-0.5px] leading-none text-white">
               {clockStr.time}
             </div>
-            <div className="text-[9px] text-gray-400">
+            <div className="text-[12px] text-[#888888] font-medium tracking-[1.5px] uppercase mt-1">
               {clockStr.date}
             </div>
           </div>
@@ -657,12 +633,12 @@ export default function NocTvDashboardPageV2() {
 
       {/* Group Filter Tabs */}
       {groups.length > 2 && (
-        <div className="flex items-center gap-1 mb-2 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
           {groups.map((group) => (
             <button
               key={group}
               onClick={(e) => { e.stopPropagation(); setSelectedGroup(group); }}
-              className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-medium transition ${selectedGroup === group ? 'bg-[#fadb14] text-black font-bold text-white' : 'bg-[#1f1f1f] text-gray-400 hover:bg-gray-700'}`}
+              className={`shrink-0 rounded-[8px] px-[14px] py-[8px] text-[14px] font-semibold transition ${selectedGroup === group ? 'bg-[#1a1a1a] text-white border border-[#333333]' : 'bg-transparent text-[#888888] hover:text-white'}`}
             >
               {group}
             </button>
@@ -672,7 +648,7 @@ export default function NocTvDashboardPageV2() {
 
       {/* Cards — view mode dependent */}
       {viewMode === 'grid' && (
-        <div className={`grid ${gridCols} gap-2`}>
+        <div className={`grid ${gridCols} gap-6`}>
           {filteredItems.map((item) => (
             <TvCard key={item.configId} item={item} onToggleMaintenance={toggleMaintenance} onClickDetail={setDetailItem} />
           ))}
@@ -917,99 +893,79 @@ const TvCard = memo(function TvCard({ item, onToggleMaintenance, onClickDetail }
 
   return (
     <div
-      className={`relative rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-[#141414] overflow-hidden transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}
+      className={`relative rounded-[12px] border ${isMaintenance ? 'border-[#fadb14] ring-1 ring-[#fadb14]/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-[#1a1a1a] p-0 overflow-hidden transition-all ${isDown && !isMaintenance ? 'shadow-[0_0_15px_rgba(239,68,68,0.2)]' : ''} ${isMaintenance ? 'opacity-80' : ''}`}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(true); }}
       onClick={(e) => { e.stopPropagation(); if (!showMenu) onClickDetail(item); }}
     >
       {/* Context Menu (right-click) */}
       {showMenu && (
-        <div className="absolute top-8 right-2 z-50 rounded-lg bg-[#1f1f1f] border border-gray-600 shadow-xl py-1 min-w-[160px]">
+        <div className="absolute top-12 right-4 z-50 rounded-[8px] bg-[#242424] border border-[#3a3a3a] shadow-xl py-2 min-w-[200px]">
           <button
             onClick={(e) => { e.stopPropagation(); onToggleMaintenance(item.configId, item.maintenance); setShowMenu(false); }}
-            className="w-full text-left px-3 py-1.5 text-[10px] hover:bg-gray-700 transition"
+            className="w-full text-left px-4 py-2 text-[14px] font-semibold text-white hover:bg-[#333333] transition"
           >
-            {isMaintenance ? '✅ Akhiri Maintenance' : '🔧 Set Maintenance'}
+            {isMaintenance ? 'Akhiri Maintenance' : 'Set Maintenance'}
           </button>
         </div>
       )}
+      
       {/* Title + Status */}
-      <div className="flex items-center justify-between px-2 py-1 border-b border-gray-800">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-[11px] font-semibold truncate" title={item.title}>{item.title}</h3>
-          <p className="text-[9px] text-gray-500">{item.groupName}</p>
+      <div className="flex items-start justify-between p-6 pb-4 border-b border-[#2a2a2a] bg-[#1a1a1a]">
+        <div className="flex-1 min-w-0 pr-4">
+          <p className="text-[13px] font-medium text-[#888888] tracking-[1px] uppercase mb-1">{item.groupName}</p>
+          <h3 className="text-[20px] font-bold text-white tracking-[-0.3px] leading-tight" title={item.title}>{item.title}</h3>
         </div>
-        <div className="flex flex-col items-end gap-0.5">
+        <div className="flex flex-col items-end gap-1">
           {isMaintenance ? (
-            <span className="shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase bg-[#fadb14] text-black font-bold text-white">
-              🔧 {item.maintenanceLabel ?? 'MAINTENANCE'}
+            <span className="shrink-0 rounded-full px-[12px] py-[4px] text-[12px] font-bold uppercase bg-[#fadb14] text-[#0a0a0a] tracking-[1.5px]">
+              {item.maintenanceLabel ?? 'MAINTENANCE'}
             </span>
           ) : (
-            <span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+            <span className={`shrink-0 rounded-full px-[12px] py-[4px] text-[12px] font-bold uppercase tracking-[1.5px] ${STATUS_COLORS[item.lastStatus]}`}>
               {item.lastStatus.replace('_', ' ')}
             </span>
           )}
           {item.lastStatus !== 'NORMAL' && !isMaintenance && duration && (
-            <span className="text-[8px] text-gray-400">{duration}</span>
+            <span className="text-[14px] font-mono text-[#888888] mt-1">{duration}</span>
           )}
         </div>
       </div>
 
-      {/* Chart with skeleton loading — aspect ratio 925:300 */}
-      <div className="relative mx-1 mt-1 rounded overflow-hidden" style={{ aspectRatio: '925 / 300' }}>
+      {/* Chart */}
+      <div className="relative w-full h-[120px] bg-[#0a0a0a] border-b border-[#2a2a2a]">
         {!imgError ? (
           <>
             {imgLoading && (
-              <div className="absolute inset-0 bg-gray-200 animate-pulse rounded">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="h-[40%] w-[80%] bg-gray-300 rounded" />
-                    <div className="flex w-[80%] justify-between">
-                      <div className="h-1.5 w-8 bg-gray-300 rounded" />
-                      <div className="h-1.5 w-8 bg-gray-300 rounded" />
-                      <div className="h-1.5 w-8 bg-gray-300 rounded" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div className="absolute inset-0 bg-[#121212] animate-pulse" />
             )}
             <img
               src={cachedChartUrl}
               alt={item.title}
-              className={`w-full h-full object-cover rounded transition-opacity duration-300 ${imgLoading ? 'opacity-0' : 'opacity-100'}`}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${imgLoading ? 'opacity-0' : 'opacity-100'}`}
               loading="lazy"
               onLoad={() => setImgLoading(false)}
               onError={() => { setImgError(true); setImgLoading(false); }}
             />
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 rounded text-[8px] text-gray-400">No chart</div>
+          <div className="absolute inset-0 flex items-center justify-center bg-[#121212] text-[14px] font-mono text-[#5a5a5a]">NO CHART DATA</div>
         )}
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-3 gap-0.5 px-2 py-1 text-center">
-        <div>
-          <div className="text-[8px] text-gray-500 uppercase">Total</div>
-          <div className="text-[10px] font-bold">{formatBitrate(item.lastMetric?.totalTrafficBitrate)}</div>
+      <div className="grid grid-cols-3 gap-0 bg-[#1a1a1a] p-4 divide-x divide-[#2a2a2a]">
+        <div className="px-2 text-center">
+          <div className="text-[12px] font-semibold text-[#888888] uppercase tracking-[1.5px] mb-1">Total</div>
+          <div className="text-[16px] font-mono font-normal text-white">{formatBitrate(item.lastMetric?.totalTrafficBitrate)}</div>
         </div>
-        <div>
-          <div className="text-[8px] text-gray-500 uppercase">In</div>
-          <div className="text-[10px] font-bold text-green-400">{formatBitrate(item.lastMetric?.inboundBitrate)}</div>
+        <div className="px-2 text-center">
+          <div className="text-[12px] font-semibold text-[#888888] uppercase tracking-[1.5px] mb-1">In</div>
+          <div className="text-[16px] font-mono font-normal text-[#22c55e]">{formatBitrate(item.lastMetric?.inboundBitrate)}</div>
         </div>
-        <div>
-          <div className="text-[8px] text-gray-500 uppercase">Out</div>
-          <div className="text-[10px] font-bold text-blue-400">{formatBitrate(item.lastMetric?.outboundBitrate)}</div>
+        <div className="px-2 text-center">
+          <div className="text-[12px] font-semibold text-[#888888] uppercase tracking-[1.5px] mb-1">Out</div>
+          <div className="text-[16px] font-mono font-normal text-[#3b82f6]">{formatBitrate(item.lastMetric?.outboundBitrate)}</div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between px-2 pb-1">
-        {item.downCountThisMonth > 0 && (
-          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountThisMonth}x down bulan ini</span>
-        )}
-        <span className="text-[8px] text-gray-500 ml-auto">
-          {formatTime(item.lastPolledAt)}
-        </span>
       </div>
     </div>
   );
@@ -1023,47 +979,41 @@ const CompactCard = memo(function CompactCard({ item, onToggleMaintenance, onCli
 
   return (
     <div
-      className={`rounded-lg border ${isMaintenance ? 'border-blue-500 ring-1 ring-blue-500/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-[#141414] p-2 transition-all ${isDown && !isMaintenance ? 'shadow-md shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}
+      className={`relative rounded-[12px] border ${isMaintenance ? 'border-[#fadb14] ring-1 ring-[#fadb14]/30' : STATUS_CARD_BORDER[item.lastStatus]} bg-[#1a1a1a] p-4 transition-all ${isDown && !isMaintenance ? 'shadow-[0_0_15px_rgba(239,68,68,0.2)]' : ''} ${isMaintenance ? 'opacity-80' : ''}`}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onToggleMaintenance(item.configId, item.maintenance); }}
       onClick={(e) => { e.stopPropagation(); onClickDetail(item); }}
     >
       {/* Title + Status */}
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-[10px] font-semibold truncate flex-1 mr-1" title={item.title}>{item.title}</h3>
+      <div className="flex items-start justify-between mb-4">
+        <div className="min-w-0 pr-2">
+          <p className="text-[10px] font-medium text-[#888888] tracking-[1px] uppercase mb-1">{item.groupName}</p>
+          <h3 className="text-[14px] font-bold text-white tracking-[-0.2px] leading-tight truncate" title={item.title}>{item.title}</h3>
+        </div>
         {isMaintenance ? (
-          <span className="shrink-0 rounded px-1 py-0.5 text-[7px] font-bold uppercase bg-[#fadb14] text-black font-bold text-white">
-            🔧 {item.maintenanceLabel ?? 'MAINT'}
+          <span className="shrink-0 rounded-full px-[8px] py-[2px] text-[10px] font-bold uppercase bg-[#fadb14] text-[#0a0a0a]">
+            {item.maintenanceLabel ?? 'MAINT'}
           </span>
         ) : (
-          <span className={`shrink-0 rounded px-1 py-0.5 text-[7px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+          <span className={`shrink-0 rounded-full px-[8px] py-[2px] text-[10px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
             {item.lastStatus.replace('_', ' ')}
           </span>
         )}
       </div>
-      <p className="text-[8px] text-gray-500 mb-1.5">{item.groupName}</p>
 
       {/* Metrics — stacked */}
-      <div className="space-y-0.5">
-        <div className="flex justify-between text-[9px]">
-          <span className="text-gray-500">Total</span>
-          <span className="font-bold">{formatBitrate(item.lastMetric?.totalTrafficBitrate)}</span>
+      <div className="space-y-1">
+        <div className="flex justify-between items-center text-[12px]">
+          <span className="text-[#888888] font-semibold uppercase tracking-[1px] text-[10px]">Total</span>
+          <span className="font-mono text-white">{formatBitrate(item.lastMetric?.totalTrafficBitrate)}</span>
         </div>
-        <div className="flex justify-between text-[9px]">
-          <span className="text-gray-500">In</span>
-          <span className="font-bold text-green-400">{formatBitrate(item.lastMetric?.inboundBitrate)}</span>
+        <div className="flex justify-between items-center text-[12px]">
+          <span className="text-[#888888] font-semibold uppercase tracking-[1px] text-[10px]">In</span>
+          <span className="font-mono text-[#22c55e]">{formatBitrate(item.lastMetric?.inboundBitrate)}</span>
         </div>
-        <div className="flex justify-between text-[9px]">
-          <span className="text-gray-500">Out</span>
-          <span className="font-bold text-blue-400">{formatBitrate(item.lastMetric?.outboundBitrate)}</span>
+        <div className="flex justify-between items-center text-[12px]">
+          <span className="text-[#888888] font-semibold uppercase tracking-[1px] text-[10px]">Out</span>
+          <span className="font-mono text-[#3b82f6]">{formatBitrate(item.lastMetric?.outboundBitrate)}</span>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-gray-800">
-        {item.downCountThisMonth > 0 ? (
-          <span className="text-[7px] text-red-400 font-medium">🔴 {item.downCountThisMonth}x</span>
-        ) : <span />}
-        <span className="text-[7px] text-gray-500">{formatTime(item.lastPolledAt)}</span>
       </div>
     </div>
   );
@@ -1077,53 +1027,53 @@ const ListRow = memo(function ListRow({ item, onToggleMaintenance, onClickDetail
 
   return (
     <div
-      className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_100px_80px] gap-2 items-center px-2 py-1.5 rounded border ${isMaintenance ? 'border-blue-500' : STATUS_CARD_BORDER[item.lastStatus]} bg-[#141414] ${isDown && !isMaintenance ? 'shadow-sm shadow-red-500/20' : ''} ${isMaintenance ? 'opacity-75' : ''}`}
+      className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_100px_100px] gap-4 items-center px-4 py-3 rounded-[8px] border ${isMaintenance ? 'border-[#fadb14]' : STATUS_CARD_BORDER[item.lastStatus]} bg-[#1a1a1a] ${isDown && !isMaintenance ? 'shadow-[0_0_10px_rgba(239,68,68,0.15)]' : ''} ${isMaintenance ? 'opacity-80' : ''}`}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); onToggleMaintenance(item.configId, item.maintenance); }}
       onClick={(e) => { e.stopPropagation(); onClickDetail(item); }}
     >
       {/* Name */}
       <div className="min-w-0">
-        <h3 className="text-[10px] font-semibold truncate">{item.title}</h3>
-        <p className="text-[8px] text-gray-500">{item.groupName}</p>
+        <p className="text-[10px] text-[#888888] font-semibold tracking-[1px] uppercase mb-0.5">{item.groupName}</p>
+        <h3 className="text-[14px] font-bold text-white tracking-[-0.2px] truncate">{item.title}</h3>
       </div>
 
       {/* Status */}
       <div className="text-center">
         {isMaintenance ? (
-          <span className="inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase bg-[#fadb14] text-black font-bold text-white">
-            🔧 {item.maintenanceLabel ?? 'MAINT'}
+          <span className="inline-block rounded-full px-[10px] py-[3px] text-[10px] font-bold uppercase bg-[#fadb14] text-[#0a0a0a]">
+            {item.maintenanceLabel ?? 'MAINT'}
           </span>
         ) : (
-          <span className={`inline-block rounded px-1.5 py-0.5 text-[8px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
+          <span className={`inline-block rounded-full px-[10px] py-[3px] text-[10px] font-bold uppercase ${STATUS_COLORS[item.lastStatus]}`}>
             {item.lastStatus.replace('_', ' ')}
           </span>
         )}
       </div>
 
       {/* Total */}
-      <div className="text-right text-[10px] font-bold">
+      <div className="text-right text-[14px] font-mono font-medium text-white">
         {formatBitrate(item.lastMetric?.totalTrafficBitrate)}
       </div>
 
       {/* In */}
-      <div className="text-right text-[10px] font-bold text-green-400">
+      <div className="text-right text-[14px] font-mono font-medium text-[#22c55e]">
         {formatBitrate(item.lastMetric?.inboundBitrate)}
       </div>
 
       {/* Out */}
-      <div className="text-right text-[10px] font-bold text-blue-400">
+      <div className="text-right text-[14px] font-mono font-medium text-[#3b82f6]">
         {formatBitrate(item.lastMetric?.outboundBitrate)}
       </div>
 
       {/* Down count */}
       <div className="text-center">
         {item.downCountThisMonth > 0 && (
-          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountThisMonth}x</span>
+          <span className="text-[12px] font-mono font-medium text-[#ef4444]">{item.downCountThisMonth}x</span>
         )}
       </div>
 
       {/* Time */}
-      <div className="text-right text-[8px] text-gray-500">
+      <div className="text-right text-[12px] font-mono text-[#888888]">
         {formatTime(item.lastPolledAt)}
       </div>
     </div>
