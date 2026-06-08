@@ -688,6 +688,13 @@ export class PrtgReportService {
     return { id };
   }
 
+  async deleteConfigHistory(id: number) {
+    const deleted = await this.prisma.monitoringHistory.deleteMany({
+      where: { configId: id },
+    });
+    return { id, count: deleted.count };
+  }
+
   // ──────────────────────────────────────────────────────────────────────────
   // Cookies — DEPRECATED: Cookie tidak dipakai lagi, auth via username/passhash query params
   // Fungsi-fungsi ini tetap ada untuk backward compatibility (WhatsApp plugin, controller)

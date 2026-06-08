@@ -113,6 +113,11 @@ export class PrtgReportController {
     return this.prtgReportService.deleteConfig(id);
   }
 
+  @Delete('configs/:id/history')
+  deleteConfigHistory(@Param('id', ParseIntPipe) id: number) {
+    return this.prtgReportService.deleteConfigHistory(id);
+  }
+
   @Post('configs/:id/send')
   sendConfig(@Param('id', ParseIntPipe) id: number) {
     return this.prtgReportService.dispatchConfig(id);

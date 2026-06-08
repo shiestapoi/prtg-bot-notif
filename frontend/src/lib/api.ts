@@ -195,6 +195,9 @@ export const prtgConfigApi = {
 
   remove: (id: number) =>
     api.delete(`/api/prtg/configs/${id}`).then((r) => r.data),
+
+  clearHistory: (id: number) =>
+    api.delete(`/api/prtg/configs/${id}/history`).then((r) => r.data),
 };
 
 // ─── PRTG Report Schedules API ──────────────────────────────────────────────

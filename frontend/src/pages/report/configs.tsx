@@ -17,7 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Pencil, Trash2, Search, FlaskConical } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, FlaskConical, Eraser } from 'lucide-react';
 
 // ─── Form Types ─────────────────────────────────────────────────────────────
 
@@ -146,9 +146,11 @@ export default function ReportConfigsPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [clearingHistoryId, setClearingHistoryId] = useState<number | null>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [testResults, setTestResults] = useState<Array<{
     configId: number;
@@ -231,6 +233,8 @@ export default function ReportConfigsPage() {
   };
 
   const openDelete = (id: number) => { setDeletingId(id); setDeleteDialogOpen(true); };
+
+  const openClearHistory = (id: number) => { setClearingHistoryId(id); setClearHistoryDialogOpen(true); };
 
   const handleTestSample = async () => {
     setTestLoading(true);
@@ -321,6 +325,19 @@ export default function ReportConfigsPage() {
     }
   };
 
+  const handleClearHistory = async () => {
+    if (!clearingHistoryId) return;
+    try {
+      await prtgConfigApi.clearHistory(clearingHistoryId);
+      setClearHistoryDialogOpen(false);
+      setClearingHistoryId(null);
+      toast.success('History berhasil dihapus');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Terjadi kesalahan';
+      toast.error('Gagal menghapus history: ' + message);
+    }
+  };
+
   const getGroupName = (groupId: number) => groups.find((g) => g.id === groupId)?.name ?? `Group #${groupId}`;
 
   return (
@@ -399,8 +416,9 @@ export default function ReportConfigsPage() {
                   <TableCell>{new Date(config.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon-xs" onClick={() => openEdit(config)}><Pencil /></Button>
-                      <Button variant="ghost" size="icon-xs" onClick={() => openDelete(config.id)}><Trash2 /></Button>
+                      <Button variant="ghost" size="icon-xs" title="Clear History" onClick={() => openClearHistory(config.id)}><Eraser className="h-4 w-4 text-orange-500" /></Button>
+                      <Button variant="ghost" size="icon-xs" onClick={() => openEdit(config)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon-xs" onClick={() => openDelete(config.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -669,6 +687,17 @@ export default function ReportConfigsPage() {
           <DialogHeader><DialogTitle>Delete Config</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">Are you sure? This action cannot be undone.</p>
           <DialogFooter><Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button><Button variant="destructive" onClick={handleDelete}>Delete</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear History Dialog */}
+      <Dialog open={clearHistoryDialogOpen} onOpenChange={setClearHistoryDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Clear History</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Apakah anda yakin menghapus semua history {clearingHistoryId ? configs.find(c => c.id === clearingHistoryId)?.title : ''} di group {clearingHistoryId ? getGroupName(configs.find(c => c.id === clearingHistoryId)?.groupId || 0) : ''}?
+          </p>
+          <DialogFooter><Button variant="outline" onClick={() => setClearHistoryDialogOpen(false)}>Cancel</Button><Button variant="destructive" onClick={handleClearHistory}>Clear</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
