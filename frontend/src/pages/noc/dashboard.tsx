@@ -34,13 +34,13 @@ function formatLastPolled(lastPolledAt: string | null): string {
 
 
 const STATUS_PRIORITY: Record<NocStatus, number> = {
+  MAINTENANCE: -1,
   DOWN: 0,
   NO_TRAFFIC: 1,
   POSSIBLE_FLAPPING: 2,
   HIGH_UTILIZATION: 3,
   LOW_TRAFFIC: 4,
   NORMAL: 5,
-  MAINTENANCE: 6,
 };
 
 function sortByStatus(a: MonitoringSummaryItem, b: MonitoringSummaryItem): number {

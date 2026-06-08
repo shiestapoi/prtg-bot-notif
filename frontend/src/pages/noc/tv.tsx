@@ -32,13 +32,13 @@ function formatDuration(dateStr: string | null): string {
 
 /** Priority for sorting — lower number = more critical = shown first */
 const STATUS_PRIORITY: Record<NocStatus, number> = {
+  MAINTENANCE: -1,
   DOWN: 0,
   NO_TRAFFIC: 1,
   POSSIBLE_FLAPPING: 2,
   HIGH_UTILIZATION: 3,
   LOW_TRAFFIC: 4,
   NORMAL: 5,
-  MAINTENANCE: 6,
 };
 
 const STATUS_COLORS: Record<NocStatus, string> = {
