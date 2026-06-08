@@ -58,6 +58,15 @@ export class ReceiptReportService {
       const prev = previousState.get(history.configId) || { status: NocStatus.NORMAL, inbound: null, outbound: null };
       
       if (history.status !== prev.status) {
+        // ALWAYS close the previous incident on any state transition
+        const configIncidents = incidentsByConfig.get(history.configId);
+        if (configIncidents && configIncidents.length > 0) {
+          const lastIncident = configIncidents[configIncidents.length - 1];
+          if (!lastIncident.recoveryTime) {
+            lastIncident.recoveryTime = history.timestamp;
+          }
+        }
+
         // We ALWAYS capture DOWN and LOW_TRAFFIC for the web view snapshot
         if (history.status === NocStatus.DOWN || history.status === NocStatus.LOW_TRAFFIC) {
           if (!incidentsByConfig.has(history.configId)) {
@@ -71,15 +80,6 @@ export class ReceiptReportService {
             inboundDuring: history.inboundBitrate,
             outboundDuring: history.outboundBitrate,
           });
-        } else if (history.status === NocStatus.NORMAL) {
-          // Find the last ongoing incident and mark recovery
-          const configIncidents = incidentsByConfig.get(history.configId);
-          if (configIncidents && configIncidents.length > 0) {
-            const lastIncident = configIncidents[configIncidents.length - 1];
-            if (!lastIncident.recoveryTime) {
-              lastIncident.recoveryTime = history.timestamp;
-            }
-          }
         }
       }
       
@@ -146,7 +146,7 @@ export class ReceiptReportService {
             inboundDuring: i.inboundDuring,
             outboundBefore: i.outboundBefore,
             outboundDuring: i.outboundDuring,
-            threshold: config.minTrafficThreshold,
+            threshold: i.status === NocStatus.LOW_TRAFFIC ? config.thresholdLow : config.minTrafficThreshold,
             sdate: this.formatPrtgDate(sdateObj),
             edate: this.formatPrtgDate(edateObj)
           };

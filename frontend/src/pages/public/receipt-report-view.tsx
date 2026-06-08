@@ -258,7 +258,7 @@ export default function PublicReceiptReportViewPage() {
                                   <div className="flex-1 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4 flex flex-col justify-center">
                                     <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Batas Bawah (Threshold)</div>
                                     <div className="font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 w-max px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900/50">
-                                      &lt; {incident.threshold} Mbps
+                                      &lt; {incident.threshold} {incident.status === 'LOW_TRAFFIC' ? '%' : 'Mbps'}
                                     </div>
                                   </div>
                                 )}
