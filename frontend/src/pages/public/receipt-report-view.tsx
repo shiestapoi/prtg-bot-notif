@@ -106,8 +106,8 @@ export default function PublicReceiptReportViewPage() {
       <main className="w-full">
         {/* Hero Section */}
         <section className="bg-[#ffffff] pt-[80px] pb-[64px] px-4 sm:px-6 flex flex-col items-center text-center">
-          <p className="text-[#0066cc] text-[21px] font-semibold tracking-[0.231px] mb-4">Laporan {periodLabel}</p>
-          <h1 className="text-[40px] md:text-[56px] font-semibold tracking-[-0.28px] leading-[1.07] text-[#1d1d1f] mb-6">
+          <p className="text-[#0066cc] text-[17px] sm:text-[21px] font-semibold tracking-[0.231px] mb-2 sm:mb-4">Laporan {periodLabel}</p>
+          <h1 className="text-[36px] sm:text-[40px] md:text-[56px] font-semibold tracking-[-0.28px] leading-[1.07] text-[#1d1d1f] mb-4 sm:mb-6">
             Bandwidth <br className="sm:hidden" /> Report.
           </h1>
           <p className="text-[28px] font-normal text-[#86868b] tracking-[0.196px] leading-[1.14] max-w-2xl mx-auto">
@@ -116,22 +116,22 @@ export default function PublicReceiptReportViewPage() {
         </section>
 
         {/* Store Utility Grid (Stats) */}
-        <section className="bg-[#f5f5f7] py-[80px] px-4 sm:px-6">
-          <div className="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-[#ffffff] rounded-[18px] p-[24px] flex flex-col items-center text-center shadow-[0_5px_30px_rgba(0,0,0,0.04)]">
-              <Server className="h-8 w-8 text-[#1d1d1f] mb-4" />
-              <h3 className="text-[40px] font-semibold tracking-[-0px] text-[#1d1d1f] mb-1">{totalConfigs}</h3>
-              <p className="text-[17px] font-semibold tracking-[-0.374px] text-[#1d1d1f]">Monitored Sensors</p>
+        <section className="bg-[#f5f5f7] py-[48px] sm:py-[80px] px-4 sm:px-6">
+          <div className="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="bg-[#ffffff] rounded-[18px] p-[20px] sm:p-[24px] flex flex-col items-center text-center shadow-[0_5px_30px_rgba(0,0,0,0.04)]">
+              <Server className="h-8 w-8 text-[#1d1d1f] mb-2 sm:mb-4" />
+              <h3 className="text-[32px] sm:text-[40px] font-semibold tracking-[-0px] text-[#1d1d1f] mb-1">{totalConfigs}</h3>
+              <p className="text-[15px] sm:text-[17px] font-semibold tracking-[-0.374px] text-[#1d1d1f]">Monitored Sensors</p>
             </div>
-            <div className="bg-[#ffffff] rounded-[18px] p-[24px] flex flex-col items-center text-center shadow-[0_5px_30px_rgba(0,0,0,0.04)]">
-              <ArrowDownCircle className="h-8 w-8 text-[#ff3b30] mb-4" />
-              <h3 className="text-[40px] font-semibold tracking-[-0px] text-[#ff3b30] mb-1">{totalDown}</h3>
-              <p className="text-[17px] font-semibold tracking-[-0.374px] text-[#1d1d1f]">Total Down</p>
+            <div className="bg-[#ffffff] rounded-[18px] p-[20px] sm:p-[24px] flex flex-col items-center text-center shadow-[0_5px_30px_rgba(0,0,0,0.04)]">
+              <ArrowDownCircle className="h-8 w-8 text-[#ff3b30] mb-2 sm:mb-4" />
+              <h3 className="text-[32px] sm:text-[40px] font-semibold tracking-[-0px] text-[#ff3b30] mb-1">{totalDown}</h3>
+              <p className="text-[15px] sm:text-[17px] font-semibold tracking-[-0.374px] text-[#1d1d1f]">Total Down</p>
             </div>
-            <div className="bg-[#ffffff] rounded-[18px] p-[24px] flex flex-col items-center text-center shadow-[0_5px_30px_rgba(0,0,0,0.04)]">
-              <Activity className="h-8 w-8 text-[#ff9500] mb-4" />
-              <h3 className="text-[40px] font-semibold tracking-[-0px] text-[#ff9500] mb-1">{totalLowTraffic}</h3>
-              <p className="text-[17px] font-semibold tracking-[-0.374px] text-[#1d1d1f]">Total Low Traffic</p>
+            <div className="bg-[#ffffff] rounded-[18px] p-[20px] sm:p-[24px] flex flex-col items-center text-center shadow-[0_5px_30px_rgba(0,0,0,0.04)]">
+              <Activity className="h-8 w-8 text-[#ff9500] mb-2 sm:mb-4" />
+              <h3 className="text-[32px] sm:text-[40px] font-semibold tracking-[-0px] text-[#ff9500] mb-1">{totalLowTraffic}</h3>
+              <p className="text-[15px] sm:text-[17px] font-semibold tracking-[-0.374px] text-[#1d1d1f]">Total Low Traffic</p>
             </div>
           </div>
         </section>
@@ -147,56 +147,56 @@ export default function PublicReceiptReportViewPage() {
               const theme = TILE_COLORS[index % TILE_COLORS.length];
               
               return (
-                <div key={config.configId} className={`w-full ${theme.bg} ${theme.text} py-[80px] flex flex-col items-center`}>
-                  <div className="text-center max-w-[980px] px-4 mx-auto mb-16">
-                    <span className={`text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-2 block`}>{config.groupName}</span>
-                    <h2 className={`text-[40px] md:text-[56px] font-semibold tracking-[-0.28px] leading-[1.07] mb-6`}>
+                <div key={config.configId} className={`w-full ${theme.bg} ${theme.text} py-[48px] sm:py-[80px] flex flex-col items-center`}>
+                  <div className="text-center max-w-[980px] px-4 mx-auto mb-10 sm:mb-16">
+                    <span className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-2 block`}>{config.groupName}</span>
+                    <h2 className={`text-[32px] sm:text-[40px] md:text-[56px] font-semibold tracking-[-0.28px] leading-[1.1] mb-4 sm:mb-6`}>
                       {config.title}
                     </h2>
-                    <div className="flex items-center justify-center gap-4 text-[17px] tracking-[-0.374px]">
+                    <div className="flex items-center justify-center gap-4 text-[15px] sm:text-[17px] tracking-[-0.374px]">
                       {config.downCount > 0 && <span className="text-[#ff3b30] font-semibold">Down: {config.downCount}</span>}
                       {config.lowTrafficCount > 0 && <span className="text-[#ff9500] font-semibold">Low Traffic: {config.lowTrafficCount}</span>}
                     </div>
                   </div>
 
-                  <div className="w-full max-w-[1440px] px-4 sm:px-6 space-y-[80px]">
+                  <div className="w-full max-w-[1440px] px-4 sm:px-6 space-y-[48px] sm:space-y-[80px]">
                     {config.incidents.map((incident, idx) => (
                       <div key={idx} className="flex flex-col items-center">
                         
                         {/* Traffic Info Utility Card */}
-                        <div className={`w-full max-w-3xl ${theme.cardBg} rounded-[18px] p-8 mb-10 shadow-[0_5px_30px_rgba(0,0,0,0.04)]`}>
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b border-[#e0e0e0] dark:border-[#333333] pb-4">
-                            <div className="flex items-center gap-3">
-                              <span className={`px-4 py-2 text-[14px] font-semibold rounded-[9999px] ${incident.status === 'DOWN' ? 'bg-[#ff3b30] text-white' : 'bg-[#ff9500] text-white'}`}>
+                        <div className={`w-full max-w-3xl ${theme.cardBg} rounded-[18px] p-5 sm:p-8 mb-6 sm:mb-10 shadow-[0_5px_30px_rgba(0,0,0,0.04)]`}>
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 border-b border-[#e0e0e0] dark:border-[#333333] pb-4 gap-3 sm:gap-0">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                              <span className={`px-3 py-1.5 sm:px-4 sm:py-2 text-[12px] sm:text-[14px] font-semibold rounded-[9999px] ${incident.status === 'DOWN' ? 'bg-[#ff3b30] text-white' : 'bg-[#ff9500] text-white'}`}>
                                 {incident.status === 'LOW_TRAFFIC' ? 'Low Traffic' : incident.status}
                               </span>
-                              <span className={`text-[21px] font-semibold tracking-[0.231px] ${theme.text}`}>{incident.formattedTime}</span>
+                              <span className={`text-[18px] sm:text-[21px] font-semibold tracking-[0.231px] ${theme.text}`}>{incident.formattedTime}</span>
                             </div>
                             {incident.recoveryTime && (
-                              <span className="text-[17px] font-semibold text-[#34c759] mt-3 sm:mt-0 tracking-[-0.374px]">
+                              <span className="text-[15px] sm:text-[17px] font-semibold text-[#34c759] tracking-[-0.374px]">
                                 Pulih: {new Date(incident.recoveryTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')} WIB
                               </span>
                             )}
                           </div>
 
                           {(incident.inboundBefore != null || incident.inboundDuring != null) && (
-                            <div className="grid grid-cols-2 gap-8">
-                              <div>
-                                <p className={`text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-2`}>Download</p>
-                                <p className={`text-[34px] font-semibold tracking-[-0.374px] ${theme.text}`}>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+                              <div className="flex flex-col sm:block items-start">
+                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Download</p>
+                                <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
                                   <span className="text-[#34c759]">{incident.inboundBefore ? (incident.inboundBefore / 1000 / 1000).toFixed(2) : '0'}</span>
-                                  <span className={`text-[24px] ${theme.muted} mx-2 font-normal`}>→</span>
+                                  <span className={`text-[20px] sm:text-[24px] ${theme.muted} mx-1 sm:mx-2 font-normal`}>→</span>
                                   <span className={incident.status === 'DOWN' ? 'text-[#ff3b30]' : 'text-[#ff9500]'}>{incident.inboundDuring ? (incident.inboundDuring / 1000 / 1000).toFixed(2) : '0'}</span>
-                                  <span className={`text-[17px] ${theme.muted} ml-1 font-normal`}>Mbps</span>
+                                  <span className={`text-[14px] sm:text-[17px] ${theme.muted} ml-1 font-normal`}>Mbps</span>
                                 </p>
                               </div>
-                              <div>
-                                <p className={`text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-2`}>Upload</p>
-                                <p className={`text-[34px] font-semibold tracking-[-0.374px] ${theme.text}`}>
+                              <div className="flex flex-col sm:block items-start">
+                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Upload</p>
+                                <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
                                   <span className="text-[#34c759]">{incident.outboundBefore ? (incident.outboundBefore / 1000 / 1000).toFixed(2) : '0'}</span>
-                                  <span className={`text-[24px] ${theme.muted} mx-2 font-normal`}>→</span>
+                                  <span className={`text-[20px] sm:text-[24px] ${theme.muted} mx-1 sm:mx-2 font-normal`}>→</span>
                                   <span className={incident.status === 'DOWN' ? 'text-[#ff3b30]' : 'text-[#ff9500]'}>{incident.outboundDuring ? (incident.outboundDuring / 1000 / 1000).toFixed(2) : '0'}</span>
-                                  <span className={`text-[17px] ${theme.muted} ml-1 font-normal`}>Mbps</span>
+                                  <span className={`text-[14px] sm:text-[17px] ${theme.muted} ml-1 font-normal`}>Mbps</span>
                                 </p>
                               </div>
                             </div>
@@ -224,7 +224,7 @@ export default function PublicReceiptReportViewPage() {
         </section>
       </main>
 
-      <footer className="bg-[#f5f5f7] py-[64px] border-t border-[#e0e0e0]">
+      <footer className="bg-[#f5f5f7] py-[32px] sm:py-[64px] border-t border-[#e0e0e0]">
         <div className="max-w-[1440px] mx-auto px-6 text-center">
           <p className="text-[12px] font-normal text-[#7a7a7a] tracking-[-0.12px]">
             Generated by Harutaka NOC Reporting Engine. v0.0.1

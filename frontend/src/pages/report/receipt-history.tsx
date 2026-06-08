@@ -85,8 +85,8 @@ export default function ReceiptHistoryPage() {
           ) : history.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">Belum ada riwayat laporan.</div>
           ) : (
-            <div className="rounded-md border">
-              <table className="w-full text-sm text-left">
+            <div className="rounded-md border overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[600px]">
                 <thead className="bg-muted text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 font-medium">Periode</th>
