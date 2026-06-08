@@ -56,7 +56,7 @@ export class MonitoringSchedulerService
   private readonly pollInProgress: Set<number> = new Set();
 
   /** Recovery grace period in ms — must be NORMAL for this long before sending recovery notif */
-  private readonly RECOVERY_GRACE_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly RECOVERY_GRACE_MS = 10 * 60 * 1000; // 10 minutes
 
   /** Cooldown for anomaly↔anomaly transitions (e.g., DOWN↔LOW_TRAFFIC): 1 hour */
   private readonly ESCALATION_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
@@ -602,7 +602,7 @@ export class MonitoringSchedulerService
       // Just became NORMAL — start grace period
       this.recoveryStartedAt.set(configId, now);
       this.logger.debug(
-        `Config ${configId}: Recovery grace period started (5 min)`,
+        `Config ${configId}: Recovery grace period started (10 min)`,
       );
       // Don't dispatch anything yet
     } else if (isRecovering && classification.status === NocStatus.NORMAL) {
@@ -632,7 +632,7 @@ export class MonitoringSchedulerService
             groupName: configRecord.group.name,
           });
           this.logger.log(
-            `Config ${configId} (${config.title}): Recovery confirmed after 5 min grace period`,
+            `Config ${configId} (${config.title}): Recovery confirmed after 10 min grace period`,
           );
         } else {
           this.logger.debug(
@@ -676,19 +676,16 @@ export class MonitoringSchedulerService
         );
       }
     } else if (!isRecovering && classification.status !== NocStatus.NORMAL) {
-      // Anomaly detected — only notify on FIRST transition from NORMAL → anomaly
-      // Once notified, do NOT re-notify while status remains the same anomaly state.
-      // Only notify again if:
-      //   1. Status was NORMAL before (first occurrence)
-      //   2. Status escalated to a DIFFERENT anomaly (e.g., LOW_TRAFFIC → DOWN) — with 1h cooldown
       if (this.isNotifyEnabledForStatus(classification.status, config)) {
         const isFirstTransition = previousStatus === NocStatus.NORMAL;
-        const isStatusEscalation =
-          previousStatus !== NocStatus.NORMAL &&
-          previousStatus !== classification.status;
+        
+        const isWorsening = previousStatus === NocStatus.LOW_TRAFFIC && (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC);
+        const isPartialRecovery = (previousStatus === NocStatus.DOWN || previousStatus === NocStatus.NO_TRAFFIC) && classification.status === NocStatus.LOW_TRAFFIC;
+        
+        const isOtherEscalation = previousStatus !== classification.status && !isWorsening && !isPartialRecovery && !isFirstTransition;
 
-        if (isFirstTransition) {
-          // First time anomaly from NORMAL — send immediately
+        if (isFirstTransition || isWorsening) {
+          // First time anomaly or worsening (LOW_TRAFFIC -> DOWN) — send immediately!
           const dispatchResult = await this.dispatcher.dispatch({
             configId: config.id,
             title: config.title,
@@ -710,8 +707,15 @@ export class MonitoringSchedulerService
             this.lastNotifiedAt.set(configId, now);
             this.lastNotifiedStatus.set(configId, classification.status);
           }
-        } else if (isStatusEscalation) {
-          // Status escalation (e.g., DOWN↔LOW_TRAFFIC) — apply 1-hour cooldown
+        } else if (isPartialRecovery) {
+          // Partial recovery (DOWN -> LOW_TRAFFIC) — suppress notification
+          // We update lastNotifiedStatus, but keep lastNotifiedAt so DOWN 1-hour cooldown persists
+          this.logger.debug(
+            `Config ${configId} (${config.title}): Partial recovery ${previousStatus}→${classification.status} suppressed`,
+          );
+          this.lastNotifiedStatus.set(configId, classification.status);
+        } else if (isOtherEscalation) {
+          // Other status escalation — apply 1-hour cooldown
           const lastNotified = this.lastNotifiedAt.get(configId);
           const cooldownElapsed =
             !lastNotified ||
