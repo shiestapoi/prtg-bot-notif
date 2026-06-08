@@ -71,7 +71,10 @@ export default function ReceiptSchedulesPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
+  }, []);
 
   const filteredSchedules = useMemo(() => {
     if (!search.trim()) return schedules;

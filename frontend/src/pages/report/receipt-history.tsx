@@ -23,9 +23,10 @@ export default function ReceiptHistoryPage() {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/receipt-reports');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await api.get('/api/report/receipt/history', { params: {} as any });
       setHistory(res.data);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Gagal memuat history laporan');
     } finally {
       setLoading(false);
@@ -33,6 +34,7 @@ export default function ReceiptHistoryPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchHistory();
   }, []);
 

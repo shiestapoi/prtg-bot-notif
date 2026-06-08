@@ -41,7 +41,10 @@ export default function ReportGroupsPage() {
     }
   };
 
-  useEffect(() => { fetchGroups(); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchGroups();
+  }, []);
 
   const openCreate = () => {
     setEditingId(null);

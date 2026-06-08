@@ -22,8 +22,8 @@ export default function WhatsappPage() {
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
-    // Fetch initial status
-    fetchStatus();
+    // Initial status fetch
+    // Will be called below
 
     // Connect to SSE stream for real-time updates
     const token = localStorage.getItem('prtg_token');
@@ -50,7 +50,12 @@ export default function WhatsappPage() {
     };
   }, []);
 
-  const fetchStatus = async () => {
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchStatus();
+  }, []);
+
+  async function fetchStatus() {
     try {
       const res = await api.get('/api/whatsapp/status');
       setStatus(res.data);

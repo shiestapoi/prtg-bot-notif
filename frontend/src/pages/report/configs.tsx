@@ -181,7 +181,10 @@ export default function ReportConfigsPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
+  }, []);
 
   const filteredConfigs = useMemo(() => {
     let result = configs;

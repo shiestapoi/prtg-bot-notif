@@ -23,9 +23,7 @@ export default function PrtgSettingPage() {
   const [alertMessageTemplate, setAlertMessageTemplate] = useState('');
   const [recoveryMessageTemplate, setRecoveryMessageTemplate] = useState('');
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  // Will run loadSettings in another chunk
 
   async function loadSettings() {
     try {
@@ -47,6 +45,11 @@ export default function PrtgSettingPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadSettings();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

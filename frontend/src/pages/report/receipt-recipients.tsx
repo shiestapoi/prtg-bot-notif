@@ -62,7 +62,10 @@ export default function ReceiptRecipientsPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
+  }, []);
 
   // Load WhatsApp targets when dialog opens
   const loadWaTargets = async () => {
