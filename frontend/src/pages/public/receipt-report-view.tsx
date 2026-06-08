@@ -204,14 +204,20 @@ export default function PublicReceiptReportViewPage() {
                         </div>
 
                         {/* Product Imagery (Chart) resting on surface */}
-                        <div className="w-full max-w-5xl flex justify-center">
+                        <div className="w-full max-w-5xl flex justify-center mt-6">
                            <Zoom>
-                             <img 
-                               src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
-                               alt={`Chart for ${config.title}`} 
-                               className="max-w-full h-auto bg-[#ffffff] shadow-[0_5px_30px_rgba(0,0,0,0.22)] rounded-[0px]"
-                               loading="lazy"
-                             />
+                             <div className="relative overflow-hidden shadow-[0_5px_30px_rgba(0,0,0,0.22)] rounded-[8px] bg-[#f5f5f7] min-h-[150px] sm:min-h-[300px] w-full max-w-[800px] flex items-center justify-center">
+                               <img 
+                                 src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                                 alt={`Chart for ${config.title}`} 
+                                 className="w-full h-auto block"
+                                 loading="lazy"
+                                 onLoad={(e) => {
+                                   const target = e.target as HTMLImageElement;
+                                   target.parentElement?.classList.remove('animate-pulse');
+                                 }}
+                               />
+                             </div>
                            </Zoom>
                         </div>
                       </div>
