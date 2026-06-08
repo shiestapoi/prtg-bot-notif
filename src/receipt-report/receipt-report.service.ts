@@ -332,7 +332,7 @@ export class ReceiptReportService {
 
     switch (period) {
       case ReceiptPeriod.DAILY:
-        start.setHours(start.getHours() - 24);
+        start.setHours(0, 0, 0, 0);
         break;
       case ReceiptPeriod.WEEKLY:
         start.setDate(start.getDate() - 7);
@@ -341,7 +341,7 @@ export class ReceiptReportService {
         start.setDate(start.getDate() - 30);
         break;
       default:
-        start.setHours(start.getHours() - 24);
+        start.setHours(0, 0, 0, 0);
     }
     return start;
   }
