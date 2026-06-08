@@ -13,7 +13,7 @@ import {
 import * as express from 'express';
 import axios from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 import { MonitoringSchedulerService } from '../scheduler/monitoring-scheduler.service';
 import { AlertDispatcherService } from '../dispatcher/alert-dispatcher.service';
 import { ScreenshotService } from '../dispatcher/screenshot.service';

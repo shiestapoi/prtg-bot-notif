@@ -9,7 +9,7 @@ import {
 import type { Response } from 'express';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 
 @Controller('api/public/receipt-reports')
 export class ReceiptReportPublicController {
