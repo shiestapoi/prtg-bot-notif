@@ -9,6 +9,7 @@ import {
 import type { Response } from 'express';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
+import * as sharp from 'sharp';
 
 @Controller('api/public/receipt-reports')
 export class ReceiptReportPublicController {
@@ -63,9 +64,15 @@ export class ReceiptReportPublicController {
         timeout: 30000,
       });
 
+      // Automatically add a white background to the transparent PNG
+      const imageWithWhiteBg = await sharp(response.data)
+        .flatten({ background: { r: 255, g: 255, b: 255 } })
+        .png()
+        .toBuffer();
+
       res.set('Content-Type', 'image/png');
       res.set('Cache-Control', 'public, max-age=31536000');
-      res.status(response.status).send(response.data);
+      res.status(response.status).send(imageWithWhiteBg);
     } catch (error) {
       console.error(`Failed to fetch chart from PRTG: ${error}`);
       res.status(500).send('Chart not available');

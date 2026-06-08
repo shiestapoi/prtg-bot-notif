@@ -13,6 +13,7 @@ import {
 import * as express from 'express';
 import axios from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
+import * as sharp from 'sharp';
 import { MonitoringSchedulerService } from '../scheduler/monitoring-scheduler.service';
 import { AlertDispatcherService } from '../dispatcher/alert-dispatcher.service';
 import { ScreenshotService } from '../dispatcher/screenshot.service';
@@ -234,12 +235,18 @@ export class MonitoringController {
         return;
       }
 
+      // Automatically add a white background to the transparent PNG
+      const imageWithWhiteBg = await sharp(response.data)
+        .flatten({ background: { r: 255, g: 255, b: 255 } })
+        .png()
+        .toBuffer();
+
       res.set('Content-Type', 'image/png');
       res.set(
         'Cache-Control',
         'public, max-age=60, stale-while-revalidate=120',
       );
-      res.send(Buffer.from(response.data));
+      res.send(imageWithWhiteBg);
     } catch (error) {
       res
         .status(502)
