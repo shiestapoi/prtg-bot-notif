@@ -189,9 +189,9 @@ export class ReceiptReportService {
         downCount,
         lowTrafficCount,
         incidents: incidents.map((i) => {
-          const sdateObj = new Date(i.time.getTime() - 60 * 60 * 1000); // 1 hour before
+          const sdateObj = new Date(i.time.getTime() - 30 * 60 * 1000); // 30 minutes before
           const recoveryObj = i.recoveryTime || new Date();
-          const edateObj = new Date(recoveryObj.getTime() + 60 * 60 * 1000); // 1 hour after recovery
+          const edateObj = new Date(recoveryObj.getTime() + 30 * 60 * 1000); // 30 minutes after recovery
 
           return {
             status: i.status,
