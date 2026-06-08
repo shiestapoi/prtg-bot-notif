@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { publicReportApi } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Activity, AlertTriangle, ArrowDownCircle, Calendar, Clock, LayoutDashboard, Server } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowDownCircle, Clock, LayoutDashboard, Server } from 'lucide-react';
 import Zoom from 'react-medium-image-zoom';
 import 'react-medium-image-zoom/dist/styles.css';
 
@@ -62,20 +60,20 @@ export default function PublicReceiptReportViewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center space-y-4">
-        <Activity className="h-10 w-10 text-primary animate-pulse" />
-        <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-300">Loading Report...</h2>
+      <div className="min-h-screen bg-[#fafafc] dark:bg-[#000000] flex flex-col items-center justify-center space-y-4">
+        <Activity className="h-10 w-10 text-[#0066cc] animate-pulse" />
+        <h2 className="text-xl font-semibold text-[#1d1d1f] dark:text-white tracking-tight">Loading Report...</h2>
       </div>
     );
   }
 
   if (error || !snapshot) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white dark:bg-slate-900 shadow-xl rounded-xl p-8 text-center border border-slate-200 dark:border-slate-800">
-          <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">Laporan Tidak Ditemukan</h2>
-          <p className="text-slate-500 dark:text-slate-400">{error || 'ID Laporan tidak valid.'}</p>
+      <div className="min-h-screen bg-[#fafafc] dark:bg-[#000000] flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white dark:bg-[#1d1d1f] shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[24px] p-10 text-center">
+          <AlertTriangle className="h-16 w-16 text-[#ff3b30] mx-auto mb-6" />
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] dark:text-white mb-2 tracking-tight">Laporan Tidak Ditemukan</h2>
+          <p className="text-[#86868b] font-medium">{error || 'ID Laporan tidak valid.'}</p>
         </div>
       </div>
     );
@@ -89,222 +87,163 @@ export default function PublicReceiptReportViewPage() {
   const totalLowTraffic = snapshot.reportData.reduce((acc, c) => acc + c.lowTrafficCount, 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#09090b] text-slate-900 dark:text-slate-100 font-sans selection:bg-primary/30">
+    <div className="min-h-screen bg-[#fafafc] dark:bg-[#000000] text-[#1d1d1f] dark:text-[#f5f5f7] font-sans antialiased selection:bg-[#0066cc]/30">
       
-      {/* Header Section */}
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <LayoutDashboard className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">NOC Executive Report</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase">Network Operations Center</p>
-            </div>
+      {/* Global Nav-like Header */}
+      <header className="w-full bg-[#1d1d1f] text-[#f5f5f7]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-[44px] flex items-center justify-between text-xs font-medium tracking-tight">
+          <div className="flex items-center gap-2 opacity-90">
+            <LayoutDashboard className="h-4 w-4" />
+            <span>NOC Report</span>
           </div>
-          <div className="text-right hidden sm:block">
-            <div className="text-sm font-semibold">{periodLabel} Bandwidth Report</div>
-            <div className="text-xs text-slate-500 flex items-center gap-1 justify-end mt-0.5">
-              <Calendar className="h-3 w-3" />
-              {new Date(snapshot.startDate).toLocaleDateString('id-ID')} - {new Date(snapshot.endDate).toLocaleDateString('id-ID')}
-            </div>
+          <div className="opacity-80">
+            {new Date(snapshot.startDate).toLocaleDateString('id-ID')} — {new Date(snapshot.endDate).toLocaleDateString('id-ID')}
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* Title & Scope */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-extrabold tracking-tight">Ringkasan Laporan {periodLabel}</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">
-              Filter Grup: <span className="font-semibold text-slate-700 dark:text-slate-300">{snapshot.groupName || 'Semua Grup'}</span>
-            </p>
+      <main className="w-full">
+        {/* Hero Section */}
+        <section className="bg-[#ffffff] dark:bg-[#000000] pt-24 pb-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
+          <p className="text-[#0066cc] text-sm font-semibold tracking-wide uppercase mb-4">Laporan {periodLabel}</p>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.04em] leading-[1.05] text-[#1d1d1f] dark:text-[#f5f5f7] mb-6">
+            Laporan <br className="sm:hidden" /> Bandwidth.
+          </h1>
+          <p className="text-xl sm:text-2xl text-[#86868b] font-medium max-w-2xl mx-auto tracking-tight">
+            Grup Terpilih: <span className="text-[#1d1d1f] dark:text-[#f5f5f7]">{snapshot.groupName || 'Semua Grup'}</span>
+          </p>
+          <div className="mt-8 text-xs text-[#86868b] flex items-center justify-center gap-1.5 font-medium">
+            <Clock className="h-3.5 w-3.5" /> Dibuat pada {new Date(snapshot.createdAt).toLocaleString('id-ID')}
           </div>
-          <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 text-sm font-medium shadow-sm flex items-center gap-2">
-            <Clock className="h-4 w-4 text-primary" />
-            Dibuat: {new Date(snapshot.createdAt).toLocaleString('id-ID')}
-          </div>
-        </div>
+        </section>
 
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardDescription className="font-medium text-slate-500">Node Bermasalah</CardDescription>
-              <CardTitle className="text-4xl font-bold">{totalConfigs}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                <Server className="h-3.5 w-3.5" /> Sensor yang terdeteksi
+        {/* Stats Section (Edge to Edge Tile alternating) */}
+        <section className="bg-[#fafafc] dark:bg-[#1d1d1f] py-20">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 text-center">
+              <div className="flex flex-col items-center">
+                <div className="mb-4"><Server className="h-10 w-10 text-[#86868b]" /></div>
+                <h3 className="text-6xl font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7] mb-2">{totalConfigs}</h3>
+                <p className="text-lg font-medium text-[#86868b]">Sensor Termonitor</p>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-            <div className="absolute right-0 top-0 w-24 h-24 bg-red-500/10 rounded-bl-full -mr-4 -mt-4 blur-xl" />
-            <CardHeader className="pb-2">
-              <CardDescription className="font-medium text-slate-500">Total Down</CardDescription>
-              <CardTitle className="text-4xl font-bold text-red-600 dark:text-red-500">{totalDown}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xs text-red-600/70 dark:text-red-400/70 flex items-center gap-1 mt-1 font-medium">
-                <ArrowDownCircle className="h-3.5 w-3.5" /> Insiden Terputus
+              <div className="flex flex-col items-center">
+                <div className="mb-4"><ArrowDownCircle className="h-10 w-10 text-[#ff3b30]" /></div>
+                <h3 className="text-6xl font-semibold tracking-tight text-[#ff3b30] mb-2">{totalDown}</h3>
+                <p className="text-lg font-medium text-[#86868b]">Total Insiden Down</p>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-            <div className="absolute right-0 top-0 w-24 h-24 bg-amber-500/10 rounded-bl-full -mr-4 -mt-4 blur-xl" />
-            <CardHeader className="pb-2">
-              <CardDescription className="font-medium text-slate-500">Total Low Traffic</CardDescription>
-              <CardTitle className="text-4xl font-bold text-amber-600 dark:text-amber-500">{totalLowTraffic}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xs text-amber-600/70 dark:text-amber-400/70 flex items-center gap-1 mt-1 font-medium">
-                <Activity className="h-3.5 w-3.5" /> Insiden Trafik Rendah
+              <div className="flex flex-col items-center">
+                <div className="mb-4"><Activity className="h-10 w-10 text-[#ff9500]" /></div>
+                <h3 className="text-6xl font-semibold tracking-tight text-[#ff9500] mb-2">{totalLowTraffic}</h3>
+                <p className="text-lg font-medium text-[#86868b]">Total Low Traffic</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Detailed Report List */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-bold border-b border-slate-200 dark:border-slate-800 pb-2">Rincian Insiden per Node</h3>
-          
-          {snapshot.reportData.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 border-dashed">
-              <p className="text-slate-500">Tidak ada insiden tercatat pada periode ini.</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {snapshot.reportData.map((config) => (
-                <Card key={config.configId} className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-md">
-                  <div className="flex flex-col md:flex-row">
-                    
-                    {/* Left Column: Config Info */}
-                    <div className="md:w-1/3 bg-slate-50 dark:bg-slate-900/50 p-6 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800">
-                      <div className="mb-4">
-                        <Badge variant="outline" className="mb-2 bg-white dark:bg-slate-950 font-semibold">{config.groupName}</Badge>
-                        <h4 className="text-lg font-bold leading-tight">{config.title}</h4>
-                      </div>
-                      
-                      <div className="flex gap-4">
-                        {config.downCount > 0 && (
-                          <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Down</span>
-                            <span className="text-2xl font-bold text-red-500">{config.downCount}x</span>
-                          </div>
-                        )}
-                        {config.lowTrafficCount > 0 && (
-                          <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Low Traffic</span>
-                            <span className="text-2xl font-bold text-amber-500">{config.lowTrafficCount}x</span>
-                          </div>
-                        )}
-                      </div>
+          </div>
+        </section>
+
+        {/* Incidents Report List */}
+        <section className="bg-[#ffffff] dark:bg-[#000000] py-24">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24">
+            
+            {snapshot.reportData.length === 0 ? (
+              <div className="text-center">
+                <p className="text-xl text-[#86868b] font-medium tracking-tight">Tidak ada insiden tercatat pada periode ini.</p>
+              </div>
+            ) : (
+              snapshot.reportData.map((config, index) => (
+                <div key={config.configId} className="space-y-12">
+                  <div className="text-center max-w-3xl mx-auto">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-[#86868b] mb-2 block">{config.groupName}</span>
+                    <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7] mb-4">
+                      {config.title}
+                    </h2>
+                    <div className="flex items-center justify-center gap-6 text-sm font-medium">
+                      {config.downCount > 0 && <span className="text-[#ff3b30]">Down: {config.downCount}x</span>}
+                      {config.lowTrafficCount > 0 && <span className="text-[#ff9500]">Low Traffic: {config.lowTrafficCount}x</span>}
                     </div>
-
-                    {/* Right Column: Incident Timeline & Charts */}
-                    <div className="md:w-2/3 p-4 md:p-6 flex flex-col gap-6 w-full max-w-full overflow-hidden">
-                      <h5 className="text-sm font-semibold text-slate-900 dark:text-slate-200 flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-slate-400" /> Waktu & Detail Insiden
-                      </h5>
-                      <div className="grid grid-cols-1 gap-4 md:gap-6 w-full">
-                        {config.incidents.map((incident, idx) => (
-                          <div key={idx} className="flex flex-col gap-3 p-4 rounded-md bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/50">
-                            
-                            {/* Time & Status Header */}
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
-                              <div className="flex items-center gap-3">
-                                <Badge 
-                                  variant={incident.status === 'DOWN' ? 'destructive' : 'default'} 
-                                  className={incident.status === 'LOW_TRAFFIC' ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}
-                                >
-                                  {incident.status === 'LOW_TRAFFIC' ? 'LOW TRAFFIC' : incident.status}
-                                </Badge>
-                                <span className="text-sm font-medium tabular-nums">{incident.formattedTime}</span>
-                              </div>
-                              {incident.recoveryTime && (
-                                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-950 px-2 py-1 rounded">
-                                  Pulih: {new Date(incident.recoveryTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')} WIB
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Traffic Information */}
-                            {(incident.inboundBefore != null || incident.inboundDuring != null) && (
-                              <div className="flex flex-col sm:flex-row gap-4 text-sm mt-1 bg-white dark:bg-slate-900 p-3 rounded border border-slate-200 dark:border-slate-800">
-                                <div className="flex-1">
-                                  <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Traffic IN (Download)</div>
-                                  <div className="font-medium text-slate-800 dark:text-slate-200">
-                                    <span className="text-emerald-600 dark:text-emerald-500">{incident.inboundBefore ? (incident.inboundBefore / 1000 / 1000).toFixed(2) : '0'} Mbps</span>
-                                    <span className="mx-2 text-slate-400">→</span>
-                                    <span className={incident.status === 'DOWN' ? 'text-red-500' : 'text-amber-500'}>{incident.inboundDuring ? (incident.inboundDuring / 1000 / 1000).toFixed(2) : '0'} Mbps</span>
-                                  </div>
-                                </div>
-                                <div className="flex-1 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4">
-                                  <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Traffic OUT (Upload)</div>
-                                  <div className="font-medium text-slate-800 dark:text-slate-200">
-                                    <span className="text-emerald-600 dark:text-emerald-500">{incident.outboundBefore ? (incident.outboundBefore / 1000 / 1000).toFixed(2) : '0'} Mbps</span>
-                                    <span className="mx-2 text-slate-400">→</span>
-                                    <span className={incident.status === 'DOWN' ? 'text-red-500' : 'text-amber-500'}>{incident.outboundDuring ? (incident.outboundDuring / 1000 / 1000).toFixed(2) : '0'} Mbps</span>
-                                  </div>
-                                </div>
-                                {incident.threshold && (
-                                  <div className="flex-1 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4 flex flex-col justify-center">
-                                    <div className="text-xs text-slate-500 uppercase tracking-wider mb-1 font-semibold">Batas Bawah (Threshold)</div>
-                                    <div className="font-medium text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-950/30 w-max px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900/50">
-                                      &lt; {incident.threshold} {incident.status === 'LOW_TRAFFIC' ? '%' : 'Mbps'}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* PRTG Historical Chart */}
-                            <div className="mt-2 w-full overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800 shadow-sm relative bg-white">
-                              <div className="min-w-[600px] sm:min-w-full p-2 flex items-center justify-center bg-white relative z-10">
-                                <Zoom>
-                                  <img 
-                                    src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
-                                    alt={`PRTG Chart for ${config.title}`} 
-                                    className="max-w-full h-auto object-contain bg-white"
-                                    loading="lazy"
-                                  />
-                                </Zoom>
-                              </div>
-                              <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400 z-0 pointer-events-none">
-                                Memuat grafik PRTG...
-                              </div>
-                            </div>
-
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
                   </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
 
+                  <div className="space-y-20">
+                    {config.incidents.map((incident, idx) => (
+                      <div key={idx} className="flex flex-col items-center relative">
+                        
+                        {/* Traffic Info Tile */}
+                        <div className="w-full max-w-2xl bg-[#fafafc] dark:bg-[#1d1d1f] rounded-[24px] p-8 sm:p-10 mb-8 sm:mb-12">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+                            <div className="flex items-center gap-3">
+                              <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${incident.status === 'DOWN' ? 'bg-[#ff3b30]/10 text-[#ff3b30]' : 'bg-[#ff9500]/10 text-[#ff9500]'}`}>
+                                {incident.status === 'LOW_TRAFFIC' ? 'Low Traffic' : incident.status}
+                              </span>
+                              <span className="text-lg font-semibold tracking-tight">{incident.formattedTime}</span>
+                            </div>
+                            {incident.recoveryTime && (
+                              <span className="text-sm font-medium text-[#34c759] mt-3 sm:mt-0">
+                                Pulih: {new Date(incident.recoveryTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')} WIB
+                              </span>
+                            )}
+                          </div>
+
+                          {(incident.inboundBefore != null || incident.inboundDuring != null) && (
+                            <div className="grid grid-cols-2 gap-8 text-[#1d1d1f] dark:text-[#f5f5f7]">
+                              <div>
+                                <p className="text-xs font-semibold text-[#86868b] uppercase tracking-wider mb-2">Download</p>
+                                <p className="text-3xl font-semibold tracking-tight">
+                                  <span className="text-[#34c759]">{incident.inboundBefore ? (incident.inboundBefore / 1000 / 1000).toFixed(2) : '0'}</span>
+                                  <span className="text-lg text-[#86868b] mx-2 font-normal">→</span>
+                                  <span className={incident.status === 'DOWN' ? 'text-[#ff3b30]' : 'text-[#ff9500]'}>{incident.inboundDuring ? (incident.inboundDuring / 1000 / 1000).toFixed(2) : '0'}</span>
+                                  <span className="text-sm text-[#86868b] ml-1 font-normal">Mbps</span>
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold text-[#86868b] uppercase tracking-wider mb-2">Upload</p>
+                                <p className="text-3xl font-semibold tracking-tight">
+                                  <span className="text-[#34c759]">{incident.outboundBefore ? (incident.outboundBefore / 1000 / 1000).toFixed(2) : '0'}</span>
+                                  <span className="text-lg text-[#86868b] mx-2 font-normal">→</span>
+                                  <span className={incident.status === 'DOWN' ? 'text-[#ff3b30]' : 'text-[#ff9500]'}>{incident.outboundDuring ? (incident.outboundDuring / 1000 / 1000).toFixed(2) : '0'}</span>
+                                  <span className="text-sm text-[#86868b] ml-1 font-normal">Mbps</span>
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Product Imagery (Chart) resting on surface */}
+                        <div className="w-full relative px-2 sm:px-4 -mt-4 sm:-mt-8 z-10">
+                           <div className="max-w-4xl mx-auto rounded-[20px] overflow-x-auto overflow-y-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.8)] bg-white border border-[#e5e5ea] dark:border-[#333336]">
+                             <div className="min-w-[600px] sm:min-w-full p-2 sm:p-4 flex items-center justify-center bg-white">
+                               <Zoom>
+                                 <img 
+                                   src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                                   alt={`PRTG Chart for ${config.title}`} 
+                                   className="max-w-full h-auto object-contain bg-white transition-opacity duration-300"
+                                   loading="lazy"
+                                 />
+                               </Zoom>
+                             </div>
+                           </div>
+                        </div>
+
+                      </div>
+                    ))}
+                  </div>
+
+                  {index < snapshot.reportData.length - 1 && (
+                    <div className="w-full h-px bg-[#e5e5ea] dark:bg-[#333336] max-w-xs mx-auto my-32" />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-6 mt-12">
-        <div className="max-w-6xl mx-auto px-4 text-center text-sm text-slate-500">
-          Generated automatically by Harutaka NOC Reporting Engine. <br className="sm:hidden" />
-          <span className="hidden sm:inline"> | </span> 
-          ID: <code className="text-xs bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{snapshot.id}</code>
+      <footer className="bg-[#fafafc] dark:bg-[#1d1d1f] py-16 border-t border-[#e5e5ea] dark:border-[#333336]">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-xs font-medium text-[#86868b]">
+            Generated automatically by Harutaka NOC Reporting Engine. <br className="sm:hidden" />
+            v0.0.1 (Alpha)
+          </p>
         </div>
       </footer>
-
     </div>
   );
 }
