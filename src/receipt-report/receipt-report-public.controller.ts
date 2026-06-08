@@ -27,7 +27,13 @@ export class ReceiptReportPublicController {
       );
     }
 
-    return snapshot;
+    const settings = await this.prisma.prtgSetting.findFirst();
+    const reportUIVersion = settings?.reportUIVersion || 'v1';
+
+    return {
+      snapshot,
+      reportUIVersion,
+    };
   }
 
   @Get('chart/:snapshotId/:sensorId')

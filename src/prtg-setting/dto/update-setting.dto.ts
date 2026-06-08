@@ -28,4 +28,8 @@ export class UpdateSettingDto {
   @IsOptional()
   @IsString()
   tvUIVersion?: string;
+
+  @IsOptional()
+  @IsString()
+  reportUIVersion?: string;
 }

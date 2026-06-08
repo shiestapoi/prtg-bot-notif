@@ -23,6 +23,7 @@ export default function PrtgSettingPage() {
   const [alertMessageTemplate, setAlertMessageTemplate] = useState('');
   const [recoveryMessageTemplate, setRecoveryMessageTemplate] = useState('');
   const [tvUIVersion, setTvUIVersion] = useState('v1');
+  const [reportUIVersion, setReportUIVersion] = useState('v1');
 
   // Will run loadSettings in another chunk
 
@@ -37,6 +38,7 @@ export default function PrtgSettingPage() {
       setAlertMessageTemplate(data.alertMessageTemplate || '');
       setRecoveryMessageTemplate(data.recoveryMessageTemplate || '');
       setTvUIVersion(data.tvUIVersion || 'v1');
+      setReportUIVersion(data.reportUIVersion || 'v1');
       setLoginPassword('');
       setError(null);
     } catch (err) {
@@ -66,6 +68,7 @@ export default function PrtgSettingPage() {
         alertMessageTemplate,
         recoveryMessageTemplate,
         tvUIVersion,
+        reportUIVersion,
       };
 
       // Only include password/passhash if user typed a new one
@@ -177,6 +180,19 @@ export default function PrtgSettingPage() {
             >
               <option value="v1">V1 (Current Default)</option>
               <option value="v2">V2 (ClickHouse Design)</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="report-ui-version">Public Report UI Version</Label>
+            <select
+              id="report-ui-version"
+              value={reportUIVersion}
+              onChange={(e) => setReportUIVersion(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="v1">V1 (Apple-style Minimalist)</option>
+              <option value="v2">V2 (R1NET NOC Corporate)</option>
             </select>
           </div>
         </fieldset>

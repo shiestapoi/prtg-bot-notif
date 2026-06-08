@@ -10,6 +10,7 @@ export interface PrtgSettingDto {
   alertMessageTemplate: string;
   recoveryMessageTemplate: string;
   tvUIVersion: string;
+  reportUIVersion: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +40,7 @@ export class PrtgSettingService {
       alertMessageTemplate: settings.alertMessageTemplate,
       recoveryMessageTemplate: settings.recoveryMessageTemplate,
       tvUIVersion: settings.tvUIVersion,
+      reportUIVersion: settings.reportUIVersion,
       createdAt: settings.createdAt.toISOString(),
       updatedAt: settings.updatedAt.toISOString(),
     };
@@ -64,6 +66,7 @@ export class PrtgSettingService {
       alertMessageTemplate: string;
       recoveryMessageTemplate: string;
       tvUIVersion?: string;
+      reportUIVersion?: string;
     } = {
       loginUrl,
       loginUsername: normalizeInput(dto.loginUsername) || null,
@@ -74,6 +77,10 @@ export class PrtgSettingService {
 
     if (dto.tvUIVersion !== undefined) {
       data.tvUIVersion = dto.tvUIVersion;
+    }
+    
+    if (dto.reportUIVersion !== undefined) {
+      data.reportUIVersion = dto.reportUIVersion;
     }
 
     if (dto.loginPassword !== undefined) {
@@ -96,6 +103,7 @@ export class PrtgSettingService {
       alertMessageTemplate: updated.alertMessageTemplate,
       recoveryMessageTemplate: updated.recoveryMessageTemplate,
       tvUIVersion: updated.tvUIVersion,
+      reportUIVersion: updated.reportUIVersion,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
     };
