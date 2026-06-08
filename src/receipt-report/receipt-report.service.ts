@@ -181,9 +181,14 @@ export class ReceiptReportService {
       configMessages.push(configMsg);
     }
     
+    // Generate a short ID instead of UUID
+    const crypto = require('crypto');
+    const shortId = crypto.randomBytes(5).toString('hex');
+
     // Save Snapshot to Database
     const snapshot = await this.prisma.receiptReportSnapshot.create({
       data: {
+        id: shortId,
         scheduleId: schedule.id,
         period: schedule.period,
         groupName: schedule.group?.name,
@@ -193,7 +198,7 @@ export class ReceiptReportService {
       }
     });
 
-    const publicUrl = `http://prtg.harutaka.web.id/public/report/${snapshot.id}`;
+    const publicUrl = `http://prtg.harutaka.web.id/report/${snapshot.id}`;
 
     if (configMessages.length > 0) {
       fullMessage += configMessages.join('\n\n');

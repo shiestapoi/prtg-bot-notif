@@ -32,7 +32,7 @@ export const router = createBrowserRouter([
   },
   // Public Web View for Receipt Report
   {
-    path: '/public/report/:id',
+    path: '/report/:id',
     element: <PublicReceiptReportViewPage />,
   },
   {
