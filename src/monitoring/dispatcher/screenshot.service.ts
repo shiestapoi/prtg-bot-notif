@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { BrowserContext } from 'playwright';
+import axios from 'axios';
 // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
 // import { CookieVaultService } from '../../cookie-vault/cookie-vault.service';
 import { PrtgSettingService } from '../../prtg-setting/prtg-setting.service';
@@ -28,6 +29,20 @@ export class ScreenshotService {
     try {
       const settings = await this.prtgSetting.getSettingRaw();
       const authUrl = this.appendAuthParams(pageUrl, settings);
+
+      // If URL is an image directly, use axios instead of playwright
+      if (pageUrl.includes('.png') || pageUrl.includes('.jpg')) {
+        const response = await axios.get(authUrl, {
+          responseType: 'arraybuffer',
+          timeout: 15000,
+          validateStatus: () => true,
+        });
+        if (response.status === 200) {
+          return Buffer.from(response.data);
+        }
+        this.logger.warn(`Failed to fetch image via axios. HTTP ${response.status}`);
+        return null;
+      }
 
       // Cookie tidak dipakai lagi — context tanpa cookie
       context = await this.browserPool.createContext();
