@@ -22,6 +22,7 @@ export default function PrtgSettingPage() {
   const [messageTemplate, setMessageTemplate] = useState('');
   const [alertMessageTemplate, setAlertMessageTemplate] = useState('');
   const [recoveryMessageTemplate, setRecoveryMessageTemplate] = useState('');
+  const [tvUIVersion, setTvUIVersion] = useState('v1');
 
   // Will run loadSettings in another chunk
 
@@ -35,6 +36,7 @@ export default function PrtgSettingPage() {
       setMessageTemplate(data.messageTemplate || '');
       setAlertMessageTemplate(data.alertMessageTemplate || '');
       setRecoveryMessageTemplate(data.recoveryMessageTemplate || '');
+      setTvUIVersion(data.tvUIVersion || 'v1');
       setLoginPassword('');
       setError(null);
     } catch (err) {
@@ -63,6 +65,7 @@ export default function PrtgSettingPage() {
         messageTemplate,
         alertMessageTemplate,
         recoveryMessageTemplate,
+        tvUIVersion,
       };
 
       // Only include password/passhash if user typed a new one
@@ -164,6 +167,18 @@ export default function PrtgSettingPage() {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="tv-ui-version">TV Dashboard UI Version</Label>
+            <select
+              id="tv-ui-version"
+              value={tvUIVersion}
+              onChange={(e) => setTvUIVersion(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="v1">V1 (Current Default)</option>
+              <option value="v2">V2 (ClickHouse Design)</option>
+            </select>
+          </div>
         </fieldset>
 
         {/* Report Message Templates */}

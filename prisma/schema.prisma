@@ -33,6 +33,7 @@ model PrtgSetting {
   alertMessageTemplate   String   @default("⚠️ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}")
   recoveryMessageTemplate String  @default("✅ Pulih — {title}\nGroup: {groupName}\nWaktu: {time}")
   receiptMessageTemplate  String  @default("*{title}*\nGROUP : {groupName}\n{details}")
+  tvUIVersion            String   @default("v1")
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }

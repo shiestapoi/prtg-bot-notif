@@ -181,6 +181,7 @@ export interface PrtgSetting {
   messageTemplate: string;
   alertMessageTemplate: string;
   recoveryMessageTemplate: string;
+  tvUIVersion: string;
   createdAt: string;
   updatedAt: string;
 }

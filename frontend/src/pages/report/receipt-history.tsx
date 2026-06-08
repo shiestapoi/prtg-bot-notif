@@ -24,7 +24,7 @@ export default function ReceiptHistoryPage() {
     try {
       setLoading(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const res = await api.get('/api/report/receipt/history', { params: {} as any });
+      const res = await api.get('/api/receipt-reports', { params: {} as any });
       setHistory(res.data);
     } catch (_error) {
       toast.error('Gagal memuat history laporan');

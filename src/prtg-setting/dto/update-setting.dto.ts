@@ -24,4 +24,8 @@ export class UpdateSettingDto {
   @IsOptional()
   @IsString()
   recoveryMessageTemplate?: string;
+
+  @IsOptional()
+  @IsString()
+  tvUIVersion?: string;
 }

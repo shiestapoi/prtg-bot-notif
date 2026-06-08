@@ -63,7 +63,23 @@ export function Shell() {
         </main>
       </div>
 
-      <Toaster position="top-right" richColors />
+      <div onClick={(e) => {
+        const target = e.target as HTMLElement;
+        const toastEl = target.closest('[data-sonner-toast]');
+        if (toastEl) {
+          const closeBtn = toastEl.querySelector('[data-close-button]') as HTMLButtonElement | null;
+          if (closeBtn) closeBtn.click();
+        }
+      }}>
+        <Toaster 
+          position="top-right" 
+          richColors 
+          closeButton 
+          toastOptions={{ 
+            className: 'cursor-pointer'
+          }} 
+        />
+      </div>
     </div>
   );
 }
