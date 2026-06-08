@@ -83,6 +83,12 @@ export class ReceiptReportService {
 
     let sentCount = 0;
     
+    // Construct Title
+    const periodText = schedule.period === 'DAILY' ? 'HARIAN' : schedule.period === 'WEEKLY' ? 'MINGGUAN' : 'BULANAN';
+    let fullMessage = `*LAPORAN ${periodText} BW*\n====================\n`;
+    
+    const configMessages: string[] = [];
+
     for (const [configId, incidents] of incidentsByConfig.entries()) {
       if (incidents.length === 0) continue;
 
@@ -107,20 +113,23 @@ export class ReceiptReportService {
         });
       }
 
-      let message = template
+      let configMsg = template
         .replace(/{title}/g, config.title)
         .replace(/{groupName}/g, config.group?.name || 'N/A')
         .replace(/{details}/g, detailsStr.trim());
+      
+      configMessages.push(configMsg);
+    }
+    
+    fullMessage += configMessages.join('\n\n');
 
-      const recipients = await this.getRecipientsForSchedule(schedule);
-      for (const recipient of recipients) {
-        try {
-          // whatsappSenderService.sendTextToNumbers accepts array of numbers
-          await this.whatsappSenderService.sendTextToNumbers([recipient.phoneNumber], message);
-          sentCount++;
-        } catch (error) {
-          this.logger.error(`Failed to send receipt to ${recipient.phoneNumber}: ${error instanceof Error ? error.message : String(error)}`);
-        }
+    const recipients = await this.getRecipientsForSchedule(schedule);
+    for (const recipient of recipients) {
+      try {
+        await this.whatsappSenderService.sendTextToNumbers([recipient.phoneNumber], fullMessage);
+        sentCount++;
+      } catch (error) {
+        this.logger.error(`Failed to send receipt to ${recipient.phoneNumber}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
