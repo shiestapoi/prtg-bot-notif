@@ -49,7 +49,7 @@
     "baileys": "npm:@whiskeysockets/baileys@7.0.0-rc.9",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.1",
+    "class-validator": "^0.14.4",
     "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.2",
     "keyv": "^5.6.0",
