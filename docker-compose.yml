@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prtg_report_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://prtg_user:PrtgSecretPassword123!@db:5432/prtgreport?schema=public
+      - PORT=3000
+    depends_on:
+      - db
+    # We allow the app to use available RAM, but provide shm_size for Playwright
+    # /dev/shm must be large enough to handle screenshots without crashing Chrome
+    shm_size: '512m'
+
+  db:
+    image: postgres:15-alpine
+    container_name: prtg_report_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=prtg_user
+      - POSTGRES_PASSWORD=PrtgSecretPassword123!
+      - POSTGRES_DB=prtgreport
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Limit postgres RAM footprint to leave room for the Node App + Chromium
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+volumes:
+  pgdata:
