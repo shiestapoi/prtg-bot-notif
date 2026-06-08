@@ -182,9 +182,10 @@ export default function PublicReceiptReportViewPage() {
                           </div>
 
                           {(incident.inboundBefore != null || incident.inboundDuring != null) && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+                              {/* Traffic In */}
                               <div className="flex flex-col sm:block items-start">
-                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Download {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
+                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Traffic In {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
                                 <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
                                   <span className="text-[#34c759]">{incident.inboundBefore ? (incident.inboundBefore / 1000 / 1000).toFixed(2) : '0'}</span>
                                   <span className={`text-[20px] sm:text-[24px] ${theme.muted} mx-1 sm:mx-2 font-normal`}>→</span>
@@ -192,12 +193,23 @@ export default function PublicReceiptReportViewPage() {
                                   <span className={`text-[14px] sm:text-[17px] ${theme.muted} ml-1 font-normal`}>Mbps</span>
                                 </p>
                               </div>
+                              {/* Traffic Out */}
                               <div className="flex flex-col sm:block items-start">
-                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Upload {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
+                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Traffic Out {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
                                 <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
                                   <span className="text-[#34c759]">{incident.outboundBefore ? (incident.outboundBefore / 1000 / 1000).toFixed(2) : '0'}</span>
                                   <span className={`text-[20px] sm:text-[24px] ${theme.muted} mx-1 sm:mx-2 font-normal`}>→</span>
                                   <span className={incident.status === 'DOWN' ? 'text-[#ff3b30]' : 'text-[#ff9500]'}>{incident.outboundDuring ? (incident.outboundDuring / 1000 / 1000).toFixed(2) : '0'}</span>
+                                  <span className={`text-[14px] sm:text-[17px] ${theme.muted} ml-1 font-normal`}>Mbps</span>
+                                </p>
+                              </div>
+                              {/* Total Traffic */}
+                              <div className="flex flex-col sm:block items-start">
+                                <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Total Traffic {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
+                                <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
+                                  <span className="text-[#34c759]">{((incident.inboundBefore || 0) + (incident.outboundBefore || 0)) > 0 ? (((incident.inboundBefore || 0) + (incident.outboundBefore || 0)) / 1000 / 1000).toFixed(2) : '0'}</span>
+                                  <span className={`text-[20px] sm:text-[24px] ${theme.muted} mx-1 sm:mx-2 font-normal`}>→</span>
+                                  <span className={incident.status === 'DOWN' ? 'text-[#ff3b30]' : 'text-[#ff9500]'}>{((incident.inboundDuring || 0) + (incident.outboundDuring || 0)) > 0 ? (((incident.inboundDuring || 0) + (incident.outboundDuring || 0)) / 1000 / 1000).toFixed(2) : '0'}</span>
                                   <span className={`text-[14px] sm:text-[17px] ${theme.muted} ml-1 font-normal`}>Mbps</span>
                                 </p>
                               </div>
