@@ -25,7 +25,7 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-white p-1 rounded overflow-hidden flex items-center justify-center" style={{ width: '48px', height: '48px' }}>
-              <img src="https://r1net.id/images/riausatunet_logo.jpeg" alt="R1NET Logo" className="w-full h-auto object-contain" />
+              <img src="/riausatunet_logo.png" alt="R1NET Logo" className="w-full h-auto object-contain" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-white tracking-wide">R1NET</h1>
