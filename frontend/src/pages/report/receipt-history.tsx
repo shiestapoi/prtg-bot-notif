@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, RefreshCw, Calendar, FileText, Plus } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { ExternalLink, RefreshCw, Calendar, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import api from '@/lib/api';
 
 interface SnapshotHistory {
@@ -19,7 +19,6 @@ export default function ReceiptHistoryPage() {
   const [history, setHistory] = useState<SnapshotHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const { toast } = useToast();
 
   const fetchHistory = async () => {
     try {
@@ -27,7 +26,7 @@ export default function ReceiptHistoryPage() {
       const res = await api.get('/api/receipt-reports');
       setHistory(res.data);
     } catch (error) {
-      toast({ title: 'Error', description: 'Gagal memuat history laporan', variant: 'destructive' });
+      toast.error('Gagal memuat history laporan');
     } finally {
       setLoading(false);
     }
@@ -43,10 +42,10 @@ export default function ReceiptHistoryPage() {
       await api.post('/api/receipt-reports/manual-generate', {
         period: 'DAILY'
       });
-      toast({ title: 'Sukses', description: 'Laporan berhasil digenerate' });
+      toast.success('Laporan berhasil digenerate');
       fetchHistory();
     } catch (error) {
-      toast({ title: 'Error', description: 'Gagal men-generate laporan', variant: 'destructive' });
+      toast.error('Gagal men-generate laporan');
     } finally {
       setGenerating(false);
     }
