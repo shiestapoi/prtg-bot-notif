@@ -94,6 +94,9 @@ export class ReceiptReportService {
       const config = configs.find(c => c.id === configId);
       if (!config) continue;
 
+      const downCount = incidents.filter(i => i.status === NocStatus.DOWN).length;
+      const lowTrafficCount = incidents.filter(i => i.status === NocStatus.LOW_TRAFFIC).length;
+
       // Add to snapshot payload (includes ALL DOWN and LOW TRAFFIC regardless of schedule settings)
       reportDataPayload.push({
         configId: config.id,
