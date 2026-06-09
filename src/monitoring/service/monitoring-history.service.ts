@@ -270,18 +270,12 @@ export class MonitoringHistoryService {
       };
 
       if (existing) {
-        // Only update if existing was DOWN/error or missing traffic, while PRTG actually has traffic
-        if (
-          existing.status === 'DOWN' ||
-          existing.status === 'NO_TRAFFIC' ||
-          existing.errorMessage
-        ) {
-          await this.prisma.monitoringHistory.update({
-            where: { id: existing.id },
-            data: dataToSave,
-          });
-          upsertCount++;
-        }
+        // Selalu timpa dengan data PRTG (Source of Truth) sesuai permintaan user
+        await this.prisma.monitoringHistory.update({
+          where: { id: existing.id },
+          data: dataToSave,
+        });
+        upsertCount++;
       } else {
         await this.prisma.monitoringHistory.create({
           data: dataToSave,

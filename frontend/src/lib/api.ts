@@ -268,6 +268,9 @@ export const monitoringApi = {
   triggerPoll: (configId: number) =>
     api.post(`/api/monitoring/configs/${configId}/poll`).then((r) => r.data),
 
+  syncRange: (configId: number, startDate: string, endDate: string) =>
+    api.post(`/api/monitoring/configs/${configId}/sync-range`, { startDate, endDate }).then((r) => r.data),
+
   forceNotify: (configId: number) =>
     api.post<{ message: string; configId: number; status: string }>(`/api/monitoring/configs/${configId}/notify`).then((r) => r.data),
 

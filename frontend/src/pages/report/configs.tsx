@@ -17,7 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Pencil, Trash2, Search, FlaskConical, Eraser } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, FlaskConical, Eraser, History } from 'lucide-react';
 
 // ─── Form Types ─────────────────────────────────────────────────────────────
 
@@ -148,9 +148,14 @@ export default function ReportConfigsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [syncRangeDialogOpen, setSyncRangeDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [clearingHistoryId, setClearingHistoryId] = useState<number | null>(null);
+  const [syncRangeId, setSyncRangeId] = useState<number | null>(null);
+  const [syncStart, setSyncStart] = useState<string>('');
+  const [syncEnd, setSyncEnd] = useState<string>('');
+  const [syncLoading, setSyncLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
   const [testResults, setTestResults] = useState<Array<{
     configId: number;
@@ -238,6 +243,42 @@ export default function ReportConfigsPage() {
   const openDelete = (id: number) => { setDeletingId(id); setDeleteDialogOpen(true); };
 
   const openClearHistory = (id: number) => { setClearingHistoryId(id); setClearHistoryDialogOpen(true); };
+
+  const openSyncRange = (id: number) => {
+    setSyncRangeId(id);
+    // Default range is last 24 hours
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    // format as YYYY-MM-DDThh:mm
+    const toIsoLocal = (date: Date) => {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    };
+    setSyncStart(toIsoLocal(yesterday));
+    setSyncEnd(toIsoLocal(now));
+    setSyncRangeDialogOpen(true);
+  };
+
+  const handleSyncRange = async () => {
+    if (!syncRangeId || !syncStart || !syncEnd) return;
+    setSyncLoading(true);
+    try {
+      // convert local datetime strings to ISO strings for the backend
+      const startIso = new Date(syncStart).toISOString();
+      const endIso = new Date(syncEnd).toISOString();
+      const res = await api.post(`/api/monitoring/configs/${syncRangeId}/sync-range`, {
+        startDate: startIso,
+        endDate: endIso
+      });
+      toast.success(`Sync berhasil! ${res.data?.upsertedCount || 0} data ditambahkan/diperbarui.`);
+      setSyncRangeDialogOpen(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Terjadi kesalahan';
+      toast.error('Gagal melakukan sync: ' + message);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   const handleTestSample = async () => {
     setTestLoading(true);
@@ -419,6 +460,7 @@ export default function ReportConfigsPage() {
                   <TableCell>{new Date(config.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button variant="ghost" size="icon-xs" title="Sync PRTG History" onClick={() => openSyncRange(config.id)}><History className="h-4 w-4 text-blue-500" /></Button>
                       <Button variant="ghost" size="icon-xs" title="Clear History" onClick={() => openClearHistory(config.id)}><Eraser className="h-4 w-4 text-orange-500" /></Button>
                       <Button variant="ghost" size="icon-xs" onClick={() => openEdit(config)}><Pencil className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon-xs" onClick={() => openDelete(config.id)}><Trash2 className="h-4 w-4" /></Button>
@@ -740,6 +782,32 @@ export default function ReportConfigsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTestDialogOpen(false)}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sync Range Dialog */}
+      <Dialog open={syncRangeDialogOpen} onOpenChange={setSyncRangeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Sync PRTG History</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Tarik data history dari PRTG untuk rentang waktu tertentu. Data lama di database kita pada rentang ini akan ditimpa dengan data aktual dari PRTG.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="syncStart">Waktu Mulai</Label>
+              <Input id="syncStart" type="datetime-local" value={syncStart} onChange={(e) => setSyncStart(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="syncEnd">Waktu Selesai</Label>
+              <Input id="syncEnd" type="datetime-local" value={syncEnd} onChange={(e) => setSyncEnd(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSyncRangeDialogOpen(false)} disabled={syncLoading}>Cancel</Button>
+            <Button onClick={handleSyncRange} disabled={syncLoading || !syncStart || !syncEnd}>
+              {syncLoading ? 'Menyinkronkan...' : 'Mulai Sync'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

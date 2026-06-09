@@ -120,6 +120,45 @@ export class MonitoringController {
   }
 
   /**
+   * Manually triggers a historical data sync from PRTG for a specific config with a specific time range.
+   */
+  @Post('configs/:id/sync-range')
+  @HttpCode(HttpStatus.OK)
+  async syncConfigRange(
+    @Param('id', ParseIntPipe) id: number,
+    @express.Request() req: express.Request,
+  ): Promise<{ message: string; upsertedCount: number }> {
+    const config = await this.prisma.prtgConfig.findUnique({
+      where: { id },
+    });
+
+    if (!config || !config.monitoringEnabled) {
+      throw new BadRequestException(
+        `Config ${id} is not monitoring-enabled or does not exist`,
+      );
+    }
+
+    const { startDate, endDate } = req.body as { startDate: string; endDate: string };
+    if (!startDate || !endDate) {
+      throw new BadRequestException('startDate and endDate are required');
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const upsertedCount = await this.monitoringHistory.syncFromPrtg(
+      id,
+      start,
+      end,
+    );
+
+    return {
+      message: 'Sync range completed',
+      upsertedCount,
+    };
+  }
+
+  /**
    * Manually triggers historical data sync for all active monitoring configs.
    */
   @Post('sync-all')
