@@ -1,4 +1,4 @@
-import axios from 'axios';
+import * as ping from 'ping';
 import {
   Injectable,
   Logger,
@@ -146,20 +146,19 @@ export class PingMonitorSchedulerService
     host: string,
     timeoutSeconds: number,
   ): Promise<PingResult> {
-    const timeoutMs = timeoutSeconds * 1000;
-    const url = /^https?:\/\//i.test(host) ? host : `http://${host}`;
-    const startedAt = Date.now();
+    // Hapus protokol http/https dan path jika pengguna memasukkan URL, karena ICMP ping hanya menerima hostname/IP
+    const cleanHost = host.replace(/^https?:\/\//i, '').split('/')[0].split(':')[0];
+    
     try {
-      const response = await axios.get(url, {
-        timeout: timeoutMs,
-        validateStatus: () => true,
+      const res = await ping.promise.probe(cleanHost, {
+        timeout: timeoutSeconds,
       });
       return {
-        reachable: response.status > 0 && response.status < 500,
-        latencyMs: Date.now() - startedAt,
+        reachable: res.alive,
+        latencyMs: res.alive && typeof res.time === 'number' ? Math.round(res.time) : null,
       };
     } catch (error) {
-      this.logger.debug(`HTTP check to ${url} failed: ${error}`);
+      this.logger.debug(`ICMP check to ${cleanHost} failed: ${error}`);
       return { reachable: false, latencyMs: null };
     }
   }
