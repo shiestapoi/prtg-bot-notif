@@ -228,7 +228,7 @@ export class MonitoringHistoryService {
     // Process each metric and upsert into database
     for (const metric of metrics) {
       // Create a fake classification for historical data based on simple thresholds
-      let status = NocStatus.NORMAL;
+      let status: NocStatus = NocStatus.NORMAL;
       if (metric.errorPercent !== null && metric.errorPercent > 0) {
         status = NocStatus.DOWN;
       } else if (metric.totalTrafficBitrate === 0) {
