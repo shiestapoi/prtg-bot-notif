@@ -117,6 +117,43 @@ export class MetricParserService {
   }
 
   /**
+   * Normalizes a raw PRTG historicdata.json response into an array of structured metrics.
+   *
+   * @param rawResponseText - The raw HTTP response body text from PRTG historicdata.json
+   * @param configId - The PrtgConfig identifier (for error reporting)
+   * @returns Array of NormalizedMetric containing all data points
+   * @throws MetricParseError if the input is malformed
+   */
+  normalizeAll(
+    rawResponseText: string,
+    configId: string | number = 'unknown',
+  ): NormalizedMetric[] {
+    // Try to parse as JSON first (named keys format)
+    try {
+      const parsed = JSON.parse(rawResponseText);
+      const dataArray = parsed.histdata ?? parsed.values;
+
+      if (Array.isArray(dataArray) && dataArray.length > 0) {
+        return dataArray.map((entry) =>
+          this.parseNamedKeysEntry(entry, configId),
+        );
+      }
+    } catch {
+      // JSON parse failed
+    }
+
+    // Fallback: regex-based parsing for duplicate "value_raw" keys format
+    const entries = this.extractEntries(rawResponseText, configId);
+    if (entries.length === 0) {
+      throw new MetricParseError(configId, 'The data array is empty');
+    }
+
+    return entries.map((entry) =>
+      this.parseValueRawFormatEntry(entry, configId),
+    );
+  }
+
+  /**
    * Parses a PRTG entry with named keys (e.g., "Traffic Total (volume)": 123).
    * This is the format returned when using avg=0 without graphid/columns filters.
    */
@@ -240,16 +277,24 @@ export class MetricParserService {
       throw new MetricParseError(configId, 'The data array is empty');
     }
 
-    const firstEntry = entries[0];
+    return this.parseValueRawFormatEntry(entries[0], configId);
+  }
 
+  /**
+   * Parses a single entry string in the legacy duplicate "value_raw" keys format.
+   */
+  private parseValueRawFormatEntry(
+    entryStr: string,
+    configId: string | number,
+  ): NormalizedMetric {
     // Extract datetime_raw
-    const datetimeRawMatch = firstEntry.match(
+    const datetimeRawMatch = entryStr.match(
       /"datetime_raw"\s*:\s*"?([0-9.]+)"?/,
     );
     if (!datetimeRawMatch) {
       throw new MetricParseError(
         configId,
-        'First entry does not contain a valid datetime_raw field',
+        'Entry does not contain a valid datetime_raw field',
       );
     }
 
@@ -268,7 +313,7 @@ export class MetricParserService {
     const valueRaws: number[] = [];
     let match: RegExpExecArray | null;
 
-    while ((match = valueRawPattern.exec(firstEntry)) !== null) {
+    while ((match = valueRawPattern.exec(entryStr)) !== null) {
       valueRaws.push(parseFloat(match[1]));
     }
 
@@ -286,7 +331,7 @@ export class MetricParserService {
     }
 
     // Extract coverage
-    const coverageMatch = firstEntry.match(
+    const coverageMatch = entryStr.match(
       /"coverage_raw"\s*:\s*"?(-?[0-9.]+(?:e[+-]?\d+)?)"?/i,
     );
     const coveragePercent = coverageMatch ? parseFloat(coverageMatch[1]) : null;

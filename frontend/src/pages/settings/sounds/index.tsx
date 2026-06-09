@@ -31,6 +31,7 @@ export default function AlarmSoundsPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSounds();
     return () => {
       if (audioRef.current) {

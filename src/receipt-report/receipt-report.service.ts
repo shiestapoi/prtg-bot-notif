@@ -267,7 +267,7 @@ export class ReceiptReportService {
     let snapshotId = '';
     const existingSnapshot = await this.prisma.receiptReportSnapshot.findFirst({
       where: {
-        scheduleId: schedule.id,
+        scheduleId: schedule.id === 0 ? null : schedule.id,
         startDate: startDate,
       },
     });
@@ -287,7 +287,7 @@ export class ReceiptReportService {
       await this.prisma.receiptReportSnapshot.create({
         data: {
           id: snapshotId,
-          scheduleId: schedule.id,
+          scheduleId: schedule.id === 0 ? null : schedule.id,
           period: schedule.period,
           groupName: schedule.group?.name,
           startDate: startDate,

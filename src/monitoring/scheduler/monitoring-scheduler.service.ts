@@ -76,6 +76,10 @@ export class MonitoringSchedulerService
   /** Periodic sync interval to detect new/changed configs */
   private syncInterval: NodeJS.Timeout | null = null;
 
+  /** Interval for daily automatic PRTG historical data sync */
+  private dailySyncInterval: NodeJS.Timeout | null = null;
+  private lastDailySyncDate: number | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly prtgSetting: PrtgSettingService,
@@ -103,6 +107,14 @@ export class MonitoringSchedulerService
     }
     // Periodically check for new/changed configs every 30 seconds
     this.syncInterval = setInterval(() => this.syncConfigs(), 30000);
+
+    // Check for daily sync every hour
+    this.dailySyncInterval = setInterval(
+      () => this.runDailySync(),
+      60 * 60 * 1000,
+    );
+    // Also run it once shortly after startup just in case we missed it
+    setTimeout(() => this.runDailySync(), 60000);
   }
 
   onModuleDestroy(): void {
@@ -110,6 +122,50 @@ export class MonitoringSchedulerService
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
       this.syncInterval = null;
+    }
+    if (this.dailySyncInterval) {
+      clearInterval(this.dailySyncInterval);
+      this.dailySyncInterval = null;
+    }
+  }
+
+  /**
+   * Runs the automatic PRTG historical data sync once per day (at 01:00 AM)
+   */
+  private async runDailySync() {
+    const now = new Date();
+    // Run at 1 AM
+    if (now.getHours() === 1 && this.lastDailySyncDate !== now.getDate()) {
+      this.lastDailySyncDate = now.getDate();
+      this.logger.log('Running daily automatic PRTG history sync');
+
+      try {
+        const configs = await this.getEligibleConfigs();
+        const startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+        let totalUpserted = 0;
+        for (const config of configs) {
+          try {
+            const count = await this.historyService.syncFromPrtg(
+              config.id,
+              startDate,
+              now,
+            );
+            totalUpserted += count;
+          } catch (e) {
+            this.logger.warn(
+              `Daily sync failed for config ${config.id}: ${e instanceof Error ? e.message : String(e)}`,
+            );
+          }
+        }
+        this.logger.log(
+          `Daily sync completed. Upserted ${totalUpserted} missing/error records.`,
+        );
+      } catch (err) {
+        this.logger.error(
+          `Daily sync failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     }
   }
 

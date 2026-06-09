@@ -10,8 +10,6 @@ export default function NocTvDashboardPage() {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
-    let intervalId: ReturnType<typeof setInterval>;
-    
     async function checkVersion() {
       try {
         const settings = await prtgSettingApi.get();
@@ -30,13 +28,13 @@ export default function NocTvDashboardPage() {
           }
           return prev;
         });
-      } catch (err) {
-        // silent
+      } catch {
+        // failed silently
       }
     }
 
     checkVersion();
-    intervalId = setInterval(checkVersion, 5000); // Poll every 5s
+    const intervalId = setInterval(checkVersion, 5000); // Poll every 5s
 
     return () => clearInterval(intervalId);
   }, []);

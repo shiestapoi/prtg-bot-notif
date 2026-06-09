@@ -503,6 +503,7 @@ export default function NocTvDashboardPageV2() {
 
   useEffect(() => {
     if (!spotlightEnabled || spotlightItems.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSpotlightVisible(false);
       return;
     }
@@ -1076,8 +1077,8 @@ const ListRow = memo(function ListRow({ item, onToggleMaintenance, onClickDetail
 
       {/* Down count */}
       <div className="text-center">
-        {item.downCountThisMonth > 0 && (
-          <span className="text-[12px] font-mono font-medium text-[#ef4444]">{item.downCountThisMonth}x</span>
+        {item.downCountToday > 0 && (
+          <span className="text-[12px] font-mono font-medium text-[#ef4444]">🔴 {item.downCountToday}x</span>
         )}
       </div>
 

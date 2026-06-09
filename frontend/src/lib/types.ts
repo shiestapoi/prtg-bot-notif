@@ -269,7 +269,7 @@ export interface MonitoringSummaryItem {
   sensorId: number;
   lastStatus: NocStatus;
   lastPolledAt: string | null;
-  downCountThisMonth: number;
+  downCountToday: number;
   maintenance: boolean;
   maintenanceLabel: string | null;
   lastMetric: {

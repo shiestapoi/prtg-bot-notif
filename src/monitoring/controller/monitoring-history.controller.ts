@@ -56,27 +56,32 @@ export class MonitoringHistoryController {
       orderBy: [{ groupId: 'asc' }, { title: 'asc' }],
     });
 
-    // Get start of current month for DOWN count
+    // Get start of today for DOWN count
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
 
-    // Batch query: count distinct DAYS with DOWN/NO_TRAFFIC per config this month
-    // Using raw query to get COUNT(DISTINCT DATE(timestamp)) per configId
+    // Batch query: count number of DOWN events (transitions) per config today
     const configIds = configs.map((c) => c.id);
-    const downDayCounts: Array<{ configId: number; downDays: bigint }> =
+    const downCounts: Array<{ configId: number; downCount: bigint }> =
       configIds.length > 0
         ? await this.prisma.$queryRaw`
-          SELECT "configId", COUNT(DISTINCT DATE("timestamp")) as "downDays"
-          FROM "MonitoringHistory"
-          WHERE "configId" IN (${Prisma.join(configIds)})
-            AND "status" IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus")
-            AND "timestamp" >= ${monthStart}
+          SELECT "configId", SUM(CASE WHEN "status" IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") AND "prev_status" NOT IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") THEN 1 ELSE 0 END) as "downCount"
+          FROM (
+            SELECT "configId", "status", LAG("status", 1, 'NORMAL'::"NocStatus") OVER (PARTITION BY "configId" ORDER BY "timestamp" ASC) as "prev_status"
+            FROM "MonitoringHistory"
+            WHERE "configId" IN (${Prisma.join(configIds)})
+              AND "timestamp" >= ${todayStart}
+          ) sub
           GROUP BY "configId"
         `
         : [];
 
     const downDayMap = new Map(
-      downDayCounts.map((d) => [d.configId, Number(d.downDays)]),
+      downCounts.map((d) => [d.configId, Number(d.downCount)]),
     );
 
     // For each config, get the latest MonitoringHistory record for metric data

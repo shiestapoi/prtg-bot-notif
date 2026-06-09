@@ -147,15 +147,21 @@ export class PingMonitorSchedulerService
     timeoutSeconds: number,
   ): Promise<PingResult> {
     // Hapus protokol http/https dan path jika pengguna memasukkan URL, karena ICMP ping hanya menerima hostname/IP
-    const cleanHost = host.replace(/^https?:\/\//i, '').split('/')[0].split(':')[0];
-    
+    const cleanHost = host
+      .replace(/^https?:\/\//i, '')
+      .split('/')[0]
+      .split(':')[0];
+
     try {
       const res = await ping.promise.probe(cleanHost, {
         timeout: timeoutSeconds,
       });
       return {
         reachable: res.alive,
-        latencyMs: res.alive && typeof res.time === 'number' ? Math.round(res.time) : null,
+        latencyMs:
+          res.alive && typeof res.time === 'number'
+            ? Math.round(res.time)
+            : null,
       };
     } catch (error) {
       this.logger.debug(`ICMP check to ${cleanHost} failed: ${error}`);

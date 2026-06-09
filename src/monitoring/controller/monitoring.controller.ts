@@ -22,6 +22,7 @@ import { MetricParserService } from '../parser/metric-parser.service';
 // import { CookieVaultService } from '../../cookie-vault/cookie-vault.service';
 import { PrtgSettingService } from '../../prtg-setting/prtg-setting.service';
 import { PrtgReportService } from '../../prtg-report/prtg-report.service';
+import { MonitoringHistoryService } from '../service/monitoring-history.service';
 
 /**
  * MonitoringController provides manual poll trigger functionality and chart proxy.
@@ -47,6 +48,7 @@ export class MonitoringController {
     // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
     // private readonly cookieVault: CookieVaultService,
     private readonly prtgSetting: PrtgSettingService,
+    private readonly monitoringHistory: MonitoringHistoryService,
   ) {}
 
   /**
@@ -81,6 +83,73 @@ export class MonitoringController {
       message: `Poll triggered successfully for config "${config.title}"`,
       configId: id,
     };
+  }
+
+  /**
+   * Manually triggers a historical data sync from PRTG for a specific config.
+   */
+  @Post('configs/:id/sync')
+  @HttpCode(HttpStatus.OK)
+  async syncConfig(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{ message: string; upsertedCount: number }> {
+    const config = await this.prisma.prtgConfig.findUnique({
+      where: { id },
+    });
+
+    if (!config || !config.monitoringEnabled) {
+      throw new BadRequestException(
+        `Config ${id} is not monitoring-enabled or does not exist`,
+      );
+    }
+
+    // Default sync last 24 hours
+    const now = new Date();
+    const startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const upsertedCount = await this.monitoringHistory.syncFromPrtg(
+      id,
+      startDate,
+      now,
+    );
+
+    return {
+      message: 'Sync completed',
+      upsertedCount,
+    };
+  }
+
+  /**
+   * Manually triggers historical data sync for all active monitoring configs.
+   */
+  @Post('sync-all')
+  @HttpCode(HttpStatus.OK)
+  async syncAll(): Promise<{
+    message: string;
+    results: Record<number, number>;
+  }> {
+    const configs = await this.prisma.prtgConfig.findMany({
+      where: { monitoringEnabled: true, enabled: true },
+    });
+
+    const now = new Date();
+    const startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const results: Record<number, number> = {};
+    for (const config of configs) {
+      try {
+        const count = await this.monitoringHistory.syncFromPrtg(
+          config.id,
+          startDate,
+          now,
+        );
+        results[config.id] = count;
+      } catch (err) {
+        results[config.id] = -1; // -1 indicates error
+      }
+    }
+
+    return { message: 'Sync all completed', results };
   }
 
   /**

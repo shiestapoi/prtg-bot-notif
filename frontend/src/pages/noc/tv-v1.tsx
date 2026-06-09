@@ -1013,8 +1013,8 @@ const TvCard = memo(function TvCard({ item, onToggleMaintenance, onClickDetail }
 
       {/* Footer */}
       <div className="flex items-center justify-between px-2 pb-1">
-        {item.downCountThisMonth > 0 && (
-          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountThisMonth}x down bulan ini</span>
+        {item.downCountToday > 0 && (
+          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountToday}x down hari ini</span>
         )}
         <span className="text-[8px] text-gray-500 ml-auto">
           {formatTime(item.lastPolledAt)}
@@ -1069,8 +1069,8 @@ const CompactCard = memo(function CompactCard({ item, onToggleMaintenance, onCli
 
       {/* Footer */}
       <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-gray-800">
-        {item.downCountThisMonth > 0 ? (
-          <span className="text-[7px] text-red-400 font-medium">🔴 {item.downCountThisMonth}x</span>
+        {item.downCountToday > 0 ? (
+          <span className="text-[7px] text-red-400 font-medium">🔴 {item.downCountToday}x</span>
         ) : <span />}
         <span className="text-[7px] text-gray-500">{formatTime(item.lastPolledAt)}</span>
       </div>
@@ -1126,8 +1126,8 @@ const ListRow = memo(function ListRow({ item, onToggleMaintenance, onClickDetail
 
       {/* Down count */}
       <div className="text-center">
-        {item.downCountThisMonth > 0 && (
-          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountThisMonth}x</span>
+        {item.downCountToday > 0 && (
+          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountToday}x</span>
         )}
       </div>
 
