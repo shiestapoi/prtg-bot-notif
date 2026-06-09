@@ -78,7 +78,7 @@ export class PrtgSettingService {
     if (dto.tvUIVersion !== undefined) {
       data.tvUIVersion = dto.tvUIVersion;
     }
-    
+
     if (dto.reportUIVersion !== undefined) {
       data.reportUIVersion = dto.reportUIVersion;
     }

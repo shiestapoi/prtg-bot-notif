@@ -12,6 +12,7 @@ import { PrtgReportModule } from './prtg-report/prtg-report.module';
 import { PrtgSettingModule } from './prtg-setting/prtg-setting.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { ReceiptReportModule } from './receipt-report/receipt-report.module';
+import { SoundModule } from './sound/sound.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ReceiptReportModule } from './receipt-report/receipt-report.module';
     ReceiptReportModule,
     PrtgNocModule,
     MonitoringModule,
+    SoundModule,
     // ServeStaticModule serves the React SPA from public/app/
     // renderPath '/' makes it serve index.html for ALL non-excluded paths (SPA fallback)
     ServeStaticModule.forRoot({

@@ -99,12 +99,12 @@ export class BrowserPoolService implements OnModuleInit, OnModuleDestroy {
     this.browser = await chromium.launch({
       headless: true,
       args: [
-        '--no-sandbox', 
+        '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage', // Prevent shared memory exhaustion in Docker/VPS
-        '--disable-gpu',           // Disable GPU hardware acceleration
-        '--no-zygote',             // Reduce memory footprint
-        '--single-process'         // Run in a single process to save RAM
+        '--disable-gpu', // Disable GPU hardware acceleration
+        '--no-zygote', // Reduce memory footprint
+        '--single-process', // Run in a single process to save RAM
       ],
     });
 

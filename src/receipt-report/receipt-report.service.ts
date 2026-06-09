@@ -60,15 +60,26 @@ export class ReceiptReportService {
     const incidentsByConfig = new Map<number, Incident[]>();
 
     // Pass 1: Compute global average over the entire period for each config
-    const periodAverages = new Map<number, { avgIn: number | null; avgOut: number | null }>();
+    const periodAverages = new Map<
+      number,
+      { avgIn: number | null; avgOut: number | null }
+    >();
     for (const configId of configIds) {
-      const validHistories = histories.filter(h => h.configId === configId && h.inboundBitrate !== null);
+      const validHistories = histories.filter(
+        (h) => h.configId === configId && h.inboundBitrate !== null,
+      );
       if (validHistories.length > 0) {
-        const sumIn = validHistories.reduce((acc, h) => acc + h.inboundBitrate!, 0);
-        const sumOut = validHistories.reduce((acc, h) => acc + h.outboundBitrate!, 0);
-        periodAverages.set(configId, { 
-          avgIn: sumIn / validHistories.length, 
-          avgOut: sumOut / validHistories.length 
+        const sumIn = validHistories.reduce(
+          (acc, h) => acc + h.inboundBitrate!,
+          0,
+        );
+        const sumOut = validHistories.reduce(
+          (acc, h) => acc + h.outboundBitrate!,
+          0,
+        );
+        periodAverages.set(configId, {
+          avgIn: sumIn / validHistories.length,
+          avgOut: sumOut / validHistories.length,
         });
       } else {
         periodAverages.set(configId, { avgIn: null, avgOut: null });
@@ -112,8 +123,14 @@ export class ReceiptReportService {
           incidentsByConfig.get(history.configId)!.push({
             status: history.status,
             time: history.timestamp,
-            inboundBefore: history.status === NocStatus.LOW_TRAFFIC ? (averages?.avgIn ?? prev.inbound) : prev.inbound,
-            outboundBefore: history.status === NocStatus.LOW_TRAFFIC ? (averages?.avgOut ?? prev.outbound) : prev.outbound,
+            inboundBefore:
+              history.status === NocStatus.LOW_TRAFFIC
+                ? (averages?.avgIn ?? prev.inbound)
+                : prev.inbound,
+            outboundBefore:
+              history.status === NocStatus.LOW_TRAFFIC
+                ? (averages?.avgOut ?? prev.outbound)
+                : prev.outbound,
             inboundDuring: history.inboundBitrate,
             outboundDuring: history.outboundBitrate,
           });

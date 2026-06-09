@@ -1305,7 +1305,7 @@ export class PrtgReportService {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--no-zygote',
-        '--single-process'
+        '--single-process',
       ],
     });
 
@@ -1327,113 +1327,117 @@ export class PrtgReportService {
         this.getPrtgCaptureConcurrency(),
         async (config) => {
           const requestUrl = `http://prtg.r1net.id/graphzoom.htm?id=${config.sensorId}&graphid=1&clgid=&dynamicgraph=1`;
-          const imageBuffer = await this.fetchPrtgImage(requestUrl, settings, sharedContext);
-
-        const timeStr = new Date().toLocaleTimeString('id-ID', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-          timeZone: 'Asia/Jakarta',
-        });
-
-        // Fetch latest monitoring data for traffic info
-        let bitrateStr = '—';
-        let trafficInStr = '—';
-        let trafficOutStr = '—';
-        let reasonStr = '';
-        const latestHistory = await this.prisma.monitoringHistory.findFirst({
-          where: { configId: config.id },
-          orderBy: { timestamp: 'desc' },
-        });
-        if (latestHistory?.totalTrafficBitrate) {
-          bitrateStr = `${(latestHistory.totalTrafficBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
-        }
-        if (latestHistory?.inboundBitrate) {
-          trafficInStr = `${(latestHistory.inboundBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
-        }
-        if (latestHistory?.outboundBitrate) {
-          trafficOutStr = `${(latestHistory.outboundBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
-        }
-        if (latestHistory?.errorMessage) {
-          reasonStr = latestHistory.errorMessage;
-        }
-
-        // Determine if this config is in anomaly AND notification for that status is enabled
-        const isAnomalyWithNotify = this.isAnomalyWithNotifyEnabled(config);
-
-        let caption: string;
-        if (isAnomalyWithNotify) {
-          // Use alert template — config is in anomaly state and notify is enabled for that status
-          const alertTemplate =
-            settings.alertMessageTemplate ??
-            '━━━━━━━━━━━━━━━━\n⚠️ *ALERT: {status}*\n━━━━━━━━━━━━━━━━\n📍 {title}\n🏢 {groupName}\n⏰ {time} WIB\n📊 Traffic Total: {bitrate}\n📥 Traffic In: {trafficIn}\n📤 Traffic Out: {trafficOut}\n💬 {reason}\n━━━━━━━━━━━━━━━━';
-          caption = alertTemplate
-            .replace(/\{title\}/g, config.title)
-            .replace(/\{groupName\}/g, config.group.name)
-            .replace(/\{groupname\}/g, config.group.name)
-            .replace(/\{status\}/g, config.lastStatus)
-            .replace(/\{time\}/g, timeStr)
-            .replace(/\{bitrate\}/g, bitrateStr)
-            .replace(/\{trafficIn\}/g, trafficInStr)
-            .replace(/\{trafficOut\}/g, trafficOutStr)
-            .replace(
-              /\{reason\}/g,
-              reasonStr || `Status: ${config.lastStatus}`,
-            );
-        } else {
-          // Normal report template
-          const values: Record<string, string> = {
-            title: config.title,
-            groupname: config.group.name,
-            groupName: config.group.name,
-            url: requestUrl,
-            time: timeStr,
-            bitrate: bitrateStr,
-            trafficIn: trafficInStr,
-            trafficOut: trafficOutStr,
-            status: config.lastStatus,
-          };
-          caption = this.renderMessageTemplate(
-            settings.messageTemplate,
-            values,
+          const imageBuffer = await this.fetchPrtgImage(
+            requestUrl,
+            settings,
+            sharedContext,
           );
-        }
 
-        // Prepend maintenance label if config is in maintenance mode
-        if (config.maintenance) {
-          const label = config.maintenanceLabel || 'Maintenance';
-          caption = `🔧 *[${label}]* — Notifikasi monitoring dinonaktifkan\n\n${caption}`;
-        }
+          const timeStr = new Date().toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Jakarta',
+          });
 
-        const recipients = this.getRecipientsForConfig(
-          recipientPool,
-          dispatchGroupId,
-          config.groupId,
-        );
-        const privateRecipients = recipients
-          .filter(
-            (recipient) =>
-              targetMode !== 'group_only' &&
-              this.isPrivateRecipient(recipient.targetType),
-          )
-          .map((recipient) => recipient.phoneNumber);
-        const groupRecipients = recipients
-          .filter(
-            (recipient) =>
-              targetMode !== 'personal_only' &&
-              !this.isPrivateRecipient(recipient.targetType),
-          )
-          .map((recipient) => recipient.phoneNumber);
+          // Fetch latest monitoring data for traffic info
+          let bitrateStr = '—';
+          let trafficInStr = '—';
+          let trafficOutStr = '—';
+          let reasonStr = '';
+          const latestHistory = await this.prisma.monitoringHistory.findFirst({
+            where: { configId: config.id },
+            orderBy: { timestamp: 'desc' },
+          });
+          if (latestHistory?.totalTrafficBitrate) {
+            bitrateStr = `${(latestHistory.totalTrafficBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
+          }
+          if (latestHistory?.inboundBitrate) {
+            trafficInStr = `${(latestHistory.inboundBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
+          }
+          if (latestHistory?.outboundBitrate) {
+            trafficOutStr = `${(latestHistory.outboundBitrate / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Mbit/s`;
+          }
+          if (latestHistory?.errorMessage) {
+            reasonStr = latestHistory.errorMessage;
+          }
 
-        return {
-          buffer: imageBuffer,
-          privateCaption: caption,
-          groupCaption: caption,
-          privateRecipients,
-          groupRecipients,
-        };
-      },
-    );
+          // Determine if this config is in anomaly AND notification for that status is enabled
+          const isAnomalyWithNotify = this.isAnomalyWithNotifyEnabled(config);
+
+          let caption: string;
+          if (isAnomalyWithNotify) {
+            // Use alert template — config is in anomaly state and notify is enabled for that status
+            const alertTemplate =
+              settings.alertMessageTemplate ??
+              '━━━━━━━━━━━━━━━━\n⚠️ *ALERT: {status}*\n━━━━━━━━━━━━━━━━\n📍 {title}\n🏢 {groupName}\n⏰ {time} WIB\n📊 Traffic Total: {bitrate}\n📥 Traffic In: {trafficIn}\n📤 Traffic Out: {trafficOut}\n💬 {reason}\n━━━━━━━━━━━━━━━━';
+            caption = alertTemplate
+              .replace(/\{title\}/g, config.title)
+              .replace(/\{groupName\}/g, config.group.name)
+              .replace(/\{groupname\}/g, config.group.name)
+              .replace(/\{status\}/g, config.lastStatus)
+              .replace(/\{time\}/g, timeStr)
+              .replace(/\{bitrate\}/g, bitrateStr)
+              .replace(/\{trafficIn\}/g, trafficInStr)
+              .replace(/\{trafficOut\}/g, trafficOutStr)
+              .replace(
+                /\{reason\}/g,
+                reasonStr || `Status: ${config.lastStatus}`,
+              );
+          } else {
+            // Normal report template
+            const values: Record<string, string> = {
+              title: config.title,
+              groupname: config.group.name,
+              groupName: config.group.name,
+              url: requestUrl,
+              time: timeStr,
+              bitrate: bitrateStr,
+              trafficIn: trafficInStr,
+              trafficOut: trafficOutStr,
+              status: config.lastStatus,
+            };
+            caption = this.renderMessageTemplate(
+              settings.messageTemplate,
+              values,
+            );
+          }
+
+          // Prepend maintenance label if config is in maintenance mode
+          if (config.maintenance) {
+            const label = config.maintenanceLabel || 'Maintenance';
+            caption = `🔧 *[${label}]* — Notifikasi monitoring dinonaktifkan\n\n${caption}`;
+          }
+
+          const recipients = this.getRecipientsForConfig(
+            recipientPool,
+            dispatchGroupId,
+            config.groupId,
+          );
+          const privateRecipients = recipients
+            .filter(
+              (recipient) =>
+                targetMode !== 'group_only' &&
+                this.isPrivateRecipient(recipient.targetType),
+            )
+            .map((recipient) => recipient.phoneNumber);
+          const groupRecipients = recipients
+            .filter(
+              (recipient) =>
+                targetMode !== 'personal_only' &&
+                !this.isPrivateRecipient(recipient.targetType),
+            )
+            .map((recipient) => recipient.phoneNumber);
+
+          return {
+            buffer: imageBuffer,
+            privateCaption: caption,
+            groupCaption: caption,
+            privateRecipients,
+            groupRecipients,
+          };
+        },
+      );
     } finally {
       await browser.close().catch(() => {});
     }
@@ -1661,7 +1665,7 @@ export class PrtgReportService {
     sharedContext?: BrowserContext,
   ) {
     const authUrl = this.appendAuthParams(url, settings);
-    
+
     let browser: Browser | null = null;
     let context = sharedContext;
     let page: Page | null = null;
@@ -1671,12 +1675,12 @@ export class PrtgReportService {
         browser = await chromium.launch({
           headless: true,
           args: [
-            '--no-sandbox', 
+            '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
             '--no-zygote',
-            '--single-process'
+            '--single-process',
           ],
         });
         context = await browser.newContext({

@@ -48,6 +48,7 @@ const nocNavItems: NavItem[] = [
 const settingsNavItems: NavItem[] = [
   { label: 'PRTG Setting', href: '/settings/prtg', icon: Settings },
   { label: 'WhatsApp', href: '/settings/whatsapp', icon: MessageCircle },
+  { label: 'Suara Alarm', href: '/settings/sounds', icon: Activity }, // Lucide Activity/FileAudio
   { label: 'Akun', href: '/settings/account', icon: User },
 ];
 
