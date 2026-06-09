@@ -190,6 +190,16 @@ export class PingMonitorSchedulerService
     fs.appendFile(this.logFilePath, line, (err) => {
       if (err) this.logger.error(`Failed to write ping log: ${err}`);
     });
+    
+    // Broadcast to SSE clients
+    this.events.emitPingLog({
+      type: 'ping_log',
+      timestamp: now.toISOString(),
+      name: monitor.name,
+      host: monitor.host,
+      status,
+      latencyMs: latency,
+    });
   }
 
   private async cleanupLogs() {

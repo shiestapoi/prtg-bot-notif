@@ -45,10 +45,20 @@ export interface PingStatusEvent {
   maintenanceLabel: string | null;
 }
 
+export interface PingLogEvent {
+  type: 'ping_log';
+  timestamp: string;
+  name: string;
+  host: string;
+  status: 'UP' | 'RTO';
+  latencyMs: string;
+}
+
 export type MonitoringEvent =
   | MonitoringStatusEvent
   | ConfigUpdatedEvent
-  | PingStatusEvent;
+  | PingStatusEvent
+  | PingLogEvent;
 
 /**
  * Simple EventEmitter-based service for broadcasting monitoring status events.
@@ -87,6 +97,10 @@ export class MonitoringEventService {
   }
 
   emitPing(event: PingStatusEvent): void {
+    this.emitter.emit('monitoring_event', event);
+  }
+
+  emitPingLog(event: PingLogEvent): void {
     this.emitter.emit('monitoring_event', event);
   }
 

@@ -238,7 +238,7 @@ export interface ConfigUpdatedEvent {
   timestamp: string;
 }
 
-export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent | PingStatusEvent;
+export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent | PingStatusEvent | PingLogEvent;
 
 // ─── Monitoring History (Unified) ───────────────────────────────────────────
 
@@ -314,4 +314,13 @@ export interface PingStatusEvent {
   outageStartedAt: string | null;
   maintenance: boolean;
   maintenanceLabel: string | null;
+}
+
+export interface PingLogEvent {
+  type: 'ping_log';
+  timestamp: string;
+  name: string;
+  host: string;
+  status: 'UP' | 'RTO';
+  latencyMs: string;
 }
