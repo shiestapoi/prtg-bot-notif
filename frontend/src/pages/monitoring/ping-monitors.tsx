@@ -43,18 +43,6 @@ export default function PingMonitorsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
 
-  const load = async () => {
-    const [monitorData, recipientData] = await Promise.all([
-      pingMonitorApi.getAll(),
-      pingRecipientApi.getAll(),
-    ]);
-    setMonitors(monitorData);
-    setRecipients(recipientData);
-    if (selectedId === null && monitorData[0]) selectMonitor(monitorData[0]);
-  };
-
-  useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const selectMonitor = (monitor: PingMonitor) => {
     setSelectedId(monitor.id);
     setForm({
@@ -73,6 +61,21 @@ export default function PingMonitorsPage() {
       recipientIds: monitor.recipientIds,
     });
   };
+
+  const load = async () => {
+    const [monitorData, recipientData] = await Promise.all([
+      pingMonitorApi.getAll(),
+      pingRecipientApi.getAll(),
+    ]);
+    setMonitors(monitorData);
+    setRecipients(recipientData);
+    if (selectedId === null && monitorData[0]) selectMonitor(monitorData[0]);
+  };
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();

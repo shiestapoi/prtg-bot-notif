@@ -257,7 +257,7 @@ export default function ReceiptSchedulesPage() {
                 <Label>Period</Label>
                 <Select
                   value={form.period}
-                  onValueChange={(val: any) => setForm({ ...form, period: val })}
+                  onValueChange={(val) => setForm({ ...form, period: val as 'DAILY' | 'WEEKLY' | 'MONTHLY' })}
                 >
                   <SelectTrigger className="w-full"><span className="flex flex-1 text-left">{form.period}</span></SelectTrigger>
                   <SelectContent>

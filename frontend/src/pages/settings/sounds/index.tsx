@@ -23,7 +23,7 @@ export default function AlarmSoundsPage() {
       setLoading(true);
       const res = await axios.get('/api/sounds');
       setSounds(res.data);
-    } catch (error) {
+    } catch {
       toast.error('Gagal memuat daftar suara');
     } finally {
       setLoading(false);
@@ -113,7 +113,7 @@ export default function AlarmSoundsPage() {
       if (playingSound === filename) {
         stopAudio();
       }
-    } catch (error) {
+    } catch {
       toast.error('Gagal menghapus file');
     }
   };

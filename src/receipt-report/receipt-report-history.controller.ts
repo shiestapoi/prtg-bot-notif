@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, UseGuards, Query, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Query,
+  Param,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReceiptReportService } from './receipt-report.service';
 import { AuthGuard } from '../auth/auth.guard';

@@ -77,6 +77,7 @@ export function ItemForm({ groups, initialData, onSubmit, submitLabel = 'Save' }
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         label: initialData.label ?? defaultFormData.label,
         endpointUrl: initialData.endpointUrl ?? defaultFormData.endpointUrl,

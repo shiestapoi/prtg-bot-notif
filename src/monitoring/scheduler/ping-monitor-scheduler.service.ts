@@ -44,7 +44,10 @@ export class PingMonitorSchedulerService
 
     await this.sync();
     this.syncTimer = setInterval(() => void this.sync(), 15000);
-    this.logCleanupTimer = setInterval(() => void this.cleanupLogs(), 60 * 60 * 1000); // 1 hour
+    this.logCleanupTimer = setInterval(
+      () => void this.cleanupLogs(),
+      60 * 60 * 1000,
+    ); // 1 hour
     void this.cleanupLogs();
   }
 
@@ -190,7 +193,7 @@ export class PingMonitorSchedulerService
     fs.appendFile(this.logFilePath, line, (err) => {
       if (err) this.logger.error(`Failed to write ping log: ${err}`);
     });
-    
+
     // Broadcast to SSE clients
     this.events.emitPingLog({
       type: 'ping_log',
@@ -204,18 +207,18 @@ export class PingMonitorSchedulerService
 
   private async cleanupLogs() {
     if (!fs.existsSync(this.logFilePath)) return;
-    
+
     const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const tempFile = `${this.logFilePath}.tmp`;
 
     try {
       const rl = readline.createInterface({
         input: fs.createReadStream(this.logFilePath),
-        crlfDelay: Infinity
+        crlfDelay: Infinity,
       });
 
       const writeStream = fs.createWriteStream(tempFile);
-      
+
       for await (const line of rl) {
         const parts = line.split(' | ');
         if (parts.length > 0) {
@@ -225,9 +228,9 @@ export class PingMonitorSchedulerService
           }
         }
       }
-      
+
       writeStream.end();
-      
+
       await new Promise((resolve) => writeStream.on('finish', resolve));
       fs.renameSync(tempFile, this.logFilePath);
     } catch (error) {

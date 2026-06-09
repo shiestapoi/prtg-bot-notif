@@ -62,7 +62,8 @@ export default function MonitoringRecipientsPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void fetchData(); }, []);
 
   const loadWaTargets = async () => {
     setLoadingTargets(true);

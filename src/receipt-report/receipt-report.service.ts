@@ -405,34 +405,40 @@ export class ReceiptReportService {
     };
   }
 
-  async updateSnapshot(snapshotId: string): Promise<{ success: boolean; updatedConfigs: number }> {
+  async updateSnapshot(
+    snapshotId: string,
+  ): Promise<{ success: boolean; updatedConfigs: number }> {
     const snapshot = await this.prisma.receiptReportSnapshot.findUnique({
-      where: { id: snapshotId }
+      where: { id: snapshotId },
     });
     if (!snapshot) throw new Error('Snapshot not found');
 
-    const schedule = snapshot.scheduleId ? await this.prisma.receiptSchedule.findUnique({
-      where: { id: snapshot.scheduleId },
-      include: { group: true }
-    }) : null;
+    const schedule = snapshot.scheduleId
+      ? await this.prisma.receiptSchedule.findUnique({
+          where: { id: snapshot.scheduleId },
+          include: { group: true },
+        })
+      : null;
 
     const startDate = snapshot.startDate;
     const endDate = new Date();
 
     const configs = await this.prisma.prtgConfig.findMany({
-      where: schedule?.groupId ? { groupId: schedule.groupId, enabled: true } : { enabled: true },
-      include: { group: true }
+      where: schedule?.groupId
+        ? { groupId: schedule.groupId, enabled: true }
+        : { enabled: true },
+      include: { group: true },
     });
 
     if (configs.length === 0) return { success: true, updatedConfigs: 0 };
 
-    const configIds = configs.map(c => c.id);
+    const configIds = configs.map((c) => c.id);
     const histories = await this.prisma.monitoringHistory.findMany({
       where: {
         configId: { in: configIds },
-        timestamp: { gte: startDate, lte: endDate }
+        timestamp: { gte: startDate, lte: endDate },
       },
-      orderBy: { timestamp: 'asc' }
+      orderBy: { timestamp: 'asc' },
     });
 
     type Incident = {
@@ -446,39 +452,71 @@ export class ReceiptReportService {
     };
     const incidentsByConfig = new Map<number, Incident[]>();
 
-    const periodAverages = new Map<number, { avgIn: number | null; avgOut: number | null }>();
+    const periodAverages = new Map<
+      number,
+      { avgIn: number | null; avgOut: number | null }
+    >();
     for (const configId of configIds) {
-      const validHistories = histories.filter(h => h.configId === configId && h.inboundBitrate !== null);
+      const validHistories = histories.filter(
+        (h) => h.configId === configId && h.inboundBitrate !== null,
+      );
       if (validHistories.length > 0) {
-        const sumIn = validHistories.reduce((acc, h) => acc + h.inboundBitrate!, 0);
-        const sumOut = validHistories.reduce((acc, h) => acc + h.outboundBitrate!, 0);
-        periodAverages.set(configId, { avgIn: sumIn / validHistories.length, avgOut: sumOut / validHistories.length });
+        const sumIn = validHistories.reduce(
+          (acc, h) => acc + h.inboundBitrate!,
+          0,
+        );
+        const sumOut = validHistories.reduce(
+          (acc, h) => acc + h.outboundBitrate!,
+          0,
+        );
+        periodAverages.set(configId, {
+          avgIn: sumIn / validHistories.length,
+          avgOut: sumOut / validHistories.length,
+        });
       } else {
         periodAverages.set(configId, { avgIn: null, avgOut: null });
       }
     }
 
-    const previousState = new Map<number, { status: NocStatus; inbound: number | null; outbound: number | null }>();
+    const previousState = new Map<
+      number,
+      { status: NocStatus; inbound: number | null; outbound: number | null }
+    >();
 
     for (const history of histories) {
-      const prev = previousState.get(history.configId) || { status: NocStatus.NORMAL, inbound: null, outbound: null };
+      const prev = previousState.get(history.configId) || {
+        status: NocStatus.NORMAL,
+        inbound: null,
+        outbound: null,
+      };
 
       if (history.status !== prev.status) {
         const configIncidents = incidentsByConfig.get(history.configId);
         if (configIncidents && configIncidents.length > 0) {
           const lastIncident = configIncidents[configIncidents.length - 1];
-          if (!lastIncident.recoveryTime) lastIncident.recoveryTime = history.timestamp;
+          if (!lastIncident.recoveryTime)
+            lastIncident.recoveryTime = history.timestamp;
         }
 
         const averages = periodAverages.get(history.configId);
 
-        if (history.status === NocStatus.DOWN || history.status === NocStatus.LOW_TRAFFIC) {
-          if (!incidentsByConfig.has(history.configId)) incidentsByConfig.set(history.configId, []);
+        if (
+          history.status === NocStatus.DOWN ||
+          history.status === NocStatus.LOW_TRAFFIC
+        ) {
+          if (!incidentsByConfig.has(history.configId))
+            incidentsByConfig.set(history.configId, []);
           incidentsByConfig.get(history.configId)!.push({
             status: history.status,
             time: history.timestamp,
-            inboundBefore: history.status === NocStatus.LOW_TRAFFIC ? (averages?.avgIn ?? prev.inbound) : prev.inbound,
-            outboundBefore: history.status === NocStatus.LOW_TRAFFIC ? (averages?.avgOut ?? prev.outbound) : prev.outbound,
+            inboundBefore:
+              history.status === NocStatus.LOW_TRAFFIC
+                ? (averages?.avgIn ?? prev.inbound)
+                : prev.inbound,
+            outboundBefore:
+              history.status === NocStatus.LOW_TRAFFIC
+                ? (averages?.avgOut ?? prev.outbound)
+                : prev.outbound,
             inboundDuring: history.inboundBitrate,
             outboundDuring: history.outboundBitrate,
           });
@@ -487,19 +525,29 @@ export class ReceiptReportService {
 
       previousState.set(history.configId, {
         status: history.status,
-        inbound: history.inboundBitrate !== null ? history.inboundBitrate : prev.inbound,
-        outbound: history.outboundBitrate !== null ? history.outboundBitrate : prev.outbound,
+        inbound:
+          history.inboundBitrate !== null
+            ? history.inboundBitrate
+            : prev.inbound,
+        outbound:
+          history.outboundBitrate !== null
+            ? history.outboundBitrate
+            : prev.outbound,
       });
     }
 
     const reportDataPayload: any[] = [];
     for (const [configId, incidents] of incidentsByConfig.entries()) {
       if (incidents.length === 0) continue;
-      const config = configs.find(c => c.id === configId);
+      const config = configs.find((c) => c.id === configId);
       if (!config) continue;
 
-      const downCount = incidents.filter(i => i.status === NocStatus.DOWN).length;
-      const lowTrafficCount = incidents.filter(i => i.status === NocStatus.LOW_TRAFFIC).length;
+      const downCount = incidents.filter(
+        (i) => i.status === NocStatus.DOWN,
+      ).length;
+      const lowTrafficCount = incidents.filter(
+        (i) => i.status === NocStatus.LOW_TRAFFIC,
+      ).length;
 
       reportDataPayload.push({
         configId: config.id,
@@ -508,7 +556,7 @@ export class ReceiptReportService {
         sensorId: config.sensorId,
         downCount,
         lowTrafficCount,
-        incidents: incidents.map(i => {
+        incidents: incidents.map((i) => {
           const sdateObj = new Date(i.time.getTime() - 30 * 60 * 1000);
           const recoveryObj = i.recoveryTime || new Date();
           const edateObj = new Date(recoveryObj.getTime() + 30 * 60 * 1000);
@@ -522,7 +570,10 @@ export class ReceiptReportService {
             inboundDuring: i.inboundDuring,
             outboundBefore: i.outboundBefore,
             outboundDuring: i.outboundDuring,
-            threshold: i.status === NocStatus.LOW_TRAFFIC ? config.thresholdLow : config.minTrafficThreshold,
+            threshold:
+              i.status === NocStatus.LOW_TRAFFIC
+                ? config.thresholdLow
+                : config.minTrafficThreshold,
             sdate: this.formatPrtgDate(sdateObj),
             edate: this.formatPrtgDate(edateObj),
           };
@@ -535,7 +586,7 @@ export class ReceiptReportService {
       data: {
         endDate,
         reportData: reportDataPayload,
-      }
+      },
     });
 
     return { success: true, updatedConfigs: reportDataPayload.length };

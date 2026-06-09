@@ -138,7 +138,10 @@ export class MonitoringController {
       );
     }
 
-    const { startDate, endDate } = req.body as { startDate: string; endDate: string };
+    const { startDate, endDate } = req.body as {
+      startDate: string;
+      endDate: string;
+    };
     if (!startDate || !endDate) {
       throw new BadRequestException('startDate and endDate are required');
     }

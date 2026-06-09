@@ -367,7 +367,7 @@ export const receiptScheduleApi = {
 
 export const publicReportApi = {
   fetchReportSnapshot: (id: string) =>
-    api.get<{ snapshot: any; reportUIVersion: string }>(`/api/public/receipt-reports/${id}`).then((r) => r.data),
+    api.get<{ snapshot: Record<string, unknown>; reportUIVersion: string }>(`/api/public/receipt-reports/${id}`).then((r) => r.data),
 };
 
 // ─── Receipt Report Recipients API ───────────────────────────────────────────

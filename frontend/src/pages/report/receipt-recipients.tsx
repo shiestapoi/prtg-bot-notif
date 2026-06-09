@@ -141,7 +141,7 @@ export default function ReceiptRecipientsPage() {
         groupId: form.groupId ? Number(form.groupId) : undefined,
       };
       if (editingId) { await receiptRecipientApi.update(editingId, payload); }
-      else { await receiptRecipientApi.create(payload as any); }
+      else { await receiptRecipientApi.create(payload as Parameters<typeof receiptRecipientApi.create>[0]); }
       setDialogOpen(false);
       toast.success(editingId ? 'Receipt Recipient berhasil diperbarui' : 'Receipt Recipient berhasil dibuat');
       fetchData();

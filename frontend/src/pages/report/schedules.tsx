@@ -118,8 +118,8 @@ export default function ReportSchedulesPage() {
         targetMode: form.targetMode,
         enabled: form.enabled,
       };
-      if (editingId) { await prtgScheduleApi.update(editingId, payload as any); }
-      else { await prtgScheduleApi.create(payload as any); }
+      if (editingId) { await prtgScheduleApi.update(editingId, payload as Parameters<typeof prtgScheduleApi.update>[1]); }
+      else { await prtgScheduleApi.create(payload as Parameters<typeof prtgScheduleApi.create>[0]); }
       setDialogOpen(false);
       toast.success(editingId ? 'Schedule berhasil diperbarui' : 'Schedule berhasil dibuat');
       fetchData();

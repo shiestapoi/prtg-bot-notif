@@ -105,7 +105,7 @@ export default function NocHistoryPage() {
 
   // Use ref for configs to avoid infinite loop in fetchHistory
   const configsRef = useRef<MonitoringSummaryItem[]>([]);
-  configsRef.current = configs;
+  useEffect(() => { configsRef.current = configs; }, [configs]);
 
   const fetchHistory = useCallback(async (newOffset = 0) => {
     setSearching(true);
@@ -145,8 +145,9 @@ export default function NocHistoryPage() {
 
   // Initial load only
   useEffect(() => {
-    fetchConfigs();
-    fetchHistory(0);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchConfigs();
+    void fetchHistory(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -157,6 +158,7 @@ export default function NocHistoryPage() {
         (c) => String(c.configId) === selectedConfigId,
       );
       if (!configInGroup) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedConfigId('');
       }
     }

@@ -26,7 +26,7 @@ export default function ReceiptHistoryPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const res = await api.get('/api/receipt-reports', { params: {} as any });
       setHistory(res.data);
-    } catch (_error) {
+    } catch {
       toast.error('Gagal memuat history laporan');
     } finally {
       setLoading(false);
@@ -46,7 +46,7 @@ export default function ReceiptHistoryPage() {
       });
       toast.success('Laporan berhasil digenerate');
       fetchHistory();
-    } catch (error) {
+    } catch {
       toast.error('Gagal men-generate laporan');
     } finally {
       setGenerating(false);
@@ -124,7 +124,7 @@ export default function ReceiptHistoryPage() {
                                 await api.post(`/api/receipt-reports/${item.id}/update`);
                                 toast.success('Laporan berhasil diperbarui!', { id: `update-${item.id}` });
                                 fetchHistory();
-                              } catch (e) {
+                              } catch {
                                 toast.error('Gagal memperbarui laporan', { id: `update-${item.id}` });
                               }
                             }}

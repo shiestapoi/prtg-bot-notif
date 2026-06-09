@@ -83,7 +83,8 @@ function useWakeLock() {
 
   // Request wake lock on mount and re-acquire when page becomes visible again
   useEffect(() => {
-    requestWakeLock();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void requestWakeLock();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -235,8 +236,8 @@ export default function NocTvDashboardPageV2() {
   const [items, setItems] = useState<MonitoringSummaryItem[]>([]);
   const [pingMonitors, setPingMonitors] = useState<PingMonitor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(() => !!(window as any).__tvSoundEnabled);
-  const [hasInteracted, setHasInteracted] = useState(() => !!(window as any).__tvInteracted);
+  const [soundEnabled, setSoundEnabled] = useState(() => !!(window as Window & { __tvSoundEnabled?: boolean }).__tvSoundEnabled);
+  const [hasInteracted, setHasInteracted] = useState(() => !!(window as Window & { __tvInteracted?: boolean }).__tvInteracted);
   const [spotlightEnabled, setSpotlightEnabled] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -439,8 +440,8 @@ export default function NocTvDashboardPageV2() {
 
   // Enable sound on first user interaction (satisfies browser autoplay policy)
   const handleEnableSound = () => {
-    (window as any).__tvInteracted = true;
-    (window as any).__tvSoundEnabled = true;
+    (window as Window & { __tvInteracted?: boolean }).__tvInteracted = true;
+    (window as Window & { __tvSoundEnabled?: boolean }).__tvSoundEnabled = true;
     setHasInteracted(true);
     setSoundEnabled(true);
   };
@@ -612,8 +613,8 @@ export default function NocTvDashboardPageV2() {
             onClick={(e) => { 
               e.stopPropagation(); 
               const newVal = !soundEnabled;
-              (window as any).__tvSoundEnabled = newVal;
-              (window as any).__tvInteracted = true;
+              (window as Window & { __tvSoundEnabled?: boolean }).__tvSoundEnabled = newVal;
+              (window as Window & { __tvInteracted?: boolean }).__tvInteracted = true;
               setSoundEnabled(newVal); 
               setHasInteracted(true); 
             }}

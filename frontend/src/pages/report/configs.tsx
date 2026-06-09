@@ -344,8 +344,8 @@ export default function ReportConfigsPage() {
         payload.notifyRecovery = form.notifyRecovery;
       }
 
-      if (editingId) { await prtgConfigApi.update(editingId, payload as any); }
-      else { await prtgConfigApi.create(payload as any); }
+      if (editingId) { await prtgConfigApi.update(editingId, payload as Parameters<typeof prtgConfigApi.update>[1]); }
+      else { await prtgConfigApi.create(payload as Parameters<typeof prtgConfigApi.create>[0]); }
       setDialogOpen(false);
       toast.success(editingId ? 'Config berhasil diperbarui' : 'Config berhasil dibuat');
       fetchData();
