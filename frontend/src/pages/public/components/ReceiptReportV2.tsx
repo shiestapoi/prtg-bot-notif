@@ -11,11 +11,13 @@ interface ReceiptReportProps {
 
 export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
   const [openLightbox, setOpenLightbox] = useState<{ configId: number; index: number } | null>(null);
+  const [showAllGroups, setShowAllGroups] = useState(false);
 
   const periodLabel = snapshot.period === 'DAILY' ? 'Harian' : snapshot.period === 'WEEKLY' ? 'Mingguan' : 'Bulanan';
   const totalConfigs = snapshot.reportData.length;
   const totalDown = snapshot.reportData.reduce((acc, c) => acc + c.downCount, 0);
   const totalLowTraffic = snapshot.reportData.reduce((acc, c) => acc + c.lowTrafficCount, 0);
+  const uniqueGroups = Array.from(new Set(snapshot.reportData.map((c) => c.groupName))).filter(Boolean);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-blue-500/30">
@@ -24,7 +26,7 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
       <header className="w-full bg-slate-950 border-b border-slate-800 px-6 py-4 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-1 rounded overflow-hidden flex items-center justify-center" style={{ width: '52px', height: '52px' }}>
+            <div className="p-1 rounded overflow-hidden flex items-center justify-center" style={{ width: '75px', height: '75px' }}>
               <img src="/riausatunet_logo.webp" alt="R1NET Logo" className="w-full h-auto object-contain" />
             </div>
             <div>
@@ -51,7 +53,31 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
           <div className="bg-slate-800 rounded-xl p-6 sm:p-8 border border-slate-700 shadow-xl">
             <div className="mb-6 border-b border-slate-700 pb-4">
               <h3 className="text-lg font-semibold text-slate-200">Executive Summary</h3>
-              <p className="text-sm text-slate-400">Grup: <span className="text-blue-400 font-medium">{snapshot.groupName || 'Semua Grup'}</span></p>
+              <div className="text-sm text-slate-400 mt-1">
+                Grup:{' '}
+                {snapshot.groupName ? (
+                  <span className="text-blue-400 font-medium">{snapshot.groupName}</span>
+                ) : (
+                  <button 
+                    onClick={() => setShowAllGroups(!showAllGroups)}
+                    className="text-blue-400 font-medium hover:text-blue-300 hover:underline transition-colors focus:outline-none"
+                  >
+                    Semua Grup
+                  </button>
+                )}
+                {!snapshot.groupName && showAllGroups && uniqueGroups.length > 0 && (
+                  <div className="mt-3 bg-slate-900/80 p-4 rounded-lg border border-slate-700/80 shadow-inner">
+                    <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wider">Daftar Grup yang Termasuk:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {uniqueGroups.map((g, idx) => (
+                        <span key={idx} className="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded border border-slate-700">
+                          {g}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

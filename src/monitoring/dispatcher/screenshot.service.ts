@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { BrowserContext } from 'playwright';
 import axios from 'axios';
+import sharp from 'sharp';
 // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
 // import { CookieVaultService } from '../../cookie-vault/cookie-vault.service';
 import { PrtgSettingService } from '../../prtg-setting/prtg-setting.service';
@@ -38,7 +39,12 @@ export class ScreenshotService {
           validateStatus: () => true,
         });
         if (response.status === 200) {
-          return Buffer.from(response.data);
+          const imageWithWhiteBg = await sharp(response.data)
+            .flatten({ background: { r: 255, g: 255, b: 255 } })
+            .sharpen()
+            .png({ quality: 100 })
+            .toBuffer();
+          return imageWithWhiteBg;
         }
         this.logger.warn(
           `Failed to fetch image via axios. HTTP ${response.status}`,
