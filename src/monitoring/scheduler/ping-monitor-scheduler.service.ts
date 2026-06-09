@@ -1,4 +1,7 @@
 import * as ping from 'ping';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as readline from 'readline';
 import {
   Injectable,
   Logger,
@@ -24,6 +27,8 @@ export class PingMonitorSchedulerService
   private readonly signatures = new Map<number, string>();
   private readonly running = new Set<number>();
   private syncTimer: NodeJS.Timeout | null = null;
+  private logCleanupTimer: NodeJS.Timeout | null = null;
+  private readonly logFilePath = path.join(process.cwd(), 'temp', 'ping.log');
 
   constructor(
     private readonly prisma: PrismaService,
@@ -32,12 +37,20 @@ export class PingMonitorSchedulerService
   ) {}
 
   async onModuleInit() {
+    const dir = path.dirname(this.logFilePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
     await this.sync();
     this.syncTimer = setInterval(() => void this.sync(), 15000);
+    this.logCleanupTimer = setInterval(() => void this.cleanupLogs(), 60 * 60 * 1000); // 1 hour
+    void this.cleanupLogs();
   }
 
   onModuleDestroy() {
     if (this.syncTimer) clearInterval(this.syncTimer);
+    if (this.logCleanupTimer) clearInterval(this.logCleanupTimer);
     for (const timer of this.timers.values()) clearInterval(timer);
     this.timers.clear();
   }
@@ -169,7 +182,52 @@ export class PingMonitorSchedulerService
     }
   }
 
+  private appendPingLog(monitor: PingMonitor, result: PingResult) {
+    const now = new Date();
+    const status = result.reachable ? 'UP' : 'RTO';
+    const latency = result.latencyMs !== null ? `${result.latencyMs}ms` : 'N/A';
+    const line = `${now.toISOString()} | ${monitor.name} | ${monitor.host} | ${status} | ${latency}\n`;
+    fs.appendFile(this.logFilePath, line, (err) => {
+      if (err) this.logger.error(`Failed to write ping log: ${err}`);
+    });
+  }
+
+  private async cleanupLogs() {
+    if (!fs.existsSync(this.logFilePath)) return;
+    
+    const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const tempFile = `${this.logFilePath}.tmp`;
+
+    try {
+      const rl = readline.createInterface({
+        input: fs.createReadStream(this.logFilePath),
+        crlfDelay: Infinity
+      });
+
+      const writeStream = fs.createWriteStream(tempFile);
+      
+      for await (const line of rl) {
+        const parts = line.split(' | ');
+        if (parts.length > 0) {
+          const timestamp = new Date(parts[0]);
+          if (timestamp >= cutoffDate) {
+            writeStream.write(line + '\n');
+          }
+        }
+      }
+      
+      writeStream.end();
+      
+      await new Promise((resolve) => writeStream.on('finish', resolve));
+      fs.renameSync(tempFile, this.logFilePath);
+    } catch (error) {
+      this.logger.error(`Error during ping log cleanup: ${error}`);
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+    }
+  }
+
   private async applyResult(monitor: PingMonitor, result: PingResult) {
+    this.appendPingLog(monitor, result);
     const now = new Date();
     let status = monitor.status;
     let outageStartedAt = monitor.outageStartedAt;
