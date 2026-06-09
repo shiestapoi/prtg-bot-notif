@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Res,
+  Req,
 } from '@nestjs/common';
 import * as express from 'express';
 import axios from 'axios';
@@ -126,7 +127,7 @@ export class MonitoringController {
   @HttpCode(HttpStatus.OK)
   async syncConfigRange(
     @Param('id', ParseIntPipe) id: number,
-    @express.Request() req: express.Request,
+    @Req() req: express.Request,
   ): Promise<{ message: string; upsertedCount: number }> {
     const config = await this.prisma.prtgConfig.findUnique({
       where: { id },

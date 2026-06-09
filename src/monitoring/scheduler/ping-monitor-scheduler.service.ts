@@ -231,7 +231,7 @@ export class PingMonitorSchedulerService
 
       writeStream.end();
 
-      await new Promise((resolve) => writeStream.on('finish', resolve));
+      await new Promise<void>((resolve) => writeStream.on('finish', () => resolve()));
       fs.renameSync(tempFile, this.logFilePath);
     } catch (error) {
       this.logger.error(`Error during ping log cleanup: ${error}`);
