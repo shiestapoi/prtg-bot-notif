@@ -10,9 +10,10 @@ import { ReceiptReportPublicController } from './receipt-report-public.controlle
 import { ReceiptRecipientController } from './receipt-recipient.controller';
 import { ReceiptRecipientService } from './receipt-recipient.service';
 import { ReceiptReportHistoryController } from './receipt-report-history.controller';
+import { MonitoringModule } from '../monitoring/monitoring.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, forwardRef(() => WhatsappModule)],
+  imports: [PrismaModule, AuthModule, forwardRef(() => WhatsappModule), forwardRef(() => MonitoringModule)],
   controllers: [
     ReceiptReportController,
     ReceiptRecipientController,

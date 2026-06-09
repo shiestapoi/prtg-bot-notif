@@ -50,5 +50,8 @@ import { PingMonitorSchedulerService } from './scheduler/ping-monitor-scheduler.
     PingRecipientService,
     PingMonitorSchedulerService,
   ],
+  exports: [
+    MonitoringHistoryService,
+  ],
 })
 export class MonitoringModule {}

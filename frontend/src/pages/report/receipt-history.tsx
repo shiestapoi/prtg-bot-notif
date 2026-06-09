@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, RefreshCw, Calendar, Plus } from 'lucide-react';
+import { ExternalLink, RefreshCw, Calendar, Plus, History } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
@@ -19,6 +24,16 @@ export default function ReceiptHistoryPage() {
   const [history, setHistory] = useState<SnapshotHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncStart, setSyncStart] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().slice(0, 16);
+  });
+  const [syncEnd, setSyncEnd] = useState(() => {
+    return new Date().toISOString().slice(0, 16);
+  });
 
   const fetchHistory = async () => {
     try {
@@ -37,6 +52,22 @@ export default function ReceiptHistoryPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchHistory();
   }, []);
+
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      await api.post('/api/receipt-reports/sync-history', {
+        startDate: new Date(syncStart).toISOString(),
+        endDate: new Date(syncEnd).toISOString(),
+      });
+      toast.success('Sinkronisasi PRTG selesai. Anda bisa Update laporan sekarang.');
+      setSyncOpen(false);
+    } catch {
+      toast.error('Gagal sinkronisasi data PRTG');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleManualGenerate = async () => {
     try {
@@ -66,6 +97,10 @@ export default function ReceiptHistoryPage() {
           <Button variant="outline" size="sm" onClick={fetchHistory} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)}>
+            <History className="h-4 w-4 mr-2" />
+            Sync PRTG Data
           </Button>
           <Button size="sm" onClick={handleManualGenerate} disabled={generating}>
             <Plus className="h-4 w-4 mr-2" />
@@ -151,6 +186,43 @@ export default function ReceiptHistoryPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={syncOpen} onOpenChange={setSyncOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sync PRTG Data</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Fitur ini akan menarik data historis langsung dari PRTG untuk rentang waktu yang dipilih, lalu menyimpan atau menimpa data history lokal. Gunakan jika ada insiden down yang tidak tercatat.
+            </p>
+            <div className="space-y-2">
+              <Label>Waktu Mulai</Label>
+              <Input
+                type="datetime-local"
+                value={syncStart}
+                onChange={(e) => setSyncStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Waktu Selesai</Label>
+              <Input
+                type="datetime-local"
+                value={syncEnd}
+                onChange={(e) => setSyncEnd(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSyncOpen(false)} disabled={syncing}>
+              Batal
+            </Button>
+            <Button onClick={handleSync} disabled={syncing}>
+              {syncing ? 'Sinkronisasi...' : 'Mulai Sync'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

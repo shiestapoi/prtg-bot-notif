@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ReceiptReportService } from './receipt-report.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { Prisma } from '@prisma/client';
+import { MonitoringHistoryService } from '../monitoring/service/monitoring-history.service';
 
 @Controller('api/receipt-reports')
 @UseGuards(AuthGuard)
@@ -18,6 +19,7 @@ export class ReceiptReportHistoryController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly receiptReportService: ReceiptReportService,
+    private readonly monitoringHistory: MonitoringHistoryService,
   ) {}
 
   @Get()
@@ -80,5 +82,44 @@ export class ReceiptReportHistoryController {
   @Post(':id/update')
   async updateSnapshot(@Param('id') id: string) {
     return this.receiptReportService.updateSnapshot(id);
+  }
+
+  @Post('sync-history')
+  async syncHistory(
+    @Body()
+    body: {
+      startDate: string;
+      endDate: string;
+      groupId?: number;
+    },
+  ) {
+    if (!body.startDate || !body.endDate) {
+      throw new Error('startDate and endDate are required');
+    }
+
+    const start = new Date(body.startDate);
+    const end = new Date(body.endDate);
+
+    const configs = await this.prisma.prtgConfig.findMany({
+      where: body.groupId
+        ? { groupId: body.groupId, enabled: true, monitoringEnabled: true }
+        : { enabled: true, monitoringEnabled: true },
+    });
+
+    let totalUpserted = 0;
+    for (const config of configs) {
+      try {
+        const count = await this.monitoringHistory.syncFromPrtg(
+          config.id,
+          start,
+          end,
+        );
+        totalUpserted += count;
+      } catch (err) {
+        console.error(`Failed to sync config ${config.id}:`, err);
+      }
+    }
+
+    return { success: true, syncedConfigs: configs.length, totalUpserted };
   }
 }

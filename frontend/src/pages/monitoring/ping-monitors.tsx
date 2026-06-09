@@ -9,6 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Terminal } from 'lucide-react';
+import api from '@/lib/api';
+import { useMonitoringSSE } from '@/hooks/use-sse';
+import type { PingLogEvent } from '@/lib/types';
+import { useRef } from 'react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 const defaultAlert = '*ALERT WEB PRTG*\nWeb PRTG R1NET ({host}) tidak bisa diakses dalam {outageSeconds} detik yang lalu.\nWaktu: {time}';
 const defaultRecovery = '*PULIH*\nWeb PRTG R1NET ({host}) kembali bisa diakses.\nResponse: {latencyMs} ms\nWaktu: {time}';
@@ -42,6 +50,35 @@ export default function PingMonitorsPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [logs, setLogs] = useState<PingLogEvent[]>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (logsOpen) {
+      api.get('/api/monitoring/ping-monitors/logs').then((res) => {
+        setLogs(res.data.logs || []);
+      }).catch(() => toast.error('Gagal memuat log ping'));
+    }
+  }, [logsOpen]);
+
+  useMonitoringSSE(undefined, {
+    onPingLog: (event) => {
+      if (logsOpen) {
+        setLogs((prev) => {
+          const newLogs = [...prev, event];
+          if (newLogs.length > 500) return newLogs.slice(-500);
+          return newLogs;
+        });
+      }
+    }
+  });
+
+  useEffect(() => {
+    if (logsOpen && logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs, logsOpen]);
 
   const selectMonitor = (monitor: PingMonitor) => {
     setSelectedId(monitor.id);
@@ -100,14 +137,21 @@ export default function PingMonitorsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Ping Monitoring</h1>
-          <p className="text-sm text-muted-foreground">ICMP ping dijalankan oleh server dan ditampilkan realtime di TV.</p>
+          <h2 className="text-3xl font-bold tracking-tight">Ping Monitoring</h2>
+          <p className="text-muted-foreground mt-1">Kelola target ping dan konfigurasi notifikasi.</p>
         </div>
-        <Button variant="outline" onClick={() => { setSelectedId(null); setForm(emptyForm); }}>
-          <Plus className="h-4 w-4" /> Monitor Baru
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setLogsOpen(true)}>
+            <Terminal className="h-4 w-4 mr-2" />
+            Live Logs
+          </Button>
+          <Button onClick={() => { setSelectedId(null); setForm(emptyForm); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Tambah Monitor
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -164,6 +208,31 @@ export default function PingMonitorsPage() {
           {selected && <span className="ml-auto flex items-center gap-2 text-sm text-muted-foreground"><Activity className="h-4 w-4" /> {selected.status} {selected.lastLatencyMs !== null ? `${selected.lastLatencyMs.toFixed(1)} ms` : ''}</span>}
         </div>
       </form>
+
+      <Dialog open={logsOpen} onOpenChange={setLogsOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Live Ping Logs</DialogTitle>
+          </DialogHeader>
+          <div className="bg-slate-950 text-slate-300 font-mono text-xs rounded-md p-4 h-[500px] overflow-y-auto space-y-1">
+            {logs.length === 0 ? (
+              <div className="text-muted-foreground italic">Menunggu log...</div>
+            ) : (
+              logs.map((log, idx) => (
+                <div key={idx} className="flex gap-4">
+                  <span className="text-slate-500 whitespace-nowrap">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                  <span className="text-blue-400 w-32 truncate">{log.name}</span>
+                  <span className="text-amber-200/70 w-32 truncate">{log.host}</span>
+                  <span className={`w-12 font-bold ${log.status === 'UP' ? 'text-emerald-400' : 'text-red-400'}`}>{log.status}</span>
+                  <span className="text-slate-400">{log.latencyMs === 'N/A' || log.latencyMs === null ? 'N/A' : log.latencyMs}</span>
+                </div>
+              ))
+            )}
+            <div ref={logsEndRef} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

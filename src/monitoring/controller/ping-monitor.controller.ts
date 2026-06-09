@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   Body,
   Controller,
@@ -58,5 +60,38 @@ export class PingMonitorController {
       throw new NotFoundException('Ping monitor not found.');
     }
     return this.service.findOne(id);
+  }
+
+  @Get('logs')
+  getLogs() {
+    const logFilePath = path.join(process.cwd(), 'temp', 'ping.log');
+    if (!fs.existsSync(logFilePath)) {
+      return { logs: [] };
+    }
+
+    try {
+      const content = fs.readFileSync(logFilePath, 'utf-8');
+      const lines = content.split('\n').filter((l) => l.trim().length > 0);
+      // Return last 200 lines to avoid massive payloads
+      const recentLines = lines.slice(-200);
+
+      const logs = recentLines.map((line) => {
+        const parts = line.split(' | ');
+        if (parts.length >= 5) {
+          return {
+            timestamp: parts[0],
+            name: parts[1],
+            host: parts[2],
+            status: parts[3],
+            latencyMs: parts[4],
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      return { logs };
+    } catch (err) {
+      return { logs: [] };
+    }
   }
 }
