@@ -113,15 +113,35 @@ export default function ReceiptHistoryPage() {
                         {new Date(item.createdAt).toLocaleString('id-ID')}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <a 
-                          href={`/report/${item.id}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                          Buka Web
-                        </a>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            onClick={async () => {
+                              try {
+                                toast.loading('Memperbarui data laporan...', { id: `update-${item.id}` });
+                                await api.post(`/api/receipt-reports/${item.id}/update`);
+                                toast.success('Laporan berhasil diperbarui!', { id: `update-${item.id}` });
+                                fetchHistory();
+                              } catch (e) {
+                                toast.error('Gagal memperbarui laporan', { id: `update-${item.id}` });
+                              }
+                            }}
+                          >
+                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                            Update
+                          </Button>
+                          <a 
+                            href={`/report/${item.id}`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                            Buka Web
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   ))}

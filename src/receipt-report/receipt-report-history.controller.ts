@@ -68,4 +68,9 @@ export class ReceiptReportHistoryController {
 
     return this.receiptReportService.dispatchSchedule(fakeSchedule);
   }
+
+  @Post(':id/update')
+  async updateSnapshot(@Param('id') id: string) {
+    return this.receiptReportService.updateSnapshot(id);
+  }
 }
