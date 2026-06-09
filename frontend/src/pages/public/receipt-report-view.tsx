@@ -17,7 +17,7 @@ export default function PublicReceiptReportViewPage() {
     if (!id) return;
     publicReportApi.fetchReportSnapshot(id)
       .then((data) => {
-        setSnapshot(data.snapshot);
+        setSnapshot(data.snapshot as unknown as Snapshot);
         setReportUIVersion(data.reportUIVersion);
         setLoading(false);
       })

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { MonitoringStatusEvent, MonitoringEvent, NocStatusEvent, PingStatusEvent } from '../lib/types';
+import type { MonitoringStatusEvent, MonitoringEvent, NocStatusEvent, PingStatusEvent, PingLogEvent } from '../lib/types';
 
 export interface UseSSEOptions {
   /** Maximum number of events to keep in the buffer. Default: 50 */
