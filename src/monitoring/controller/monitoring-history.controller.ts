@@ -105,7 +105,7 @@ export class MonitoringHistoryController {
           sensorId: config.sensorId,
           lastStatus: displayStatus,
           lastPolledAt: config.lastPolledAt?.toISOString() ?? null,
-          downCountThisMonth: downDayMap.get(config.id) ?? 0,
+          downCountToday: downDayMap.get(config.id) ?? 0,
           maintenance: config.maintenance,
           maintenanceLabel: config.maintenanceLabel,
           lastMetric: latestHistory
