@@ -63,25 +63,36 @@ export class MonitoringHistoryController {
       now.getMonth(),
       now.getDate(),
     );
+    const monthStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+    );
 
-    // Batch query: count number of DOWN events (transitions) per config today
+    // Batch query: count number of DOWN events (transitions) per config
     const configIds = configs.map((c) => c.id);
-    const downCounts: Array<{ configId: number; downCount: bigint }> =
+    const downCounts: Array<{ configId: number; downCountToday: bigint; downCountMonth: bigint }> =
       configIds.length > 0
         ? await this.prisma.$queryRaw`
-          SELECT "configId", SUM(CASE WHEN "status" IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") AND "prev_status" NOT IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") THEN 1 ELSE 0 END) as "downCount"
+          SELECT 
+            "configId", 
+            SUM(CASE WHEN "status" IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") AND "prev_status" NOT IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") AND "timestamp" >= ${todayStart} THEN 1 ELSE 0 END) as "downCountToday",
+            SUM(CASE WHEN "status" IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") AND "prev_status" NOT IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") THEN 1 ELSE 0 END) as "downCountMonth"
           FROM (
-            SELECT "configId", "status", LAG("status", 1, 'NORMAL'::"NocStatus") OVER (PARTITION BY "configId" ORDER BY "timestamp" ASC) as "prev_status"
+            SELECT "configId", "status", "timestamp", LAG("status", 1, 'NORMAL'::"NocStatus") OVER (PARTITION BY "configId" ORDER BY "timestamp" ASC) as "prev_status"
             FROM "MonitoringHistory"
             WHERE "configId" IN (${Prisma.join(configIds)})
-              AND "timestamp" >= ${todayStart}
+              AND "timestamp" >= ${monthStart}
           ) sub
           GROUP BY "configId"
         `
         : [];
 
     const downDayMap = new Map(
-      downCounts.map((d) => [d.configId, Number(d.downCount)]),
+      downCounts.map((d) => [d.configId, Number(d.downCountToday)]),
+    );
+    const downMonthMap = new Map(
+      downCounts.map((d) => [d.configId, Number(d.downCountMonth)]),
     );
 
     // For each config, get the latest MonitoringHistory record for metric data
@@ -106,6 +117,7 @@ export class MonitoringHistoryController {
           lastStatus: displayStatus,
           lastPolledAt: config.lastPolledAt?.toISOString() ?? null,
           downCountToday: downDayMap.get(config.id) ?? 0,
+          downCountMonth: downMonthMap.get(config.id) ?? 0,
           maintenance: config.maintenance,
           maintenanceLabel: config.maintenanceLabel,
           lastMetric: latestHistory

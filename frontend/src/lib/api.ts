@@ -271,6 +271,9 @@ export const monitoringApi = {
   syncRange: (configId: number, startDate: string, endDate: string) =>
     api.post(`/api/monitoring/configs/${configId}/sync-range`, { startDate, endDate }).then((r) => r.data),
 
+  syncAll: () =>
+    api.post<{ message: string; results: Record<number, number> }>('/api/monitoring/sync-all').then((r) => r.data),
+
   forceNotify: (configId: number) =>
     api.post<{ message: string; configId: number; status: string }>(`/api/monitoring/configs/${configId}/notify`).then((r) => r.data),
 

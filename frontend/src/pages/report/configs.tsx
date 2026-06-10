@@ -38,6 +38,7 @@ interface ConfigForm {
   flappingCount: number;
   downCount: number;
   rollingWindowSize: number;
+  downThreshold: number;
   // Notification switches
   notifyDown: boolean;
   notifyNoTraffic: boolean;
@@ -58,6 +59,7 @@ interface ValidationErrors {
   flappingCount?: string;
   downCount?: string;
   rollingWindowSize?: string;
+  downThreshold?: string;
 }
 
 const emptyForm: ConfigForm = {
@@ -76,6 +78,7 @@ const emptyForm: ConfigForm = {
   flappingCount: 4,
   downCount: 3,
   rollingWindowSize: 10,
+  downThreshold: 1.0,
   notifyDown: true,
   notifyNoTraffic: true,
   notifyLowTraffic: true,
@@ -133,6 +136,10 @@ function validateForm(form: ConfigForm): ValidationErrors {
 
   if (!Number.isInteger(form.rollingWindowSize) || form.rollingWindowSize < 1 || form.rollingWindowSize > 100) {
     errors.rollingWindowSize = 'Must be between 1 and 100';
+  }
+
+  if (form.downThreshold < 0) {
+    errors.downThreshold = 'Must be 0 or greater';
   }
 
   return errors;
@@ -230,6 +237,7 @@ export default function ReportConfigsPage() {
       flappingCount: config.flappingCount ?? 4,
       downCount: config.downCount ?? 3,
       rollingWindowSize: config.rollingWindowSize ?? 10,
+      downThreshold: config.downThreshold ?? 1.0,
       notifyDown: config.notifyDown ?? true,
       notifyNoTraffic: config.notifyNoTraffic ?? true,
       notifyLowTraffic: config.notifyLowTraffic ?? true,
@@ -337,6 +345,7 @@ export default function ReportConfigsPage() {
         payload.flappingCount = form.flappingCount;
         payload.downCount = form.downCount;
         payload.rollingWindowSize = form.rollingWindowSize;
+        payload.downThreshold = form.downThreshold;
         payload.notifyDown = form.notifyDown;
         payload.notifyNoTraffic = form.notifyNoTraffic;
         payload.notifyLowTraffic = form.notifyLowTraffic;
@@ -678,6 +687,24 @@ export default function ReportConfigsPage() {
                         <p className="text-xs text-destructive">{validationErrors.downCount}</p>
                       )}
                     </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="downThreshold" className="text-xs">Down Threshold (Mbit/s)</Label>
+                      <Input
+                        id="downThreshold"
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        value={form.downThreshold}
+                        onChange={(e) => setForm({ ...form, downThreshold: parseFloat(e.target.value) || 0 })}
+                      />
+                      <p className="text-[10px] text-muted-foreground">Batas traffic dianggap DOWN</p>
+                      {validationErrors.downThreshold && (
+                        <p className="text-xs text-destructive">{validationErrors.downThreshold}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label htmlFor="rollingWindowSize" className="text-xs">Rolling Window Size</Label>
                       <Input

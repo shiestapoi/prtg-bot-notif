@@ -56,6 +56,7 @@ export default function NocHistoryPage() {
   const [searching, setSearching] = useState(false);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
+  const [syncingAll, setSyncingAll] = useState(false);
 
   // Filter state
   const [selectedGroup, setSelectedGroup] = useState<string>('');
@@ -200,6 +201,20 @@ export default function NocHistoryPage() {
     toDate !== '' ||
     selectedStatus !== '';
 
+  const handleSyncAll = async () => {
+    if (!window.confirm('Sync historical data from PRTG for all configs? This may take a while.')) return;
+    setSyncingAll(true);
+    try {
+      const result = await monitoringApi.syncAll();
+      alert(`Sync completed: ${result.message}`);
+      fetchHistory(0);
+    } catch (err: any) {
+      alert(`Failed to sync all configs: ${err.message}`);
+    } finally {
+      setSyncingAll(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
@@ -218,12 +233,22 @@ export default function NocHistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">NOC History</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          View monitoring history with filtering by group, config, time range, and
-          status.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">NOC History</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            View monitoring history with filtering by group, config, time range, and
+            status.
+          </p>
+        </div>
+        <Button
+          onClick={handleSyncAll}
+          disabled={syncingAll}
+          variant="outline"
+          className="shrink-0"
+        >
+          {syncingAll ? 'Syncing...' : 'Sync All Configs (24h)'}
+        </Button>
       </div>
 
       {/* Filter Controls */}

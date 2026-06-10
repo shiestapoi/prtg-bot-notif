@@ -939,6 +939,9 @@ const TvCard = memo(function TvCard({ item, onToggleMaintenance, onClickDetail }
           {item.lastStatus !== 'NORMAL' && !isMaintenance && duration && (
             <span className="text-[14px] font-mono text-[#888888] mt-1">{duration}</span>
           )}
+          {item.downCountMonth > 0 && (
+            <span className="text-[12px] font-mono text-[#ef4444] mt-1">{item.downCountMonth}x down bulan ini</span>
+          )}
         </div>
       </div>
 
@@ -1078,8 +1081,8 @@ const ListRow = memo(function ListRow({ item, onToggleMaintenance, onClickDetail
 
       {/* Down count */}
       <div className="text-center">
-        {item.downCountToday > 0 && (
-          <span className="text-[12px] font-mono font-medium text-[#ef4444]">🔴 {item.downCountToday}x</span>
+        {item.downCountMonth > 0 && (
+          <span className="text-[11px] font-mono font-medium text-[#ef4444] whitespace-nowrap">🔴 {item.downCountMonth}x bln ini</span>
         )}
       </div>
 

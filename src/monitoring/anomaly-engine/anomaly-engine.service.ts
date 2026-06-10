@@ -25,6 +25,7 @@ export interface MonitoringEligibleConfig {
   flappingCount: number;
   downCount: number;
   rollingWindowSize: number;
+  downThreshold: number;
   notifyDown: boolean;
   notifyNoTraffic: boolean;
   notifyLowTraffic: boolean;
@@ -65,8 +66,9 @@ export interface ClassificationResult {
 /**
  * Threshold for "down" — below this the link is essentially dead (in Mbit/s).
  * Covers both old DOWN (= 0) and NO_TRAFFIC (< 0.1) cases.
+ * Note: Now used only as a fallback if downThreshold is missing from config.
  */
-const DOWN_THRESHOLD_MBPS = 1.0;
+const FALLBACK_DOWN_THRESHOLD_MBPS = 1.0;
 
 /**
  * Calculates the rolling average of totalTrafficBitrate from recent NORMAL history entries.
@@ -134,15 +136,16 @@ export class AnomalyEngineService {
 
     // ═══ All classification based on Traffic In speed ═══
     const inboundBitrateMbps = (metric.inboundBitrate ?? 0) / 1_000_000;
+    const downThreshold = config.downThreshold ?? FALLBACK_DOWN_THRESHOLD_MBPS;
 
-    // Priority 1: DOWN — Traffic In < 1 Mbit/s (link dead or nearly dead)
-    if (inboundBitrateMbps < DOWN_THRESHOLD_MBPS) {
+    // Priority 1: DOWN — Traffic In < downThreshold Mbit/s (link dead or nearly dead)
+    if (inboundBitrateMbps < downThreshold) {
       return {
         status: NocStatus.DOWN,
         reason:
           inboundBitrateMbps === 0
             ? 'Traffic In = 0 (link mati total)'
-            : `Traffic In ${inboundBitrateMbps.toFixed(2)} Mbit/s (di bawah 1 Mbit/s)`,
+            : `Traffic In ${inboundBitrateMbps.toFixed(2)} Mbit/s (di bawah ${downThreshold.toFixed(2)} Mbit/s)`,
       };
     }
 

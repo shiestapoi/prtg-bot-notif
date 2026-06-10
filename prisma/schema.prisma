@@ -76,6 +76,7 @@ model PrtgConfig {
   flappingCount     Int            @default(4)      // transitions in window
   downCount         Int            @default(3)      // consecutive errors
   rollingWindowSize Int            @default(10)     // number of samples
+  downThreshold     Float          @default(1.0)    // Mbit/s — threshold for DOWN status
   notifyDown        Boolean        @default(true)
   notifyNoTraffic   Boolean        @default(true)
   notifyLowTraffic  Boolean        @default(true)

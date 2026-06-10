@@ -1051,6 +1051,11 @@ const CompactCard = memo(function CompactCard({ item, onToggleMaintenance, onCli
           </span>
         )}
       </div>
+      {item.downCountMonth > 0 && (
+        <div className="absolute top-2 right-2 rounded bg-red-600/90 px-1.5 py-0.5 text-[8px] font-bold text-white shadow">
+          {item.downCountMonth}x down bln ini
+        </div>
+      )}
       <p className="text-[8px] text-gray-500 mb-1.5">{item.groupName}</p>
 
       {/* Metrics — stacked */}
@@ -1070,10 +1075,7 @@ const CompactCard = memo(function CompactCard({ item, onToggleMaintenance, onCli
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-gray-800">
-        {item.downCountToday > 0 ? (
-          <span className="text-[7px] text-red-400 font-medium">🔴 {item.downCountToday}x</span>
-        ) : <span />}
+      <div className="flex items-center justify-end mt-1.5 pt-1 border-t border-gray-800">
         <span className="text-[7px] text-gray-500">{formatTime(item.lastPolledAt)}</span>
       </div>
     </div>
@@ -1128,8 +1130,8 @@ const ListRow = memo(function ListRow({ item, onToggleMaintenance, onClickDetail
 
       {/* Down count */}
       <div className="text-center">
-        {item.downCountToday > 0 && (
-          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountToday}x</span>
+        {item.downCountMonth > 0 && (
+          <span className="text-[7px] text-red-400 font-medium whitespace-nowrap">🔴 {item.downCountMonth}x bln ini</span>
         )}
       </div>
 

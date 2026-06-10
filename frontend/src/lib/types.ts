@@ -111,6 +111,7 @@ export interface PrtgConfig {
   flappingCount: number;
   downCount: number;
   rollingWindowSize: number;
+  downThreshold: number;
   notifyDown: boolean;
   notifyNoTraffic: boolean;
   notifyLowTraffic: boolean;
@@ -270,6 +271,7 @@ export interface MonitoringSummaryItem {
   lastStatus: NocStatus;
   lastPolledAt: string | null;
   downCountToday: number;
+  downCountMonth: number;
   maintenance: boolean;
   maintenanceLabel: string | null;
   lastMetric: {

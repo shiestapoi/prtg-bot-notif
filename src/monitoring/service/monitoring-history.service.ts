@@ -176,7 +176,7 @@ export class MonitoringHistoryService {
     const formatDate = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}-${String(d.getSeconds()).padStart(2, '0')}`;
 
-    const url = `${baseUrl.protocol}//${baseUrl.host}/api/historicdata.json?id=${config.sensorId}&avg=60&sdate=${formatDate(startDate)}&edate=${formatDate(endDate)}&usecaption=1&username=${encodeURIComponent(settings.loginUsername)}&passhash=${encodeURIComponent(settings.loginPassword)}`;
+    const url = `${baseUrl.protocol}//${baseUrl.host}/api/historicdata.json?id=${config.sensorId}&avg=0&sdate=${formatDate(startDate)}&edate=${formatDate(endDate)}&usecaption=1&username=${encodeURIComponent(settings.loginUsername ?? '')}&passhash=${encodeURIComponent(settings.loginPassword ?? '')}`;
 
     const response = await axios.get(url, {
       timeout: 30000,

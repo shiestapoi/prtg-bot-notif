@@ -91,6 +91,11 @@ export class CreatePrtgConfigDto {
   rollingWindowSize?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0, { message: 'Down threshold must be >= 0.' })
+  downThreshold?: number;
+
+  @IsOptional()
   @IsBoolean()
   notifyDown?: boolean;
 
