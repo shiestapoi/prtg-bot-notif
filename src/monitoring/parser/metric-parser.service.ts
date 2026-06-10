@@ -308,7 +308,6 @@ export class MetricParserService {
 
     const timestamp = oleToDate(oleDate);
 
-    // Extract all value_raw occurrences in positional order
     const valueRawPattern = /"value_raw"\s*:\s*"?(-?[0-9.]+(?:e[+-]?\d+)?)"?/gi;
     const valueRaws: number[] = [];
     let match: RegExpExecArray | null;
@@ -316,6 +315,7 @@ export class MetricParserService {
     while ((match = valueRawPattern.exec(entryStr)) !== null) {
       valueRaws.push(parseFloat(match[1]));
     }
+
 
     if (valueRaws.length === 0) {
       throw new MetricParseError(
@@ -339,11 +339,11 @@ export class MetricParserService {
     return {
       timestamp,
       totalTrafficBytes: valueRaws.length > 0 ? valueRaws[0] : null,
-      totalTrafficBitrate: valueRaws.length > 1 ? valueRaws[1] : null,
+      totalTrafficBitrate: valueRaws.length > 1 ? valueRaws[1] * 8 : null,
       inboundBytes: valueRaws.length > 2 ? valueRaws[2] : null,
-      inboundBitrate: valueRaws.length > 3 ? valueRaws[3] : null,
+      inboundBitrate: valueRaws.length > 3 ? valueRaws[3] * 8 : null,
       outboundBytes: valueRaws.length > 4 ? valueRaws[4] : null,
-      outboundBitrate: valueRaws.length > 5 ? valueRaws[5] : null,
+      outboundBitrate: valueRaws.length > 5 ? valueRaws[5] * 8 : null,
       errorPercent: valueRaws.length > 6 ? valueRaws[6] : null,
       coveragePercent,
     };
