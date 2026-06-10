@@ -240,7 +240,21 @@ export interface ConfigUpdatedEvent {
   timestamp: string;
 }
 
-export type MonitoringEvent = MonitoringStatusEvent | ConfigUpdatedEvent | PingStatusEvent | PingLogEvent;
+export interface TaskProgressEvent {
+  type: 'task_progress';
+  taskId: string;
+  status: 'running' | 'completed' | 'failed';
+  progress: number;
+  total: number;
+  message?: string;
+}
+
+export type MonitoringEvent =
+  | MonitoringStatusEvent
+  | ConfigUpdatedEvent
+  | PingStatusEvent
+  | PingLogEvent
+  | TaskProgressEvent;
 
 // ─── Monitoring History (Unified) ───────────────────────────────────────────
 

@@ -13,11 +13,13 @@ import { PrtgSettingModule } from './prtg-setting/prtg-setting.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { ReceiptReportModule } from './receipt-report/receipt-report.module';
 import { SoundModule } from './sound/sound.module';
+import { TaskModule } from './task/task.module';
 
 @Module({
   imports: [
     PrismaModule,
     MonitoringEventModule, // Global — available to all modules
+    TaskModule, // Global task manager
     AuthModule,
     WhatsappModule,
     CookieVaultModule, // DEPRECATED: Cookie tidak dipakai lagi untuk auth PRTG, tapi endpoint tetap ada

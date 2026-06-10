@@ -13,6 +13,8 @@ import { AuthGuard } from '../auth/auth.guard';
 import { Prisma } from '@prisma/client';
 import { MonitoringHistoryService } from '../monitoring/service/monitoring-history.service';
 
+import { TaskService } from '../task/task.service';
+
 @Controller('api/receipt-reports')
 @UseGuards(AuthGuard)
 export class ReceiptReportHistoryController {
@@ -20,6 +22,7 @@ export class ReceiptReportHistoryController {
     private readonly prisma: PrismaService,
     private readonly receiptReportService: ReceiptReportService,
     private readonly monitoringHistory: MonitoringHistoryService,
+    private readonly taskService: TaskService,
   ) {}
 
   @Get()
@@ -106,20 +109,54 @@ export class ReceiptReportHistoryController {
         : { enabled: true, monitoringEnabled: true },
     });
 
-    let totalUpserted = 0;
-    for (const config of configs) {
-      try {
-        const count = await this.monitoringHistory.syncFromPrtg(
-          config.id,
-          start,
-          end,
-        );
-        totalUpserted += count;
-      } catch (err) {
-        console.error(`Failed to sync config ${config.id}:`, err);
-      }
-    }
+    const taskId = this.taskService.startTask(
+      configs.length,
+      `Memulai sinkronisasi ${configs.length} sensor...`
+    );
 
-    return { success: true, syncedConfigs: configs.length, totalUpserted };
+    // Run in background
+    (async () => {
+      try {
+        let totalUpserted = 0;
+        let processedCount = 0;
+        const concurrency = 10;
+        
+        for (let i = 0; i < configs.length; i += concurrency) {
+          const chunk = configs.slice(i, i + concurrency);
+          const results = await Promise.all(
+            chunk.map(async (config) => {
+              try {
+                return await this.monitoringHistory.syncFromPrtg(
+                  config.id,
+                  start,
+                  end,
+                );
+              } catch (err) {
+                console.error(`Failed to sync config ${config.id}:`, err);
+                return 0;
+              }
+            })
+          );
+          
+          processedCount += chunk.length;
+          totalUpserted += results.reduce((a, b) => a + b, 0);
+          
+          this.taskService.updateProgress(
+            taskId, 
+            processedCount, 
+            `Sinkronisasi berjalan: ${processedCount}/${configs.length} sensor...`
+          );
+        }
+
+        this.taskService.completeTask(
+          taskId, 
+          `Sinkronisasi selesai! Total ${totalUpserted} data berhasil ditarik.`
+        );
+      } catch (error: any) {
+        this.taskService.failTask(taskId, `Gagal: ${error.message}`);
+      }
+    })();
+
+    return { success: true, taskId, message: 'Sync started in background' };
   }
 }

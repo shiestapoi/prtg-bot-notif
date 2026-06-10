@@ -54,11 +54,21 @@ export interface PingLogEvent {
   latencyMs: string;
 }
 
+export interface TaskProgressEvent {
+  type: 'task_progress';
+  taskId: string;
+  status: 'running' | 'completed' | 'failed';
+  progress: number;
+  total: number;
+  message?: string;
+}
+
 export type MonitoringEvent =
   | MonitoringStatusEvent
   | ConfigUpdatedEvent
   | PingStatusEvent
-  | PingLogEvent;
+  | PingLogEvent
+  | TaskProgressEvent;
 
 /**
  * Simple EventEmitter-based service for broadcasting monitoring status events.
@@ -101,6 +111,24 @@ export class MonitoringEventService {
   }
 
   emitPingLog(event: PingLogEvent): void {
+    this.emitter.emit('monitoring_event', event);
+  }
+
+  emitTaskProgress(
+    taskId: string,
+    status: 'running' | 'completed' | 'failed',
+    progress: number,
+    total: number,
+    message?: string,
+  ): void {
+    const event: TaskProgressEvent = {
+      type: 'task_progress',
+      taskId,
+      status,
+      progress,
+      total,
+      message,
+    };
     this.emitter.emit('monitoring_event', event);
   }
 

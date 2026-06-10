@@ -26,6 +26,10 @@ export default function ReceiptHistoryPage() {
   const [generating, setGenerating] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [taskProgress, setTaskProgress] = useState(0);
+  const [taskTotal, setTaskTotal] = useState(1);
+  const [taskMessage, setTaskMessage] = useState('');
   const [syncStart, setSyncStart] = useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -53,18 +57,71 @@ export default function ReceiptHistoryPage() {
     fetchHistory();
   }, []);
 
+  useEffect(() => {
+    if (!activeTaskId) return;
+
+    const eventSource = new EventSource('/api/monitoring/events');
+    const handleEvent = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'task_progress' && data.taskId === activeTaskId) {
+          setTaskProgress(data.progress);
+          setTaskTotal(data.total);
+          if (data.message) setTaskMessage(data.message);
+
+          if (data.status === 'completed') {
+            toast.success(data.message || 'Sinkronisasi PRTG selesai.');
+            setSyncOpen(false);
+            setSyncing(false);
+            setActiveTaskId(null);
+            eventSource.close();
+          } else if (data.status === 'failed') {
+            toast.error(data.message || 'Gagal sinkronisasi data PRTG');
+            setSyncing(false);
+            setActiveTaskId(null);
+            eventSource.close();
+          }
+        }
+      } catch (err) {
+        // ignore JSON parse errors
+      }
+    };
+
+    // Note: The NestJS Sse() decorator uses the event name 'message' by default if we don't specify an Event property, 
+    // but the MonitoringEventController emits { data: event }. 
+    // In NestJS, returning { data } emits an event named 'message'.
+    eventSource.addEventListener('message', handleEvent);
+    
+    // In case NestJS assigns the event name based on something else, listen to 'monitoring_event' too
+    eventSource.addEventListener('monitoring_event', handleEvent);
+
+    return () => {
+      eventSource.close();
+    };
+  }, [activeTaskId]);
+
   const handleSync = async () => {
     try {
       setSyncing(true);
-      await api.post('/api/receipt-reports/sync-history', {
+      setTaskProgress(0);
+      setTaskTotal(1);
+      setTaskMessage('Menyiapkan task...');
+      
+      const res = await api.post('/api/receipt-reports/sync-history', {
         startDate: new Date(syncStart).toISOString(),
         endDate: new Date(syncEnd).toISOString(),
       });
-      toast.success('Sinkronisasi PRTG selesai. Anda bisa Update laporan sekarang.');
-      setSyncOpen(false);
+      
+      if (res.data?.taskId) {
+        setActiveTaskId(res.data.taskId);
+      } else {
+        // Fallback for older API
+        toast.success('Sinkronisasi PRTG selesai. Anda bisa Update laporan sekarang.');
+        setSyncOpen(false);
+        setSyncing(false);
+      }
     } catch {
-      toast.error('Gagal sinkronisasi data PRTG');
-    } finally {
+      toast.error('Gagal memulai sinkronisasi data PRTG');
       setSyncing(false);
     }
   };
@@ -213,13 +270,31 @@ export default function ReceiptHistoryPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSyncOpen(false)} disabled={syncing}>
-              Batal
-            </Button>
-            <Button onClick={handleSync} disabled={syncing}>
-              {syncing ? 'Sinkronisasi...' : 'Mulai Sync'}
-            </Button>
+          <DialogFooter className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
+            {activeTaskId ? (
+              <div className="w-full flex-1">
+                <div className="flex justify-between text-xs mb-1">
+                  <span>{taskMessage}</span>
+                  <span>{Math.round((taskProgress / taskTotal) * 100)}%</span>
+                </div>
+                <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-primary h-full transition-all duration-300"
+                    style={{ width: `${(taskProgress / taskTotal) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setSyncOpen(false)} disabled={syncing}>
+                Batal
+              </Button>
+              <Button onClick={handleSync} disabled={syncing}>
+                {syncing && !activeTaskId ? 'Memulai...' : syncing ? 'Sinkronisasi...' : 'Mulai Sync'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
