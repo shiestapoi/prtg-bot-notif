@@ -123,7 +123,21 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
               <p className="text-slate-400">Tidak ada data sensor atau insiden yang tercatat pada periode ini.</p>
             </div>
           ) : (
-            snapshot.reportData.map((config) => (
+            Object.entries(
+              snapshot.reportData.reduce((acc, config) => {
+                const groupName = config.groupName || 'Tanpa Grup';
+                if (!acc[groupName]) acc[groupName] = [];
+                acc[groupName].push(config);
+                return acc;
+              }, {} as Record<string, typeof snapshot.reportData>)
+            ).map(([groupName, configs]) => (
+              <div key={groupName} className="mb-10">
+                <h4 className="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+                  <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
+                  {groupName}
+                </h4>
+                <div className="space-y-6">
+                  {configs.map((config) => (
               <div key={config.configId} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg">
                 {/* Config Header */}
                 <div className="bg-slate-800/80 p-5 sm:p-6 border-b border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -247,7 +261,6 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
                   )}
                 </div>
 
-                {/* Lightbox for this config */}
                 <Lightbox
                   open={openLightbox?.configId === config.configId}
                   close={() => setOpenLightbox(null)}
@@ -260,6 +273,9 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
                   carousel={{ finite: false }}
                   styles={{ container: { backgroundColor: "rgba(15, 23, 42, .95)" } }}
                 />
+              </div>
+            ))}
+                </div>
               </div>
             ))
           )}

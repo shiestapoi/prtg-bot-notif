@@ -160,6 +160,11 @@ export class MonitoringHistoryService {
       throw new Error('Config not found or monitoring not enabled');
     }
 
+    // Skip syncing if config is currently in maintenance
+    if (config.maintenance) {
+      return 0;
+    }
+
     const settings = await this.prtgSetting.getSettingRaw();
     if (!settings.loginUsername || !settings.loginPassword) {
       throw new Error('PRTG credentials not configured');
