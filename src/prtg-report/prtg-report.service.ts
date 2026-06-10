@@ -364,6 +364,7 @@ export class PrtgReportService {
     flappingCount?: number;
     downCount?: number;
     rollingWindowSize?: number;
+    downThreshold?: number;
     notifyDown?: boolean;
     notifyNoTraffic?: boolean;
     notifyLowTraffic?: boolean;
@@ -440,6 +441,9 @@ export class PrtgReportService {
         ...(payload.rollingWindowSize !== undefined && {
           rollingWindowSize: payload.rollingWindowSize,
         }),
+        ...(payload.downThreshold !== undefined && {
+          downThreshold: payload.downThreshold,
+        }),
         ...(payload.notifyDown !== undefined && {
           notifyDown: payload.notifyDown,
         }),
@@ -490,6 +494,7 @@ export class PrtgReportService {
       flappingCount?: number;
       downCount?: number;
       rollingWindowSize?: number;
+      downThreshold?: number;
       notifyDown?: boolean;
       notifyNoTraffic?: boolean;
       notifyLowTraffic?: boolean;
@@ -574,6 +579,9 @@ export class PrtgReportService {
         ...(payload.rollingWindowSize !== undefined && {
           rollingWindowSize: payload.rollingWindowSize,
         }),
+        ...(payload.downThreshold !== undefined && {
+          downThreshold: payload.downThreshold,
+        }),
         ...(payload.notifyDown !== undefined && {
           notifyDown: payload.notifyDown,
         }),
@@ -624,6 +632,7 @@ export class PrtgReportService {
     flappingCount: number;
     downCount: number;
     rollingWindowSize: number;
+    downThreshold: number;
     notifyDown: boolean;
     notifyNoTraffic: boolean;
     notifyLowTraffic: boolean;
@@ -654,6 +663,7 @@ export class PrtgReportService {
       flappingCount: config.flappingCount,
       downCount: config.downCount,
       rollingWindowSize: config.rollingWindowSize,
+      downThreshold: config.downThreshold,
       notifyDown: config.notifyDown,
       notifyNoTraffic: config.notifyNoTraffic,
       notifyLowTraffic: config.notifyLowTraffic,

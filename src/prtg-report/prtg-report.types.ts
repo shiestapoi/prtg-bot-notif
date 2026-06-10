@@ -27,6 +27,7 @@ export interface PrtgConfigDto {
   flappingCount: number;
   downCount: number;
   rollingWindowSize: number;
+  downThreshold: number;
   notifyDown: boolean;
   notifyNoTraffic: boolean;
   notifyLowTraffic: boolean;
