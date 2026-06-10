@@ -1015,8 +1015,8 @@ const TvCard = memo(function TvCard({ item, onToggleMaintenance, onClickDetail }
 
       {/* Footer */}
       <div className="flex items-center justify-between px-2 pb-1">
-        {item.downCountToday > 0 && (
-          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountToday}x down hari ini</span>
+        {item.downCountMonth > 0 && (
+          <span className="text-[8px] text-red-400 font-medium">🔴 {item.downCountMonth}x down bulan ini</span>
         )}
         <span className="text-[8px] text-gray-500 ml-auto">
           {formatTime(item.lastPolledAt)}

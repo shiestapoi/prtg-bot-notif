@@ -38,7 +38,7 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
             <h2 className="text-sm font-medium text-slate-300">Laporan Bandwidth {periodLabel}</h2>
             <p className="text-xs text-slate-500 mt-1">
               {snapshot.period === 'DAILY' 
-                ? `${new Date(snapshot.endDate).toLocaleDateString('id-ID')} 00:00 - 23:59 WIB`
+                ? `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} 00:00 - 23:59 WIB`
                 : `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} — ${new Date(snapshot.endDate).toLocaleDateString('id-ID')}`
               }
             </p>

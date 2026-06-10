@@ -65,7 +65,7 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
           <span className="font-semibold">NOC Report</span>
           <span className="opacity-80">
             {snapshot.period === 'DAILY' 
-              ? `${new Date(snapshot.endDate).toLocaleDateString('id-ID')} 00:00 WIB — 23:59 WIB`
+              ? `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} 00:00 WIB — 23:59 WIB`
               : `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} — ${new Date(snapshot.endDate).toLocaleDateString('id-ID')}`
             }
           </span>
@@ -79,7 +79,7 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
             Laporan {periodLabel}
             {snapshot.period === 'DAILY' && (
               <span className="block text-[15px] sm:text-[17px] font-medium text-[#86868b] mt-1">
-                {new Date(snapshot.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} (00:00 WIB — 23:59 WIB)
+                {new Date(snapshot.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} (00:00 WIB — 23:59 WIB)
               </span>
             )}
           </p>
