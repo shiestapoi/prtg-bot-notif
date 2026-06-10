@@ -213,7 +213,7 @@ async function main() {
       enabled: true,
       intervalSeconds: 2,
       pingTimeoutSeconds: 5,
-      rtoThresholdSeconds: 10,
+      rtoThresholdCount: 10,
       notificationCooldownSeconds: 3600,
       maintenance: false,
       notifyRecovery: true,
