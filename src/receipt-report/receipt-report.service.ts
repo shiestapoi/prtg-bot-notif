@@ -93,13 +93,28 @@ export class ReceiptReportService {
     >();
 
     for (const history of histories) {
+      const config = configs.find(c => c.id === history.configId);
+      
+      // Dynamically re-evaluate status based on CURRENT config thresholds
+      let currentStatus = history.status;
+      if (config) {
+        const inboundMbps = (history.inboundBitrate ?? 0) / 1000000;
+        if (inboundMbps < config.downThreshold) {
+          currentStatus = NocStatus.DOWN;
+        } else if (history.totalTrafficBitrate !== null && history.totalTrafficBitrate < config.thresholdLow) {
+          currentStatus = NocStatus.LOW_TRAFFIC;
+        } else {
+          currentStatus = NocStatus.NORMAL;
+        }
+      }
+
       const prev = previousState.get(history.configId) || {
         status: NocStatus.NORMAL,
         inbound: null,
         outbound: null,
       };
 
-      if (history.status !== prev.status) {
+      if (currentStatus !== prev.status) {
         // ALWAYS close the previous incident on any state transition
         const configIncidents = incidentsByConfig.get(history.configId);
         if (configIncidents && configIncidents.length > 0) {
@@ -114,21 +129,21 @@ export class ReceiptReportService {
 
         // We ALWAYS capture DOWN and LOW_TRAFFIC for the web view snapshot
         if (
-          history.status === NocStatus.DOWN ||
-          history.status === NocStatus.LOW_TRAFFIC
+          currentStatus === NocStatus.DOWN ||
+          currentStatus === NocStatus.LOW_TRAFFIC
         ) {
           if (!incidentsByConfig.has(history.configId)) {
             incidentsByConfig.set(history.configId, []);
           }
           incidentsByConfig.get(history.configId)!.push({
-            status: history.status,
+            status: currentStatus,
             time: history.timestamp,
             inboundBefore:
-              history.status === NocStatus.LOW_TRAFFIC
+              currentStatus === NocStatus.LOW_TRAFFIC
                 ? (averages?.avgIn ?? prev.inbound)
                 : prev.inbound,
             outboundBefore:
-              history.status === NocStatus.LOW_TRAFFIC
+              currentStatus === NocStatus.LOW_TRAFFIC
                 ? (averages?.avgOut ?? prev.outbound)
                 : prev.outbound,
             inboundDuring: history.inboundBitrate,
@@ -139,7 +154,7 @@ export class ReceiptReportService {
 
       // Update previous state
       previousState.set(history.configId, {
-        status: history.status,
+        status: currentStatus,
         inbound:
           history.inboundBitrate !== null
             ? history.inboundBitrate
