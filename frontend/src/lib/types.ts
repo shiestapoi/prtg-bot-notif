@@ -40,6 +40,7 @@ export interface NocMonitoredItem {
   sensitivity: NocSensitivity;
   cooldownInterval: number;
   rollingWindowSize: number;
+  downThreshold: number;
   lastPolledAt: string | null;
   lastStatus: NocStatus;
   createdAt: string;

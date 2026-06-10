@@ -229,15 +229,20 @@ export class MonitoringHistoryService {
     for (const metric of metrics) {
       // Create a fake classification for historical data based on simple thresholds
       let status: NocStatus = NocStatus.NORMAL;
-      if (metric.errorPercent !== null && metric.errorPercent > 0) {
-        status = NocStatus.DOWN;
-      } else if (metric.totalTrafficBitrate === 0) {
-        status = NocStatus.NO_TRAFFIC;
-      } else if (
-        metric.totalTrafficBitrate !== null &&
-        metric.totalTrafficBitrate < config.thresholdLow
-      ) {
-        status = NocStatus.LOW_TRAFFIC;
+      if (config.maintenance) {
+        status = NocStatus.MAINTENANCE;
+      } else {
+        const inboundMbps = (metric.inboundBitrate ?? 0) / 1000000;
+        if (metric.errorPercent !== null && metric.errorPercent > 0) {
+          status = NocStatus.DOWN;
+        } else if (inboundMbps < config.downThreshold) {
+          status = NocStatus.DOWN;
+        } else if (
+          metric.totalTrafficBitrate !== null &&
+          metric.totalTrafficBitrate < config.thresholdLow
+        ) {
+          status = NocStatus.LOW_TRAFFIC;
+        }
       }
 
       // Find if there's an existing record within 30 seconds of this timestamp

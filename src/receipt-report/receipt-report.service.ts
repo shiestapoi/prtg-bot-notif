@@ -222,7 +222,7 @@ export class ReceiptReportService {
             threshold:
               i.status === NocStatus.LOW_TRAFFIC
                 ? config.thresholdLow
-                : config.minTrafficThreshold,
+                : config.downThreshold,
             sdate: this.formatPrtgDate(sdateObj),
             edate: this.formatPrtgDate(edateObj),
           };
@@ -573,7 +573,7 @@ export class ReceiptReportService {
             threshold:
               i.status === NocStatus.LOW_TRAFFIC
                 ? config.thresholdLow
-                : config.minTrafficThreshold,
+                : config.downThreshold,
             sdate: this.formatPrtgDate(sdateObj),
             edate: this.formatPrtgDate(edateObj),
           };

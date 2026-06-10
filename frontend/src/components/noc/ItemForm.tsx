@@ -25,6 +25,7 @@ export interface ItemFormData {
   sensitivity: NocSensitivity;
   cooldownInterval: number;
   rollingWindowSize: number;
+  downThreshold: number;
   enabled: boolean;
 }
 
@@ -42,6 +43,7 @@ const defaultFormData: ItemFormData = {
   sensitivity: 'MEDIUM',
   cooldownInterval: 300,
   rollingWindowSize: 10,
+  downThreshold: 1.0,
   enabled: true,
 };
 
@@ -69,6 +71,7 @@ export function ItemForm({ groups, initialData, onSubmit, submitLabel = 'Save' }
         sensitivity: initialData.sensitivity ?? defaultFormData.sensitivity,
         cooldownInterval: initialData.cooldownInterval ?? defaultFormData.cooldownInterval,
         rollingWindowSize: initialData.rollingWindowSize ?? defaultFormData.rollingWindowSize,
+        downThreshold: initialData.downThreshold ?? defaultFormData.downThreshold,
         enabled: initialData.enabled ?? defaultFormData.enabled,
       };
     }
@@ -92,6 +95,7 @@ export function ItemForm({ groups, initialData, onSubmit, submitLabel = 'Save' }
         sensitivity: initialData.sensitivity ?? defaultFormData.sensitivity,
         cooldownInterval: initialData.cooldownInterval ?? defaultFormData.cooldownInterval,
         rollingWindowSize: initialData.rollingWindowSize ?? defaultFormData.rollingWindowSize,
+        downThreshold: initialData.downThreshold ?? defaultFormData.downThreshold,
         enabled: initialData.enabled ?? defaultFormData.enabled,
       });
     }
@@ -228,6 +232,17 @@ export function ItemForm({ groups, initialData, onSubmit, submitLabel = 'Save' }
             min={1}
             value={form.rollingWindowSize}
             onChange={(e) => updateField('rollingWindowSize', Number(e.target.value))}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="item-down-threshold">Down Threshold (Mbit/s)</Label>
+          <Input
+            id="item-down-threshold"
+            type="number"
+            min={0}
+            step="0.1"
+            value={form.downThreshold}
+            onChange={(e) => updateField('downThreshold', Number(e.target.value))}
           />
         </div>
       </div>
