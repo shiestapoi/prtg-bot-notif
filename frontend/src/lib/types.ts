@@ -305,7 +305,7 @@ export interface PingMonitor {
   enabled: boolean;
   intervalSeconds: number;
   pingTimeoutSeconds: number;
-  rtoThresholdSeconds: number;
+  rtoThresholdCount: number;
   notificationCooldownSeconds: number;
   maintenance: boolean;
   maintenanceLabel: string | null;

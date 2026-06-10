@@ -93,8 +93,8 @@ export class PingMonitorService {
       ...(dto.pingTimeoutSeconds !== undefined
         ? { pingTimeoutSeconds: dto.pingTimeoutSeconds }
         : {}),
-      ...(dto.rtoThresholdSeconds !== undefined
-        ? { rtoThresholdSeconds: dto.rtoThresholdSeconds }
+      ...(dto.rtoThresholdCount !== undefined
+        ? { rtoThresholdCount: dto.rtoThresholdCount }
         : {}),
       ...(dto.notificationCooldownSeconds !== undefined
         ? { notificationCooldownSeconds: dto.notificationCooldownSeconds }

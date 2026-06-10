@@ -127,7 +127,7 @@ export class PingMonitorSchedulerService
       monitor.host,
       monitor.intervalSeconds,
       monitor.pingTimeoutSeconds,
-      monitor.rtoThresholdSeconds,
+      monitor.rtoThresholdCount,
       monitor.notificationCooldownSeconds,
       monitor.maintenance,
       monitor.enabled,
@@ -143,12 +143,13 @@ export class PingMonitorSchedulerService
   private async poll(monitor: PingMonitor) {
     if (this.running.has(monitor.id)) return;
     this.running.add(monitor.id);
+    const startTime = new Date();
     try {
       const result = await this.executeCheck(
         monitor.host,
         monitor.pingTimeoutSeconds,
       );
-      await this.applyResult(monitor, result);
+      await this.applyResult(monitor, result, startTime);
     } catch (error) {
       this.logger.error(
         `Ping monitor ${monitor.id} failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -239,7 +240,7 @@ export class PingMonitorSchedulerService
     }
   }
 
-  private async applyResult(monitor: PingMonitor, result: PingResult) {
+  private async applyResult(monitor: PingMonitor, result: PingResult, startTime: Date) {
     this.appendPingLog(monitor, result);
     const now = new Date();
     let status = monitor.status;
@@ -260,9 +261,10 @@ export class PingMonitorSchedulerService
         );
       }
     } else {
-      outageStartedAt ??= now;
-      const outageMs = now.getTime() - outageStartedAt.getTime();
-      if (outageMs >= monitor.rtoThresholdSeconds * 1000) {
+      outageStartedAt ??= startTime;
+      const consecutiveRtoCount = monitor.consecutiveRtoCount + 1;
+      
+      if (consecutiveRtoCount >= monitor.rtoThresholdCount) {
         status = 'RTO';
         const cooldownPassed =
           !monitor.lastAlertAt ||
@@ -289,6 +291,7 @@ export class PingMonitorSchedulerService
         lastCheckedAt: now,
         outageStartedAt,
         lastAlertAt,
+        consecutiveRtoCount: result.reachable ? 0 : monitor.consecutiveRtoCount + 1,
       },
     });
 

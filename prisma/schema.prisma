@@ -148,7 +148,8 @@ model PingMonitor {
   enabled             Boolean           @default(true)
   intervalSeconds     Int               @default(2)
   pingTimeoutSeconds  Int               @default(1)
-  rtoThresholdSeconds Int               @default(10)
+  rtoThresholdCount   Int               @default(10)
+  consecutiveRtoCount Int               @default(0)
   notificationCooldownSeconds Int       @default(3600)
   maintenance         Boolean           @default(false)
   maintenanceLabel    String?

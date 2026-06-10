@@ -23,7 +23,7 @@ const defaultRecovery = '*PULIH*\nWeb PRTG R1NET ({host}) kembali bisa diakses.\
 
 type FormState = Pick<PingMonitor,
   'name' | 'host' | 'enabled' | 'intervalSeconds' | 'pingTimeoutSeconds' |
-  'rtoThresholdSeconds' | 'notificationCooldownSeconds' | 'maintenance' | 'maintenanceLabel' |
+  'rtoThresholdCount' | 'notificationCooldownSeconds' | 'maintenance' | 'maintenanceLabel' |
   'notifyRecovery' | 'alertTemplate' | 'recoveryTemplate' |
   'recipientIds'
 >;
@@ -34,7 +34,7 @@ const emptyForm: FormState = {
   enabled: true,
   intervalSeconds: 2,
   pingTimeoutSeconds: 5,
-  rtoThresholdSeconds: 10,
+  rtoThresholdCount: 10,
   notificationCooldownSeconds: 3600,
   maintenance: false,
   maintenanceLabel: 'Maintenance',
@@ -88,7 +88,7 @@ export default function PingMonitorsPage() {
       enabled: monitor.enabled,
       intervalSeconds: monitor.intervalSeconds,
       pingTimeoutSeconds: monitor.pingTimeoutSeconds,
-      rtoThresholdSeconds: monitor.rtoThresholdSeconds,
+      rtoThresholdCount: monitor.rtoThresholdCount,
       notificationCooldownSeconds: monitor.notificationCooldownSeconds,
       maintenance: monitor.maintenance,
       maintenanceLabel: monitor.maintenanceLabel ?? 'Maintenance',
@@ -173,7 +173,7 @@ export default function PingMonitorsPage() {
           <div className="space-y-2"><Label>IP / Host</Label><Input value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} required /></div>
           <div className="space-y-2"><Label>Interval Ping (detik)</Label><Input type="number" min={1} value={form.intervalSeconds} onChange={(e) => setForm({ ...form, intervalSeconds: Number(e.target.value) })} /></div>
           <div className="space-y-2"><Label>Timeout per Ping (detik)</Label><Input type="number" min={1} value={form.pingTimeoutSeconds} onChange={(e) => setForm({ ...form, pingTimeoutSeconds: Number(e.target.value) })} /></div>
-          <div className="space-y-2"><Label>Notifikasi setelah RTO (detik)</Label><Input type="number" min={1} value={form.rtoThresholdSeconds} onChange={(e) => setForm({ ...form, rtoThresholdSeconds: Number(e.target.value) })} /></div>
+          <div className="space-y-2"><Label>Batas RTO berturut-turut (kali ping)</Label><Input type="number" min={1} value={form.rtoThresholdCount} onChange={(e) => setForm({ ...form, rtoThresholdCount: Number(e.target.value) })} /></div>
           <div className="space-y-2"><Label>Jarak Notifikasi RTO (detik)</Label><Input type="number" min={60} value={form.notificationCooldownSeconds} onChange={(e) => setForm({ ...form, notificationCooldownSeconds: Number(e.target.value) })} /></div>
           <div className="flex items-end gap-6 pb-2">
             <label className="flex items-center gap-2 text-sm"><Switch checked={form.enabled} onCheckedChange={(checked) => setForm({ ...form, enabled: checked })} /> Aktif</label>

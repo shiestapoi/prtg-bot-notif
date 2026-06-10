@@ -47,8 +47,8 @@ export class UpdatePingMonitorDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(3600)
-  rtoThresholdSeconds?: number;
+  @Max(1000)
+  rtoThresholdCount?: number;
 
   @IsOptional()
   @Type(() => Number)
