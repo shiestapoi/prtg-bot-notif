@@ -253,11 +253,31 @@ export default function NocTvDashboardPageV1() {
   // SSE for real-time updates
   const onStatusChange = useCallback((event: MonitoringStatusEvent) => {
     setItems((prev) =>
-      prev.map((item) =>
-        item.configId === event.configId
-          ? { ...item, lastStatus: event.currentStatus, lastPolledAt: event.timestamp, lastMetric: event.metric, maintenance: event.maintenance ?? item.maintenance }
-          : item,
-      ),
+      prev.map((item) => {
+        if (item.configId === event.configId) {
+          const isNowDown = event.currentStatus === 'DOWN' || event.currentStatus === 'NO_TRAFFIC';
+          const wasDown = event.previousStatus === 'DOWN' || event.previousStatus === 'NO_TRAFFIC';
+          
+          let newDownCountMonth = item.downCountMonth;
+          let newDownCountToday = item.downCountToday;
+          
+          if (isNowDown && !wasDown) {
+            newDownCountMonth += 1;
+            newDownCountToday += 1;
+          }
+          
+          return {
+            ...item,
+            lastStatus: event.currentStatus,
+            lastPolledAt: event.timestamp,
+            lastMetric: event.metric,
+            maintenance: event.maintenance ?? item.maintenance,
+            downCountMonth: newDownCountMonth,
+            downCountToday: newDownCountToday,
+          };
+        }
+        return item;
+      }),
     );
 
     // Play alert sound on new DOWN event (skip if maintenance)
