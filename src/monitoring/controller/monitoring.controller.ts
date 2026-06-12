@@ -348,7 +348,7 @@ export class MonitoringController {
       }
 
       const contentType = response.headers['content-type'];
-      if (!contentType || !contentType.startsWith('image/')) {
+      if (typeof contentType !== 'string' || !contentType.startsWith('image/')) {
         res.status(502).send('Chart not available (invalid content type)');
         return;
       }
