@@ -13,7 +13,12 @@ import { ReceiptReportHistoryController } from './receipt-report-history.control
 import { MonitoringModule } from '../monitoring/monitoring.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, forwardRef(() => WhatsappModule), forwardRef(() => MonitoringModule)],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    forwardRef(() => WhatsappModule),
+    forwardRef(() => MonitoringModule),
+  ],
   controllers: [
     ReceiptReportController,
     ReceiptRecipientController,

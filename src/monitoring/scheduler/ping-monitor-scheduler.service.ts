@@ -232,7 +232,9 @@ export class PingMonitorSchedulerService
 
       writeStream.end();
 
-      await new Promise<void>((resolve) => writeStream.on('finish', () => resolve()));
+      await new Promise<void>((resolve) =>
+        writeStream.on('finish', () => resolve()),
+      );
       fs.renameSync(tempFile, this.logFilePath);
     } catch (error) {
       this.logger.error(`Error during ping log cleanup: ${error}`);
@@ -240,7 +242,11 @@ export class PingMonitorSchedulerService
     }
   }
 
-  private async applyResult(monitor: PingMonitor, result: PingResult, startTime: Date) {
+  private async applyResult(
+    monitor: PingMonitor,
+    result: PingResult,
+    startTime: Date,
+  ) {
     this.appendPingLog(monitor, result);
     const now = new Date();
     let status = monitor.status;
@@ -263,7 +269,7 @@ export class PingMonitorSchedulerService
     } else {
       outageStartedAt ??= startTime;
       const consecutiveRtoCount = monitor.consecutiveRtoCount + 1;
-      
+
       if (consecutiveRtoCount >= monitor.rtoThresholdCount) {
         status = 'RTO';
         const cooldownPassed =
@@ -291,7 +297,9 @@ export class PingMonitorSchedulerService
         lastCheckedAt: now,
         outageStartedAt,
         lastAlertAt,
-        consecutiveRtoCount: result.reachable ? 0 : monitor.consecutiveRtoCount + 1,
+        consecutiveRtoCount: result.reachable
+          ? 0
+          : monitor.consecutiveRtoCount + 1,
       },
     });
 

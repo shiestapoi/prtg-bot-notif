@@ -93,15 +93,18 @@ export class ReceiptReportService {
     >();
 
     for (const history of histories) {
-      const config = configs.find(c => c.id === history.configId);
-      
+      const config = configs.find((c) => c.id === history.configId);
+
       // Dynamically re-evaluate status based on CURRENT config thresholds
       let currentStatus = history.status;
       if (config) {
         const inboundMbps = (history.inboundBitrate ?? 0) / 1000000;
         if (inboundMbps < config.downThreshold) {
           currentStatus = NocStatus.DOWN;
-        } else if (history.totalTrafficBitrate !== null && history.totalTrafficBitrate < config.thresholdLow) {
+        } else if (
+          history.totalTrafficBitrate !== null &&
+          history.totalTrafficBitrate < config.thresholdLow
+        ) {
           currentStatus = NocStatus.LOW_TRAFFIC;
         } else {
           currentStatus = NocStatus.NORMAL;
@@ -145,13 +148,17 @@ export class ReceiptReportService {
           let merged = false;
           if (lastSameStatusIncidentIdx !== -1) {
             const lastSameStatus = configIncidents![lastSameStatusIncidentIdx];
-            const compareTime = lastSameStatus.recoveryTime || lastSameStatus.time;
-            if (history.timestamp.getTime() - compareTime.getTime() < 60 * 60 * 1000) {
+            const compareTime =
+              lastSameStatus.recoveryTime || lastSameStatus.time;
+            if (
+              history.timestamp.getTime() - compareTime.getTime() <
+              60 * 60 * 1000
+            ) {
               // Flapping! Merge by reopening the previous incident of the same status
               lastSameStatus.recoveryTime = undefined;
               lastSameStatus.inboundDuring = history.inboundBitrate;
               lastSameStatus.outboundDuring = history.outboundBitrate;
-              
+
               // Remove any intermediate short-lived incidents (e.g. LOW_TRAFFIC) between the flaps
               configIncidents!.splice(lastSameStatusIncidentIdx + 1);
               merged = true;
@@ -560,13 +567,17 @@ export class ReceiptReportService {
           let merged = false;
           if (lastSameStatusIncidentIdx !== -1) {
             const lastSameStatus = configIncidents![lastSameStatusIncidentIdx];
-            const compareTime = lastSameStatus.recoveryTime || lastSameStatus.time;
-            if (history.timestamp.getTime() - compareTime.getTime() < 60 * 60 * 1000) {
+            const compareTime =
+              lastSameStatus.recoveryTime || lastSameStatus.time;
+            if (
+              history.timestamp.getTime() - compareTime.getTime() <
+              60 * 60 * 1000
+            ) {
               // Flapping! Merge by reopening the previous incident of the same status
               lastSameStatus.recoveryTime = undefined;
               lastSameStatus.inboundDuring = history.inboundBitrate;
               lastSameStatus.outboundDuring = history.outboundBitrate;
-              
+
               // Remove any intermediate short-lived incidents (e.g. LOW_TRAFFIC) between the flaps
               configIncidents!.splice(lastSameStatusIncidentIdx + 1);
               merged = true;

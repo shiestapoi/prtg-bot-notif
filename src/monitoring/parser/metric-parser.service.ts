@@ -316,7 +316,6 @@ export class MetricParserService {
       valueRaws.push(parseFloat(match[1]));
     }
 
-
     if (valueRaws.length === 0) {
       throw new MetricParseError(
         configId,

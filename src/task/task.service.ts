@@ -16,7 +16,9 @@ export interface TaskState {
 export class TaskService {
   private tasks = new Map<string, TaskState>();
 
-  constructor(private readonly monitoringEventService: MonitoringEventService) {}
+  constructor(
+    private readonly monitoringEventService: MonitoringEventService,
+  ) {}
 
   /**
    * Start a new task and broadcast its initial state.
@@ -41,12 +43,12 @@ export class TaskService {
   updateProgress(id: string, progress: number, message?: string) {
     const state = this.tasks.get(id);
     if (!state) return;
-    
+
     state.progress = progress;
     if (message !== undefined) {
       state.message = message;
     }
-    
+
     this.emit(state);
   }
 

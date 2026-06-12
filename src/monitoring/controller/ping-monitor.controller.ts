@@ -75,19 +75,21 @@ export class PingMonitorController {
       // Return last 200 lines to avoid massive payloads
       const recentLines = lines.slice(-200);
 
-      const logs = recentLines.map((line) => {
-        const parts = line.split(' | ');
-        if (parts.length >= 5) {
-          return {
-            timestamp: parts[0],
-            name: parts[1],
-            host: parts[2],
-            status: parts[3],
-            latencyMs: parts[4],
-          };
-        }
-        return null;
-      }).filter(Boolean);
+      const logs = recentLines
+        .map((line) => {
+          const parts = line.split(' | ');
+          if (parts.length >= 5) {
+            return {
+              timestamp: parts[0],
+              name: parts[1],
+              host: parts[2],
+              status: parts[3],
+              latencyMs: parts[4],
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
 
       return { logs };
     } catch (err) {

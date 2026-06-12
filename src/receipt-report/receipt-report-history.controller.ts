@@ -111,7 +111,7 @@ export class ReceiptReportHistoryController {
 
     const taskId = this.taskService.startTask(
       configs.length,
-      `Memulai sinkronisasi ${configs.length} sensor...`
+      `Memulai sinkronisasi ${configs.length} sensor...`,
     );
 
     // Run in background
@@ -120,7 +120,7 @@ export class ReceiptReportHistoryController {
         let totalUpserted = 0;
         let processedCount = 0;
         const concurrency = 10;
-        
+
         for (let i = 0; i < configs.length; i += concurrency) {
           const chunk = configs.slice(i, i + concurrency);
           const results = await Promise.all(
@@ -135,22 +135,22 @@ export class ReceiptReportHistoryController {
                 console.error(`Failed to sync config ${config.id}:`, err);
                 return 0;
               }
-            })
+            }),
           );
-          
+
           processedCount += chunk.length;
           totalUpserted += results.reduce((a, b) => a + b, 0);
-          
+
           this.taskService.updateProgress(
-            taskId, 
-            processedCount, 
-            `Sinkronisasi berjalan: ${processedCount}/${configs.length} sensor...`
+            taskId,
+            processedCount,
+            `Sinkronisasi berjalan: ${processedCount}/${configs.length} sensor...`,
           );
         }
 
         this.taskService.completeTask(
-          taskId, 
-          `Sinkronisasi selesai! Total ${totalUpserted} data berhasil ditarik.`
+          taskId,
+          `Sinkronisasi selesai! Total ${totalUpserted} data berhasil ditarik.`,
         );
       } catch (error: any) {
         this.taskService.failTask(taskId, `Gagal: ${error.message}`);

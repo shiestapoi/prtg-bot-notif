@@ -63,15 +63,15 @@ export class MonitoringHistoryController {
       now.getMonth(),
       now.getDate(),
     );
-    const monthStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      1,
-    );
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Batch query: count number of DOWN events (transitions) per config
     const configIds = configs.map((c) => c.id);
-    const downCounts: Array<{ configId: number; downCountToday: bigint; downCountMonth: bigint }> =
+    const downCounts: Array<{
+      configId: number;
+      downCountToday: bigint;
+      downCountMonth: bigint;
+    }> =
       configIds.length > 0
         ? await this.prisma.$queryRaw`
           SELECT 

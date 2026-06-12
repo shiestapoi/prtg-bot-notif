@@ -347,6 +347,12 @@ export class MonitoringController {
         return;
       }
 
+      const contentType = response.headers['content-type'];
+      if (!contentType || !contentType.startsWith('image/')) {
+        res.status(502).send('Chart not available (invalid content type)');
+        return;
+      }
+
       // Automatically add a white background and sharpen the HD image
       const imageWithWhiteBg = await sharp(response.data)
         .flatten({ background: { r: 255, g: 255, b: 255 } })

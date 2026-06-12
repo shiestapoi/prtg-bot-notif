@@ -718,13 +718,14 @@ export class MonitoringSchedulerService
 
       if (this.isNotifyEnabledForStatus(classification.status, config)) {
         const lastNotified = this.lastNotifiedStatus.get(configId);
-        
+
         // Only dispatch if it's WORSENING from the last notified state (e.g., LOW_TRAFFIC -> DOWN).
-        // If it's the same status as before (e.g., DOWN -> NORMAL -> DOWN), we already notified DOWN, 
+        // If it's the same status as before (e.g., DOWN -> NORMAL -> DOWN), we already notified DOWN,
         // and because NORMAL was cancelled, we suppress the duplicate DOWN notification.
         const isWorseningFromLast =
           lastNotified === NocStatus.LOW_TRAFFIC &&
-          (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC);
+          (classification.status === NocStatus.DOWN ||
+            classification.status === NocStatus.NO_TRAFFIC);
 
         if (isWorseningFromLast) {
           const dispatchResult = await this.dispatcher.dispatch({
@@ -746,14 +747,19 @@ export class MonitoringSchedulerService
           if (dispatchResult.shouldNotify) {
             this.lastNotifiedAt.set(configId, now);
             this.lastNotifiedStatus.set(configId, classification.status);
-            if (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC) {
+            if (
+              classification.status === NocStatus.DOWN ||
+              classification.status === NocStatus.NO_TRAFFIC
+            ) {
               this.lastDownDispatchedAt.set(configId, now);
             }
           }
         } else {
           // Same anomaly status or improving, suppress duplicate notification
           this.lastNotifiedStatus.set(configId, classification.status);
-          this.logger.debug(`Config ${configId}: Flapping suppressed for same anomaly status ${classification.status}`);
+          this.logger.debug(
+            `Config ${configId}: Flapping suppressed for same anomaly status ${classification.status}`,
+          );
         }
       } else {
         this.logger.debug(
@@ -781,13 +787,19 @@ export class MonitoringSchedulerService
 
         if (isFirstTransition || isWorsening) {
           // First time anomaly or worsening (LOW_TRAFFIC -> DOWN)
-          
+
           let shouldDispatch = true;
 
           // Check 1-hour suppression for DOWN / NO_TRAFFIC
-          if (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC) {
+          if (
+            classification.status === NocStatus.DOWN ||
+            classification.status === NocStatus.NO_TRAFFIC
+          ) {
             const lastDown = this.lastDownDispatchedAt.get(configId);
-            if (lastDown && now.getTime() - lastDown.getTime() < 60 * 60 * 1000) {
+            if (
+              lastDown &&
+              now.getTime() - lastDown.getTime() < 60 * 60 * 1000
+            ) {
               this.logger.debug(
                 `Config ${configId} (${config.title}): DOWN notification suppressed (last DOWN was < 1 hour ago)`,
               );
@@ -817,7 +829,10 @@ export class MonitoringSchedulerService
             if (dispatchResult.shouldNotify) {
               this.lastNotifiedAt.set(configId, now);
               this.lastNotifiedStatus.set(configId, classification.status);
-              if (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC) {
+              if (
+                classification.status === NocStatus.DOWN ||
+                classification.status === NocStatus.NO_TRAFFIC
+              ) {
                 this.lastDownDispatchedAt.set(configId, now);
               }
             }

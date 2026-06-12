@@ -400,6 +400,17 @@ export default function NocTvDashboardPageV1() {
   // Detail modal state
   const [detailItem, setDetailItem] = useState<MonitoringSummaryItem | null>(null);
 
+  // Sync detailItem with items to ensure real-time updates inside the detail modal
+  useEffect(() => {
+    if (detailItem) {
+      const updated = items.find((i) => i.configId === detailItem.configId);
+      if (updated && (updated.maintenance !== detailItem.maintenance || updated.maintenanceLabel !== detailItem.maintenanceLabel || updated.lastStatus !== detailItem.lastStatus || updated.lastPolledAt !== detailItem.lastPolledAt)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDetailItem(updated);
+      }
+    }
+  }, [items, detailItem]);
+
   // Play alarm when DOWN is first detected (effect runs after hasDown is computed below)
   const prevHasDownRef = useRef(false);
 
