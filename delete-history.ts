@@ -11,7 +11,7 @@ async function main() {
   const res = await client.query(`
     DELETE FROM "MonitoringHistory"
     WHERE "configId" IN (
-      SELECT id FROM "PrtgConfig" WHERE title IN ('IPTX TELKOM', 'CDN H3I')
+      SELECT id FROM "PrtgConfig" WHERE title = 'LL XL' OR "groupId" IN (SELECT id FROM "PrtgGroup" WHERE name = 'BUNGARAYA')
     )
   `);
 

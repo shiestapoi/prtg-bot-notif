@@ -46,6 +46,9 @@ export class MonitoringSchedulerService
   /** Tracks last notification time per config for cooldown */
   private readonly lastNotifiedAt: Map<number, Date> = new Map();
 
+  /** Tracks the last time a DOWN or NO_TRAFFIC notification was actually dispatched */
+  private readonly lastDownDispatchedAt: Map<number, Date> = new Map();
+
   /** Tracks the last notified anomaly status per config (to detect same-status bouncing vs new anomaly) */
   private readonly lastNotifiedStatus: Map<number, NocStatus> = new Map();
 
@@ -56,7 +59,7 @@ export class MonitoringSchedulerService
   private readonly pollInProgress: Set<number> = new Set();
 
   /** Recovery grace period in ms — must be NORMAL for this long before sending recovery notif */
-  private readonly RECOVERY_GRACE_MS = 10 * 60 * 1000; // 10 minutes
+  private readonly RECOVERY_GRACE_MS = 60 * 60 * 1000; // 1 hour
 
   /** Cooldown for anomaly↔anomaly transitions (e.g., DOWN↔LOW_TRAFFIC): 1 hour */
   private readonly ESCALATION_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
@@ -708,34 +711,50 @@ export class MonitoringSchedulerService
       }
     } else if (isRecovering && classification.status !== NocStatus.NORMAL) {
       // Went back to anomaly during grace period — cancel recovery
-      // Sensor sempat NORMAL sebentar tapi kembali anomaly sebelum grace period selesai
       this.recoveryStartedAt.delete(configId);
       this.logger.log(
         `Config ${configId}: Recovery cancelled — back to ${classification.status}`,
       );
 
       if (this.isNotifyEnabledForStatus(classification.status, config)) {
-        // Always send immediately when sensor goes back to anomaly after brief NORMAL
-        // This covers: NORMAL→DOWN→(brief NORMAL)→DOWN = kirim langsung
-        // The 1-hour cooldown only applies to escalation (e.g., LOW_TRAFFIC→DOWN without NORMAL in between)
-        await this.dispatcher.dispatch({
-          configId: config.id,
-          title: config.title,
-          requestUrl,
-          previousStatus: NocStatus.NORMAL,
-          currentStatus: classification.status,
-          bitrate: metric?.totalTrafficBitrate ?? null,
-          inboundBitrate: metric?.inboundBitrate ?? null,
-          outboundBitrate: metric?.outboundBitrate ?? null,
-          timestamp: now,
-          reason: classification.reason,
-          lastNotifiedAt: null,
-          cooldownInterval: 0,
-          groupId: config.groupId,
-          groupName: configRecord.group.name,
-        });
-        this.lastNotifiedAt.set(configId, now);
-        this.lastNotifiedStatus.set(configId, classification.status);
+        const lastNotified = this.lastNotifiedStatus.get(configId);
+        
+        // Only dispatch if it's WORSENING from the last notified state (e.g., LOW_TRAFFIC -> DOWN).
+        // If it's the same status as before (e.g., DOWN -> NORMAL -> DOWN), we already notified DOWN, 
+        // and because NORMAL was cancelled, we suppress the duplicate DOWN notification.
+        const isWorseningFromLast =
+          lastNotified === NocStatus.LOW_TRAFFIC &&
+          (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC);
+
+        if (isWorseningFromLast) {
+          const dispatchResult = await this.dispatcher.dispatch({
+            configId: config.id,
+            title: config.title,
+            requestUrl,
+            previousStatus: NocStatus.NORMAL,
+            currentStatus: classification.status,
+            bitrate: metric?.totalTrafficBitrate ?? null,
+            inboundBitrate: metric?.inboundBitrate ?? null,
+            outboundBitrate: metric?.outboundBitrate ?? null,
+            timestamp: now,
+            reason: classification.reason,
+            lastNotifiedAt: null,
+            cooldownInterval: 0,
+            groupId: config.groupId,
+            groupName: configRecord.group.name,
+          });
+          if (dispatchResult.shouldNotify) {
+            this.lastNotifiedAt.set(configId, now);
+            this.lastNotifiedStatus.set(configId, classification.status);
+            if (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC) {
+              this.lastDownDispatchedAt.set(configId, now);
+            }
+          }
+        } else {
+          // Same anomaly status or improving, suppress duplicate notification
+          this.lastNotifiedStatus.set(configId, classification.status);
+          this.logger.debug(`Config ${configId}: Flapping suppressed for same anomaly status ${classification.status}`);
+        }
       } else {
         this.logger.debug(
           `Config ${configId}: Notification for ${classification.status} disabled, skipping dispatch`,
@@ -761,27 +780,47 @@ export class MonitoringSchedulerService
           !isFirstTransition;
 
         if (isFirstTransition || isWorsening) {
-          // First time anomaly or worsening (LOW_TRAFFIC -> DOWN) — send immediately!
-          const dispatchResult = await this.dispatcher.dispatch({
-            configId: config.id,
-            title: config.title,
-            requestUrl,
-            previousStatus,
-            currentStatus: classification.status,
-            bitrate: metric?.totalTrafficBitrate ?? null,
-            inboundBitrate: metric?.inboundBitrate ?? null,
-            outboundBitrate: metric?.outboundBitrate ?? null,
-            timestamp: now,
-            reason: classification.reason,
-            lastNotifiedAt: null,
-            cooldownInterval: 0,
-            groupId: config.groupId,
-            groupName: configRecord.group.name,
-          });
+          // First time anomaly or worsening (LOW_TRAFFIC -> DOWN)
+          
+          let shouldDispatch = true;
 
-          if (dispatchResult.shouldNotify) {
-            this.lastNotifiedAt.set(configId, now);
-            this.lastNotifiedStatus.set(configId, classification.status);
+          // Check 1-hour suppression for DOWN / NO_TRAFFIC
+          if (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC) {
+            const lastDown = this.lastDownDispatchedAt.get(configId);
+            if (lastDown && now.getTime() - lastDown.getTime() < 60 * 60 * 1000) {
+              this.logger.debug(
+                `Config ${configId} (${config.title}): DOWN notification suppressed (last DOWN was < 1 hour ago)`,
+              );
+              this.lastNotifiedStatus.set(configId, classification.status);
+              shouldDispatch = false;
+            }
+          }
+
+          if (shouldDispatch) {
+            const dispatchResult = await this.dispatcher.dispatch({
+              configId: config.id,
+              title: config.title,
+              requestUrl,
+              previousStatus,
+              currentStatus: classification.status,
+              bitrate: metric?.totalTrafficBitrate ?? null,
+              inboundBitrate: metric?.inboundBitrate ?? null,
+              outboundBitrate: metric?.outboundBitrate ?? null,
+              timestamp: now,
+              reason: classification.reason,
+              lastNotifiedAt: null,
+              cooldownInterval: 0,
+              groupId: config.groupId,
+              groupName: configRecord.group.name,
+            });
+
+            if (dispatchResult.shouldNotify) {
+              this.lastNotifiedAt.set(configId, now);
+              this.lastNotifiedStatus.set(configId, classification.status);
+              if (classification.status === NocStatus.DOWN || classification.status === NocStatus.NO_TRAFFIC) {
+                this.lastDownDispatchedAt.set(configId, now);
+              }
+            }
           }
         } else if (isPartialRecovery) {
           // Partial recovery (DOWN -> LOW_TRAFFIC) — suppress notification
@@ -832,39 +871,10 @@ export class MonitoringSchedulerService
           }
         } else {
           // Same anomaly status as before (e.g., DOWN → DOWN)
-          // Re-send notification every 1 hour if still DOWN
-          const lastNotified = this.lastNotifiedAt.get(configId);
-          if (
-            classification.status === NocStatus.DOWN &&
-            lastNotified &&
-            now.getTime() - lastNotified.getTime() >=
-              this.PERSISTENT_DOWN_RENOTIFY_MS
-          ) {
-            const dispatchResult = await this.dispatcher.dispatch({
-              configId: config.id,
-              title: config.title,
-              requestUrl,
-              previousStatus,
-              currentStatus: classification.status,
-              bitrate: metric?.totalTrafficBitrate ?? null,
-              inboundBitrate: metric?.inboundBitrate ?? null,
-              outboundBitrate: metric?.outboundBitrate ?? null,
-              timestamp: now,
-              reason: `Masih DOWN selama ${Math.round((now.getTime() - lastNotified.getTime()) / 60000)} menit`,
-              lastNotifiedAt: lastNotified,
-              cooldownInterval: this.PERSISTENT_DOWN_RENOTIFY_MS / 1000,
-              groupId: config.groupId,
-              groupName: configRecord.group.name,
-            });
-
-            if (dispatchResult.shouldNotify) {
-              this.lastNotifiedAt.set(configId, now);
-            }
-          } else {
-            this.logger.debug(
-              `Config ${configId} (${config.title}): Still ${classification.status}, suppressing duplicate notification`,
-            );
-          }
+          // Suppress duplicate notification completely as requested by user ("hanya cukup pemberitahuan down 1x saja")
+          this.logger.debug(
+            `Config ${configId} (${config.title}): Still ${classification.status}, suppressing duplicate notification`,
+          );
         }
       } else {
         this.logger.debug(

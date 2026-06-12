@@ -132,23 +132,51 @@ export class ReceiptReportService {
           currentStatus === NocStatus.DOWN ||
           currentStatus === NocStatus.LOW_TRAFFIC
         ) {
-          if (!incidentsByConfig.has(history.configId)) {
-            incidentsByConfig.set(history.configId, []);
+          let lastSameStatusIncidentIdx = -1;
+          if (configIncidents) {
+            for (let i = configIncidents.length - 1; i >= 0; i--) {
+              if (configIncidents[i].status === currentStatus) {
+                lastSameStatusIncidentIdx = i;
+                break;
+              }
+            }
           }
-          incidentsByConfig.get(history.configId)!.push({
-            status: currentStatus,
-            time: history.timestamp,
-            inboundBefore:
-              currentStatus === NocStatus.LOW_TRAFFIC
-                ? (averages?.avgIn ?? prev.inbound)
-                : prev.inbound,
-            outboundBefore:
-              currentStatus === NocStatus.LOW_TRAFFIC
-                ? (averages?.avgOut ?? prev.outbound)
-                : prev.outbound,
-            inboundDuring: history.inboundBitrate,
-            outboundDuring: history.outboundBitrate,
-          });
+
+          let merged = false;
+          if (lastSameStatusIncidentIdx !== -1) {
+            const lastSameStatus = configIncidents![lastSameStatusIncidentIdx];
+            const compareTime = lastSameStatus.recoveryTime || lastSameStatus.time;
+            if (history.timestamp.getTime() - compareTime.getTime() < 60 * 60 * 1000) {
+              // Flapping! Merge by reopening the previous incident of the same status
+              lastSameStatus.recoveryTime = undefined;
+              lastSameStatus.inboundDuring = history.inboundBitrate;
+              lastSameStatus.outboundDuring = history.outboundBitrate;
+              
+              // Remove any intermediate short-lived incidents (e.g. LOW_TRAFFIC) between the flaps
+              configIncidents!.splice(lastSameStatusIncidentIdx + 1);
+              merged = true;
+            }
+          }
+
+          if (!merged) {
+            if (!incidentsByConfig.has(history.configId)) {
+              incidentsByConfig.set(history.configId, []);
+            }
+            incidentsByConfig.get(history.configId)!.push({
+              status: currentStatus,
+              time: history.timestamp,
+              inboundBefore:
+                currentStatus === NocStatus.LOW_TRAFFIC
+                  ? (averages?.avgIn ?? prev.inbound)
+                  : prev.inbound,
+              outboundBefore:
+                currentStatus === NocStatus.LOW_TRAFFIC
+                  ? (averages?.avgOut ?? prev.outbound)
+                  : prev.outbound,
+              inboundDuring: history.inboundBitrate,
+              outboundDuring: history.outboundBitrate,
+            });
+          }
         }
       }
 
@@ -519,22 +547,50 @@ export class ReceiptReportService {
           history.status === NocStatus.DOWN ||
           history.status === NocStatus.LOW_TRAFFIC
         ) {
-          if (!incidentsByConfig.has(history.configId))
-            incidentsByConfig.set(history.configId, []);
-          incidentsByConfig.get(history.configId)!.push({
-            status: history.status,
-            time: history.timestamp,
-            inboundBefore:
-              history.status === NocStatus.LOW_TRAFFIC
-                ? (averages?.avgIn ?? prev.inbound)
-                : prev.inbound,
-            outboundBefore:
-              history.status === NocStatus.LOW_TRAFFIC
-                ? (averages?.avgOut ?? prev.outbound)
-                : prev.outbound,
-            inboundDuring: history.inboundBitrate,
-            outboundDuring: history.outboundBitrate,
-          });
+          let lastSameStatusIncidentIdx = -1;
+          if (configIncidents) {
+            for (let i = configIncidents.length - 1; i >= 0; i--) {
+              if (configIncidents[i].status === history.status) {
+                lastSameStatusIncidentIdx = i;
+                break;
+              }
+            }
+          }
+
+          let merged = false;
+          if (lastSameStatusIncidentIdx !== -1) {
+            const lastSameStatus = configIncidents![lastSameStatusIncidentIdx];
+            const compareTime = lastSameStatus.recoveryTime || lastSameStatus.time;
+            if (history.timestamp.getTime() - compareTime.getTime() < 60 * 60 * 1000) {
+              // Flapping! Merge by reopening the previous incident of the same status
+              lastSameStatus.recoveryTime = undefined;
+              lastSameStatus.inboundDuring = history.inboundBitrate;
+              lastSameStatus.outboundDuring = history.outboundBitrate;
+              
+              // Remove any intermediate short-lived incidents (e.g. LOW_TRAFFIC) between the flaps
+              configIncidents!.splice(lastSameStatusIncidentIdx + 1);
+              merged = true;
+            }
+          }
+
+          if (!merged) {
+            if (!incidentsByConfig.has(history.configId))
+              incidentsByConfig.set(history.configId, []);
+            incidentsByConfig.get(history.configId)!.push({
+              status: history.status,
+              time: history.timestamp,
+              inboundBefore:
+                history.status === NocStatus.LOW_TRAFFIC
+                  ? (averages?.avgIn ?? prev.inbound)
+                  : prev.inbound,
+              outboundBefore:
+                history.status === NocStatus.LOW_TRAFFIC
+                  ? (averages?.avgOut ?? prev.outbound)
+                  : prev.outbound,
+              inboundDuring: history.inboundBitrate,
+              outboundDuring: history.outboundBitrate,
+            });
+          }
         }
       }
 
