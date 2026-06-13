@@ -95,6 +95,55 @@ export class WhatsappSenderService {
     }
   }
 
+  async sendComplexMessage(payload: {
+    to: string;
+    text?: string;
+    image?: string;
+    mentions?: string[];
+    contextInfo?: any;
+  }) {
+    const socket = this.socketStore.getSocket();
+    if (!socket) {
+      throw new Error('WhatsApp socket is not connected.');
+    }
+
+    const jid = this.toJid(payload.to);
+    if (!jid) {
+      throw new Error('Invalid target phone number or JID.');
+    }
+
+    let messageObj: any = {};
+
+    if (payload.image) {
+      // check if it's base64 or URL
+      if (payload.image.startsWith('http://') || payload.image.startsWith('https://')) {
+        messageObj.image = { url: payload.image };
+      } else {
+        // assume base64 string
+        messageObj.image = Buffer.from(payload.image, 'base64');
+      }
+      
+      if (payload.text) {
+        messageObj.caption = payload.text;
+      }
+    } else if (payload.text) {
+      messageObj.text = payload.text;
+    } else {
+      throw new Error('Must provide either text or image.');
+    }
+
+    if (payload.mentions && Array.isArray(payload.mentions)) {
+      messageObj.mentions = payload.mentions.map((m) => this.toJid(m)).filter(Boolean);
+    }
+
+    if (payload.contextInfo) {
+      messageObj.contextInfo = payload.contextInfo;
+    }
+
+    const result = await socket.sendMessage(jid, messageObj);
+    return { success: true, messageId: result?.key?.id };
+  }
+
   toJid(input: string) {
     const trimmed = input.trim();
     if (
