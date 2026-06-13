@@ -76,13 +76,15 @@ export class MonitoringHistoryController {
         ? await this.prisma.$queryRaw`
           SELECT 
             "configId", 
-            SUM(CASE WHEN "status" IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") AND "prev_status" NOT IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") AND "timestamp" >= ${todayStart} THEN 1 ELSE 0 END) as "downCountToday",
-            SUM(CASE WHEN "status" IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") AND "prev_status" NOT IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus") THEN 1 ELSE 0 END) as "downCountMonth"
+            SUM(CASE WHEN ("timestamp" >= ${todayStart}) AND ("prev_ts_month" IS NULL OR extract(epoch from ("timestamp" - "prev_ts_month")) > 3600) THEN 1 ELSE 0 END) as "downCountToday",
+            SUM(CASE WHEN "prev_ts_month" IS NULL OR extract(epoch from ("timestamp" - "prev_ts_month")) > 3600 THEN 1 ELSE 0 END) as "downCountMonth"
           FROM (
-            SELECT "configId", "status", "timestamp", LAG("status", 1, 'NORMAL'::"NocStatus") OVER (PARTITION BY "configId" ORDER BY "timestamp" ASC) as "prev_status"
+            SELECT "configId", "status", "timestamp", 
+                   LAG("timestamp") OVER (PARTITION BY "configId" ORDER BY "timestamp" ASC) as "prev_ts_month"
             FROM "MonitoringHistory"
             WHERE "configId" IN (${Prisma.join(configIds)})
               AND "timestamp" >= ${monthStart}
+              AND "status" IN ('DOWN'::"NocStatus", 'NO_TRAFFIC'::"NocStatus")
           ) sub
           GROUP BY "configId"
         `
