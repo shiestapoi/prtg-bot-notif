@@ -95,21 +95,7 @@ export class ReceiptReportService {
     for (const history of histories) {
       const config = configs.find((c) => c.id === history.configId);
 
-      // Dynamically re-evaluate status based on CURRENT config thresholds
-      let currentStatus = history.status;
-      if (config) {
-        const inboundMbps = (history.inboundBitrate ?? 0) / 1000000;
-        if (inboundMbps < config.downThreshold) {
-          currentStatus = NocStatus.DOWN;
-        } else if (
-          history.totalTrafficBitrate !== null &&
-          history.totalTrafficBitrate < config.thresholdLow
-        ) {
-          currentStatus = NocStatus.LOW_TRAFFIC;
-        } else {
-          currentStatus = NocStatus.NORMAL;
-        }
-      }
+      const currentStatus = history.status;
 
       const prev = previousState.get(history.configId) || {
         status: NocStatus.NORMAL,
