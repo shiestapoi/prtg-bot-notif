@@ -27,8 +27,8 @@ export class ReceiptReportService {
     // 1. Get configs matching the schedule's group (or all if null)
     const configs = await this.prisma.prtgConfig.findMany({
       where: schedule.groupId
-        ? { groupId: schedule.groupId, enabled: true }
-        : { enabled: true },
+        ? { groupId: schedule.groupId, enabled: true, maintenance: false }
+        : { enabled: true, maintenance: false },
       include: { group: true },
     });
 
@@ -461,8 +461,8 @@ export class ReceiptReportService {
 
     const configs = await this.prisma.prtgConfig.findMany({
       where: schedule?.groupId
-        ? { groupId: schedule.groupId, enabled: true }
-        : { enabled: true },
+        ? { groupId: schedule.groupId, enabled: true, maintenance: false }
+        : { enabled: true, maintenance: false },
       include: { group: true },
     });
 
