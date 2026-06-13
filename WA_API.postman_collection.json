@@ -1,0 +1,209 @@
+{
+  "info": {
+    "name": "PRTG Bot Notif - WA API",
+    "description": "Kumpulan API untuk mengirim pesan WhatsApp menggunakan Baileys (Context 7)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Kirim Pesan Teks",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "akucintasagiri",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"6281234567890\",\n  \"text\": \"Halo! Ini adalah pesan teks biasa dari API.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/whatsapp/send",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "whatsapp",
+            "send"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Kirim Pesan dengan Mention (Tag)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "akucintasagiri",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"120363045612345678@g.us\",\n  \"text\": \"Panggilan kepada @62811111111 !\",\n  \"mentions\": [\n    \"62811111111\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/whatsapp/send",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "whatsapp",
+            "send"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Kirim Gambar (via Link URL)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "akucintasagiri",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"6281234567890\",\n  \"image\": \"https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg\",\n  \"text\": \"Ini adalah caption gambarnya!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/whatsapp/send",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "whatsapp",
+            "send"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Kirim Gambar (via Base64)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "akucintasagiri",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"6281234567890\",\n  \"image\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=\",\n  \"text\": \"Gambar 1x1 Pixel transparan hasil Base64\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/whatsapp/send",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "whatsapp",
+            "send"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5. Kirim Pesan dengan Forward Score (Context 7)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "akucintasagiri",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"to\": \"6281234567890\",\n  \"text\": \"Pesan ini seolah-olah diteruskan (forwarded) banyak kali!\",\n  \"contextInfo\": {\n    \"forwardingScore\": 999,\n    \"isForwarded\": true\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/whatsapp/send",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "whatsapp",
+            "send"
+          ]
+        }
+      }
+    }
+  ]
+}
