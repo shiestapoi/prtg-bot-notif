@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Injectable, Logger } from '@nestjs/common';
 import type { BrowserContext } from 'playwright';
 import { BrowserPoolService } from '../monitoring/dispatcher/browser-pool.service';
@@ -44,7 +44,13 @@ export class PdfGeneratorService {
   }
 
   private buildHtml(snapshot: any): string {
-    const reportData = snapshot.reportData || {};
+    const reportDataArray = Array.isArray(snapshot.reportData) ? snapshot.reportData : [];
+    const reportData: Record<string, any[]> = {};
+    for (const config of reportDataArray) {
+      const groupName = config.groupName || 'Unassigned';
+      if (!reportData[groupName]) reportData[groupName] = [];
+      reportData[groupName].push(config);
+    }
     const groupName = snapshot.groupName || 'All Groups';
     const period = snapshot.period || 'DAILY';
     const dateStr = new Date(snapshot.createdAt).toLocaleDateString('id-ID', {
