@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Activity, ArrowDownCircle, Server, ZoomIn } from 'lucide-react';
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
@@ -52,30 +52,41 @@ const TILE_COLORS = [
 
 export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
   const [openLightbox, setOpenLightbox] = useState<{ configId: number; index: number } | null>(null);
+  const [isPrintMode, setIsPrintMode] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('print') === 'true') {
+      setIsPrintMode(true);
+    }
+  }, []);
+
+  const handleDownload = () => {
+    if (snapshot.pdfUrl) window.open(snapshot.pdfUrl, '_blank');
+  };
 
   const periodLabel = snapshot.period === 'DAILY' ? 'Harian' : snapshot.period === 'WEEKLY' ? 'Mingguan' : 'Bulanan';
+  const periodText = snapshot.period === 'DAILY' 
+    ? `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} 00:00 WIB — 23:59 WIB`
+    : `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} — ${new Date(snapshot.endDate).toLocaleDateString('id-ID')}`;
+
   const totalConfigs = snapshot.reportData.length;
   const totalDown = snapshot.reportData.reduce((acc, c) => acc + c.downCount, 0);
   const totalLowTraffic = snapshot.reportData.reduce((acc, c) => acc + c.lowTrafficCount, 0);
 
   return (
-    <div className="min-h-screen bg-[#ffffff] text-[#1d1d1f] font-[system-ui,-apple-system,sans-serif] selection:bg-[#0066cc]/30">
+    <div className={`min-h-screen ${isPrintMode ? 'bg-white' : 'bg-[#f5f5f7]'} text-[#1d1d1f] font-[system-ui,-apple-system,sans-serif] selection:bg-[#0066cc]/30`}>
       
-      {/* Global Nav */}
-      <header className="w-full bg-[#000000] text-[#ffffff] h-[44px] flex items-center px-4 sm:px-6">
-        <div className="max-w-[1440px] mx-auto w-full flex items-center justify-between text-[12px] tracking-[-0.12px]">
-          <span className="font-semibold">NOC Report</span>
-          <span className="opacity-80">
-            {snapshot.period === 'DAILY' 
-              ? `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} 00:00 WIB — 23:59 WIB`
-              : `${new Date(snapshot.startDate).toLocaleDateString('id-ID')} — ${new Date(snapshot.endDate).toLocaleDateString('id-ID')}`
-            }
-          </span>
-        </div>
-      </header>
+      {!isPrintMode && (
+        <header className="w-full bg-[#000000] text-[#ffffff] h-[44px] flex items-center px-4 sm:px-6">
+          <div className="max-w-[1440px] mx-auto w-full flex items-center justify-between text-[12px] tracking-[-0.12px]">
+            <span className="font-semibold">NOC Report</span>
+            <span className="opacity-80">{periodText}</span>
+          </div>
+        </header>
+      )}
 
       <main className="w-full">
-        {/* Hero Section */}
         <section className="bg-[#ffffff] pt-[80px] pb-[64px] px-4 sm:px-6 flex flex-col items-center text-center">
           <p className="text-[#0066cc] text-[17px] sm:text-[21px] font-semibold tracking-[0.231px] mb-2 sm:mb-4">
             Laporan {periodLabel}
@@ -92,20 +103,17 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
             Group: <span className="text-[#1d1d1f]">{snapshot.groupName || 'Semua Grup'}</span>
           </p>
           
-          {snapshot.pdfUrl && (
-            <a 
-              href={snapshot.pdfUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
+          {snapshot.pdfUrl && !isPrintMode && (
+            <button 
+              onClick={handleDownload}
               className="inline-flex items-center gap-2 bg-[#0066cc] text-white px-6 py-3 rounded-full font-medium hover:bg-[#0055aa] transition-colors"
             >
               <ArrowDownCircle className="w-5 h-5" />
               Download PDF Report
-            </a>
+            </button>
           )}
         </section>
 
-        {/* Store Utility Grid (Stats) */}
         <section className="bg-[#f5f5f7] py-[48px] sm:py-[80px] px-4 sm:px-6">
           <div className="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <div className="bg-[#ffffff] rounded-[18px] p-[20px] sm:p-[24px] flex flex-col items-center text-center shadow-[0_5px_30px_rgba(0,0,0,0.04)]">
@@ -126,7 +134,6 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
           </div>
         </section>
 
-        {/* Incidents Report List - Edge to Edge Tiles */}
         <section className="w-full">
           {snapshot.reportData.length === 0 ? (
             <div className="text-center py-[80px] bg-[#ffffff]">
@@ -153,7 +160,6 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
                     {config.incidents.map((incident, idx) => (
                       <div key={idx} className="flex flex-col items-center">
                         
-                        {/* Traffic Info Utility Card with Inner Image */}
                         <div className={`w-full max-w-3xl lg:max-w-5xl xl:max-w-6xl ${theme.cardBg} rounded-[18px] p-5 sm:p-8 mb-0 shadow-[0_5px_30px_rgba(0,0,0,0.04)] overflow-hidden`}>
                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 border-b border-[#e0e0e0] dark:border-[#333333] pb-4 gap-3 sm:gap-0">
                             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -171,7 +177,6 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
 
                           {(incident.inboundBefore != null || incident.inboundDuring != null) && (
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
-                              {/* Traffic In */}
                               <div className="flex flex-col sm:block items-start">
                                 <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Traffic In {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
                                 <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
@@ -181,7 +186,6 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
                                   <span className={`text-[14px] sm:text-[17px] ${theme.muted} ml-1 font-normal`}>Mbps</span>
                                 </p>
                               </div>
-                              {/* Traffic Out */}
                               <div className="flex flex-col sm:block items-start">
                                 <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Traffic Out {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
                                 <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
@@ -191,7 +195,6 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
                                   <span className={`text-[14px] sm:text-[17px] ${theme.muted} ml-1 font-normal`}>Mbps</span>
                                 </p>
                               </div>
-                              {/* Total Traffic */}
                               <div className="flex flex-col sm:block items-start">
                                 <p className={`text-[12px] sm:text-[14px] font-semibold tracking-[-0.224px] ${theme.muted} mb-1 sm:mb-2`}>Total Traffic {incident.status === 'LOW_TRAFFIC' && '(Rata-rata)'}</p>
                                 <p className={`text-[26px] sm:text-[34px] font-semibold tracking-[-0.374px] ${theme.text} flex flex-wrap items-baseline gap-1 sm:gap-0`}>
@@ -204,10 +207,9 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
                             </div>
                           )}
 
-                          {/* Inner Chart Image - Embedded at bottom of card */}
                           <div 
                             className="mt-6 sm:mt-8 -mx-5 -mb-5 sm:-mx-8 sm:-mb-8 cursor-pointer relative bg-[#f5f5f7] dark:bg-[#1c1c1e] min-h-[150px] sm:min-h-[250px] flex items-center justify-center group border-t border-[#e0e0e0] dark:border-[#333333]"
-                            onClick={() => setOpenLightbox({ configId: config.configId, index: idx })}
+                            onClick={() => !isPrintMode && setOpenLightbox({ configId: config.configId, index: idx })}
                           >
                             <div className="absolute inset-0 flex items-center justify-center">
                                <Activity className="h-8 w-8 text-[#0066cc] animate-pulse" />

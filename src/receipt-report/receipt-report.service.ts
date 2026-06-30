@@ -903,5 +903,13 @@ export class ReceiptReportService {
     }
 
     await this.telegramSenderService.sendTextToChatId(chatId, fullMessage);
+
+    if (snapshot?.pdfUrl) {
+      await this.telegramSenderService.sendDocumentToChatId(
+        chatId,
+        snapshot.pdfUrl,
+        `Lampiran PDF Laporan ${periodText}`,
+      );
+    }
   }
 }

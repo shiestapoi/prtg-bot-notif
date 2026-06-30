@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Activity, ArrowDownCircle, Server, ZoomIn, Clock, ShieldAlert } from 'lucide-react';
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
@@ -12,6 +12,14 @@ interface ReceiptReportProps {
 export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
   const [openLightbox, setOpenLightbox] = useState<{ configId: number; index: number } | null>(null);
   const [showAllGroups, setShowAllGroups] = useState(false);
+  const [isPrintMode, setIsPrintMode] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('print') === 'true') {
+      setIsPrintMode(true);
+    }
+  }, []);
 
   const periodLabel = snapshot.period === 'DAILY' ? 'Harian' : snapshot.period === 'WEEKLY' ? 'Mingguan' : 'Bulanan';
   const totalConfigs = snapshot.reportData.length;
@@ -57,7 +65,7 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
                 Group: <span className="font-semibold text-white">{snapshot.groupName || 'Semua Grup'}</span>
               </p>
               
-              {snapshot.pdfUrl && (
+              {snapshot.pdfUrl && !isPrintMode && (
                 <a 
                   href={snapshot.pdfUrl} 
                   target="_blank" 

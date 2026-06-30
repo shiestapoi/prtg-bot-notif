@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars */
 import { Injectable, Logger } from '@nestjs/common';
 import * as TelegramBot from 'node-telegram-bot-api';
 
@@ -45,6 +45,31 @@ export class TelegramSenderService {
     } catch (error) {
       this.logger.error(
         `Failed to send image to ${chatId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async sendDocumentToChatId(
+    chatId: string | number,
+    documentUrl: string,
+    caption?: string,
+  ): Promise<void> {
+    if (!this.bot) {
+      this.logger.warn('Telegram bot is not initialized. Cannot send document.');
+      return;
+    }
+    try {
+      await this.bot.sendDocument(
+        chatId,
+        documentUrl,
+        {
+          caption,
+          parse_mode: 'Markdown',
+        },
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send document to ${chatId}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
