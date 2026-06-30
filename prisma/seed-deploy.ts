@@ -20,11 +20,10 @@ async function main() {
   console.log('Running deploy seed (safe check-before-insert mode)...');
 
   // ─── PrtgSetting (upsert — never overwrite existing) ─────────────────────
-  const existingSetting = await prisma.prtgSetting.findFirst({ where: { id: 1 } });
+  const existingSetting = await prisma.prtgSetting.findFirst();
   if (!existingSetting) {
     await prisma.prtgSetting.create({
       data: {
-        id: 1,
         loginUrl: process.env.PRTG_LOGIN_URL ?? 'http://prtg.r1net.id/index.htm',
         loginUsername: process.env.PRTG_USERNAME ?? 'noc',
         loginPassword: process.env.PRTG_PASSWORD ?? '',
