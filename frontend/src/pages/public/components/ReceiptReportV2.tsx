@@ -266,7 +266,7 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
                                   onClick={() => setOpenLightbox({ configId: config.configId, index: idx })}
                                 >
                                   <img 
-                                    src={config.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                                    src={incident.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
                                     alt={`Chart for ${config.title}`} 
                                     className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all"
                                     loading="lazy"
@@ -289,7 +289,7 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
                   close={() => setOpenLightbox(null)}
                   index={openLightbox?.configId === config.configId ? openLightbox.index : 0}
                   slides={config.incidents.map((inc) => ({
-                    src: config.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${inc.sdate}&edate=${inc.edate}`,
+                    src: inc.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${inc.sdate}&edate=${inc.edate}`,
                     alt: `Chart for ${config.title} at ${inc.formattedTime}`,
                   }))}
                   plugins={[Zoom]}

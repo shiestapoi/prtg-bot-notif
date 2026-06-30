@@ -720,28 +720,30 @@ export class ReceiptReportService {
     for (const config of reportDataPayload) {
       if (!config.incidents || config.incidents.length === 0) continue;
 
-      const lastIncident = config.incidents[config.incidents.length - 1];
-      const sdate = lastIncident.sdate;
-      const edate = lastIncident.edate;
+      for (let i = 0; i < config.incidents.length; i++) {
+        const incident = config.incidents[i];
+        const sdate = incident.sdate;
+        const edate = incident.edate;
 
-      const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?id=${config.sensorId}&avg=60&sdate=${sdate}&edate=${edate}&width=1200&height=600`;
+        const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?id=${config.sensorId}&avg=60&sdate=${sdate}&edate=${edate}&width=1200&height=600`;
 
-      const imageBuffer = await this.screenshotService.capture(chartUrl);
-      if (imageBuffer) {
-        const periodStr = schedule?.period || 'MANUAL';
-        const groupStr = schedule?.group?.name || 'N-A';
-        const dateStr = this.formatPrtgDate(new Date())
-          .split('-')
-          .slice(0, 3)
-          .join('-');
-        const path = `reports/image/${periodStr}/${groupStr}/${dateStr}/${config.sensorId}_${snapshotId}.png`;
+        const imageBuffer = await this.screenshotService.capture(chartUrl);
+        if (imageBuffer) {
+          const periodStr = schedule?.period || 'MANUAL';
+          const groupStr = schedule?.group?.name || 'N-A';
+          const dateStr = this.formatPrtgDate(new Date())
+            .split('-')
+            .slice(0, 3)
+            .join('-');
+          const path = `reports/image/${periodStr}/${groupStr}/${dateStr}/${config.sensorId}_${snapshotId}_${i}.png`;
 
-        const r2Url = await this.r2StorageService.uploadImage(
-          imageBuffer,
-          path,
-        );
-        if (r2Url) {
-          config.r2ImageUrl = r2Url;
+          const r2Url = await this.r2StorageService.uploadImage(
+            imageBuffer,
+            path,
+          );
+          if (r2Url) {
+            incident.r2ImageUrl = r2Url;
+          }
         }
       }
     }

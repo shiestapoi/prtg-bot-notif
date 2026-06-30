@@ -16,6 +16,7 @@ interface Incident {
   threshold?: number | null;
   sdate: string;
   edate: string;
+  r2ImageUrl?: string;
 }
 
 interface ConfigReport {
@@ -25,7 +26,6 @@ interface ConfigReport {
   groupName: string;
   downCount: number;
   lowTrafficCount: number;
-  r2ImageUrl?: string;
   incidents: Incident[];
 }
 
@@ -215,7 +215,7 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
                                <Activity className="h-8 w-8 text-[#0066cc] animate-pulse" />
                             </div>
                             <img 
-                              src={config.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                              src={incident.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
                               alt={`Chart for ${config.title}`} 
                               className="w-[92%] sm:w-[90%] h-auto block relative z-10 my-4 sm:my-6 bg-[#ffffff] rounded-md shadow-sm transition-transform duration-500 group-hover:scale-105"
                               loading="lazy"
@@ -240,7 +240,7 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
                     close={() => setOpenLightbox(null)}
                     index={openLightbox?.configId === config.configId ? openLightbox.index : 0}
                     slides={config.incidents.map((inc) => ({
-                      src: config.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${inc.sdate}&edate=${inc.edate}`,
+                      src: inc.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${inc.sdate}&edate=${inc.edate}`,
                       alt: `Chart for ${config.title} at ${inc.formattedTime}`,
                     }))}
                     plugins={[Zoom]}
