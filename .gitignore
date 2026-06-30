@@ -54,7 +54,7 @@ pids
 *.pid
 *.seed
 *.pid.lock
-storage/
+/storage/
 prtg.sql
 prisma/dev.db
 
