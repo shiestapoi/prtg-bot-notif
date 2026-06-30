@@ -254,7 +254,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
 
     const setting = await this.prisma.prtgSetting.findFirst({ where: { id: 1 } });
-    const prtgUrl = setting?.prtgServerUrl?.replace(/\/$/, '') || 'http://prtg.r1net.id';
+    const prtgUrl = setting?.loginUrl?.replace(/\/index\.htm$/, '')?.replace(/\/$/, '') || 'http://prtg.r1net.id';
 
     const now = new Date();
     const sdateObj = new Date(now.getTime() - hours * 60 * 60 * 1000);
