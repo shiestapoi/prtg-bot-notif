@@ -50,7 +50,7 @@ export class R2StorageService {
   }
 
   /**
-   * Uploads an image buffer to Cloudflare R2
+   * Uploads an image buffer to Cloudflare R2 
    * @param buffer Image buffer
    * @param path Target path (e.g., reports/image/DAILY/group/2026-06-30/123.png)
    * @param contentType MIME type (default image/png)
