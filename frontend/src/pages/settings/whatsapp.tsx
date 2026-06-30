@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { LogOutIcon, RefreshCwIcon, PhoneIcon, UserIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { LogOutIcon, RefreshCwIcon, PhoneIcon, UserIcon, KeyIcon } from 'lucide-react';
 
 interface WhatsappStatus {
   sessionName: string;
@@ -19,6 +20,9 @@ export default function WhatsappPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [requestingPairingCode, setRequestingPairingCode] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -71,6 +75,7 @@ export default function WhatsappPage() {
       return;
     }
     setLoggingOut(true);
+    setPairingCode(null);
     try {
       await api.post('/api/whatsapp/logout');
       // Status will update via SSE
@@ -78,6 +83,22 @@ export default function WhatsappPage() {
       setError(err instanceof Error ? err.message : 'Failed to logout');
     } finally {
       setLoggingOut(false);
+    }
+  };
+
+  const handleRequestPairingCode = async () => {
+    if (!phoneNumber) return;
+    setRequestingPairingCode(true);
+    setPairingCode(null);
+    try {
+      const res = await api.post('/api/whatsapp/pairing-code', { phoneNumber });
+      if (res.data.success && res.data.code) {
+        setPairingCode(res.data.code);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to request pairing code');
+    } finally {
+      setRequestingPairingCode(false);
     }
   };
 
@@ -203,18 +224,56 @@ export default function WhatsappPage() {
         )}
       </div>
 
-      {/* QR Code for Pairing */}
+      {/* QR Code and Pairing Code for Pairing */}
       {status?.qrDataUrl && (
-        <div className="rounded-lg border p-6 flex flex-col items-center gap-4">
-          <h2 className="text-lg font-semibold">Scan QR Code to Pair</h2>
-          <p className="text-sm text-muted-foreground text-center max-w-md">
-            Open WhatsApp on your phone → Settings → Linked Devices → Link a Device → Scan this QR code
-          </p>
-          <img
-            src={status.qrDataUrl}
-            alt="WhatsApp QR Code"
-            className="w-64 h-64 rounded-lg border"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="rounded-lg border p-6 flex flex-col items-center gap-4">
+            <h2 className="text-lg font-semibold">Scan QR Code to Pair</h2>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Open WhatsApp on your phone → Settings → Linked Devices → Link a Device → Scan this QR code
+            </p>
+            <img
+              src={status.qrDataUrl}
+              alt="WhatsApp QR Code"
+              className="w-64 h-64 rounded-lg border"
+            />
+          </div>
+          
+          <div className="rounded-lg border p-6 flex flex-col items-center gap-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <KeyIcon className="h-5 w-5" /> Or Use Pairing Code
+            </h2>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Enter your WhatsApp phone number to get a pairing code instead of scanning the QR.
+            </p>
+            <div className="w-full max-w-xs space-y-4">
+              <Input 
+                placeholder="e.g. 6281234567890" 
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                disabled={requestingPairingCode}
+              />
+              <Button 
+                className="w-full" 
+                onClick={handleRequestPairingCode}
+                disabled={!phoneNumber || requestingPairingCode}
+              >
+                {requestingPairingCode ? 'Requesting...' : 'Get Pairing Code'}
+              </Button>
+            </div>
+            
+            {pairingCode && (
+              <div className="mt-4 p-4 border rounded-lg bg-muted text-center space-y-2 w-full max-w-xs">
+                <p className="text-sm text-muted-foreground">Your Pairing Code:</p>
+                <p className="text-3xl font-mono tracking-widest font-bold text-primary">
+                  {pairingCode}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Enter this code in your WhatsApp when prompted.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

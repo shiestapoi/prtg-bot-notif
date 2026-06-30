@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { NocStatus, type RecipientTargetType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WhatsappSenderService } from '../../whatsapp/whatsapp-sender.service';
+import { TelegramSenderService } from '../../telegram/telegram-sender.service';
 import { ScreenshotService } from './screenshot.service';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -145,6 +146,7 @@ export class AlertDispatcherService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappSender: WhatsappSenderService,
+    private readonly telegramSender: TelegramSenderService,
     private readonly screenshotService: ScreenshotService,
   ) {}
 
@@ -190,9 +192,10 @@ export class AlertDispatcherService {
         context.requestUrl,
       );
       await this.sendToRecipients(recipients, message, screenshot);
+      await this.sendToTelegram(context.groupId, message, screenshot);
 
       this.logger.log(
-        `Dispatched ${decision.templateType} notification for config ${context.configId} (${context.title}) to ${recipients.length} recipients`,
+        `Dispatched ${decision.templateType} notification for config ${context.configId} (${context.title})`,
       );
     } catch (error) {
       this.logger.error(
@@ -296,6 +299,46 @@ export class AlertDispatcherService {
       reason: context.reason,
       groupName: context.groupName,
     });
+  }
+
+  /**
+   * Sends message to all eligible Telegram users.
+   */
+  private async sendToTelegram(groupId: number, message: string, screenshot: Buffer | null): Promise<void> {
+    const telegramUsers = await this.prisma.telegramUser.findMany({
+      where: {
+        isVerified: true,
+        isBlocked: false,
+      },
+      include: {
+        mutes: {
+          where: { groupId }
+        }
+      }
+    });
+
+    const eligibleUsers = telegramUsers.filter(user => user.mutes.length === 0);
+
+    for (const user of eligibleUsers) {
+      try {
+        if (screenshot && message) {
+          await this.telegramSender.sendImageToChatId(user.telegramId, {
+            buffer: screenshot,
+            caption: message,
+          });
+        } else if (screenshot) {
+          await this.telegramSender.sendImageToChatId(user.telegramId, {
+            buffer: screenshot,
+          });
+        } else if (message) {
+          await this.telegramSender.sendTextToChatId(user.telegramId, message);
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to send Telegram message to ${user.telegramId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
   }
 
   /**

@@ -14,6 +14,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { ReceiptReportModule } from './receipt-report/receipt-report.module';
 import { SoundModule } from './sound/sound.module';
 import { TaskModule } from './task/task.module';
+import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { TaskModule } from './task/task.module';
     PrtgNocModule,
     MonitoringModule,
     SoundModule,
+    TelegramModule,
     // ServeStaticModule serves the React SPA from public/app/
     // renderPath '/' makes it serve index.html for ALL non-excluded paths (SPA fallback)
     ServeStaticModule.forRoot({

@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { PrtgSettingModule } from '../prtg-setting/prtg-setting.module';
 import { PrtgReportModule } from '../prtg-report/prtg-report.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
+import { TelegramModule } from '../telegram/telegram.module';
 
 // Controllers
 import { MonitoringHistoryController } from './controller/monitoring-history.controller';
@@ -19,8 +20,7 @@ import { MonitoringSchedulerService } from './scheduler/monitoring-scheduler.ser
 import { MetricParserService } from './parser/metric-parser.service';
 import { AnomalyEngineService } from './anomaly-engine/anomaly-engine.service';
 import { AlertDispatcherService } from './dispatcher/alert-dispatcher.service';
-import { BrowserPoolService } from './dispatcher/browser-pool.service';
-import { ScreenshotService } from './dispatcher/screenshot.service';
+import { ScreenshotModule } from './dispatcher/screenshot.module';
 import { MonitoringHistoryService } from './service/monitoring-history.service';
 import { MonitoringRecipientService } from './service/monitoring-recipient.service';
 import { PingMonitorService } from './service/ping-monitor.service';
@@ -28,7 +28,7 @@ import { PingRecipientService } from './service/ping-recipient.service';
 import { PingMonitorSchedulerService } from './scheduler/ping-monitor-scheduler.service';
 
 @Module({
-  imports: [PrismaModule, PrtgSettingModule, PrtgReportModule, WhatsappModule],
+  imports: [PrismaModule, PrtgSettingModule, PrtgReportModule, WhatsappModule, TelegramModule, ScreenshotModule],
   controllers: [
     MonitoringHistoryController,
     MonitoringEventController,
@@ -38,12 +38,10 @@ import { PingMonitorSchedulerService } from './scheduler/ping-monitor-scheduler.
     PingRecipientController,
   ],
   providers: [
-    BrowserPoolService,
     MonitoringSchedulerService,
     MetricParserService,
     AnomalyEngineService,
     AlertDispatcherService,
-    ScreenshotService,
     MonitoringHistoryService,
     MonitoringRecipientService,
     PingMonitorService,

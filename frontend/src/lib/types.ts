@@ -185,6 +185,8 @@ export interface PrtgSetting {
   recoveryMessageTemplate: string;
   tvUIVersion: string;
   reportUIVersion: string;
+  telegramBotToken: string | null;
+  telegramSecretCode: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -340,4 +342,16 @@ export interface PingLogEvent {
   host: string;
   status: 'UP' | 'RTO';
   latencyMs: string;
+}
+
+export interface TelegramUser {
+  id: string;
+  telegramId: string;
+  firstName: string;
+  lastName: string | null;
+  username: string | null;
+  isVerified: boolean;
+  isBlocked: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

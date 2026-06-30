@@ -12,12 +12,15 @@ import { ReceiptRecipientService } from './receipt-recipient.service';
 import { ReceiptReportHistoryController } from './receipt-report-history.controller';
 import { MonitoringModule } from '../monitoring/monitoring.module';
 
+import { TelegramModule } from '../telegram/telegram.module';
+
 @Module({
   imports: [
     PrismaModule,
     AuthModule,
     forwardRef(() => WhatsappModule),
     forwardRef(() => MonitoringModule),
+    forwardRef(() => TelegramModule),
   ],
   controllers: [
     ReceiptReportController,

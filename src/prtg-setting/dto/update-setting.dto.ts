@@ -32,4 +32,12 @@ export class UpdateSettingDto {
   @IsOptional()
   @IsString()
   reportUIVersion?: string;
+
+  @IsOptional()
+  @IsString()
+  telegramBotToken?: string | null;
+
+  @IsOptional()
+  @IsString()
+  telegramSecretCode?: string | null;
 }

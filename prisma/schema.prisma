@@ -35,6 +35,8 @@ model PrtgSetting {
   receiptMessageTemplate  String  @default("*{title}*\nGROUP : {groupName}\n{details}")
   tvUIVersion            String   @default("v1")
   reportUIVersion        String   @default("v1")
+  telegramBotToken       String?
+  telegramSecretCode     String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 }
@@ -52,6 +54,7 @@ model PrtgGroup {
   recipients           PrtgRecipient[]
   monitoringRecipients MonitoringRecipient[]
   receiptRecipients    ReceiptRecipient[]
+  telegramMutes        TelegramMute[]
 }
 
 model PrtgConfig {
@@ -300,4 +303,32 @@ model ReceiptReportSnapshot {
 model keyv {
   key   String @id @db.VarChar(255)
   value String @db.Text
+}
+
+// ─── Telegram Bot Models ─────────────────────────────────────────────────────
+
+model TelegramUser {
+  id         String         @id @default(cuid())
+  telegramId String         @unique // Store as string to avoid BigInt issues
+  firstName  String?
+  lastName   String?
+  username   String?
+  isVerified Boolean        @default(false)
+  isBlocked  Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  mutes      TelegramMute[]
+}
+
+model TelegramMute {
+  id             String       @id @default(cuid())
+  telegramUserId String
+  telegramUser   TelegramUser @relation(fields: [telegramUserId], references: [id], onDelete: Cascade)
+  groupId        Int
+  group          PrtgGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  isMuted        Boolean      @default(true) // If a record exists, it means muted
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([telegramUserId, groupId])
 }

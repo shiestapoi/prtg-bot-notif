@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   Post,
+  Body,
   Query,
   Sse,
   UseGuards,
@@ -62,6 +63,16 @@ export class WhatsappController {
     this.ensureServiceEnabledOrThrow();
     await this.whatsappService.logout();
     return { success: true, message: 'WhatsApp session logged out.' };
+  }
+
+  @Post('pairing-code')
+  async requestPairingCode(@Body('phoneNumber') phoneNumber: string) {
+    this.ensureServiceEnabledOrThrow();
+    if (!phoneNumber) {
+      throw new BadRequestException('phoneNumber is required');
+    }
+    const code = await this.whatsappService.requestPairingCode(phoneNumber);
+    return { success: true, code };
   }
 
   @Get('channels/metadata')

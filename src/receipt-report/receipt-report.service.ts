@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsappSenderService } from '../whatsapp/whatsapp-sender.service';
+import { TelegramSenderService } from '../telegram/telegram-sender.service';
 import {
   ReceiptPeriod,
   NocStatus,
@@ -17,6 +18,7 @@ export class ReceiptReportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappSenderService: WhatsappSenderService,
+    private readonly telegramSenderService: TelegramSenderService,
   ) {}
 
   async dispatchSchedule(
@@ -363,6 +365,21 @@ export class ReceiptReportService {
       }
     }
 
+    if (schedule.groupId) {
+      const telegramUsers = await this.prisma.telegramUser.findMany({
+        where: { isVerified: true, isBlocked: false },
+        include: { mutes: { where: { groupId: schedule.groupId } } },
+      });
+      const eligibleUsers = telegramUsers.filter((u) => u.mutes.length === 0);
+      for (const user of eligibleUsers) {
+        try {
+          await this.telegramSenderService.sendTextToChatId(user.telegramId, fullMessage);
+        } catch (error) {
+          this.logger.error(`Failed to send receipt to Telegram ${user.telegramId}`);
+        }
+      }
+    }
+
     return this.buildSummary(schedule, sentCount, totalIncidentsFound, false);
   }
 
@@ -658,5 +675,41 @@ export class ReceiptReportService {
     });
 
     return { success: true, updatedConfigs: reportDataPayload.length };
+  }
+
+  async getReportData(
+    groupId: number,
+    start: Date,
+    end: Date,
+    includeDown: boolean,
+    includeLowTraffic: boolean,
+  ) {
+    const configs = await this.prisma.prtgConfig.findMany({
+      where: { groupId, enabled: true, maintenance: false },
+      include: { group: true },
+    });
+    if (configs.length === 0) {
+      return { groupName: 'N/A', configs: [] };
+    }
+    const groupName = configs[0].group?.name || 'N/A';
+    const configIds = configs.map((c) => c.id);
+    const histories = await this.prisma.monitoringHistory.findMany({
+      where: {
+        configId: { in: configIds },
+        timestamp: { gte: start, lte: end },
+      },
+      orderBy: { timestamp: 'asc' },
+    });
+
+    const reportConfigs = configs.map((config) => {
+      const h = histories.filter((h) => h.configId === config.id);
+      const downCount = h.filter((x) => x.status === NocStatus.DOWN).length;
+      return {
+        title: config.title,
+        downtimeTotalSeconds: downCount * 60, // approximate
+      };
+    });
+
+    return { groupName, configs: reportConfigs };
   }
 }

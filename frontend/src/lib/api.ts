@@ -14,6 +14,7 @@ import type {
   PrtgSchedule,
   ReceiptSchedule,
   PingMonitor,
+  TelegramUser,
 } from './types';
 
 // ─── Axios Instance ─────────────────────────────────────────────────────────
@@ -388,6 +389,17 @@ export const receiptRecipientApi = {
 
   remove: (id: number) =>
     api.delete(`/api/receipt-recipients/${id}`).then((r) => r.data),
+};
+
+// ─── Telegram API ─────────────────────────────────────────────────────────────
+
+export const telegramAdminApi = {
+  getUsers: () => api.get<TelegramUser[]>('/api/telegram/users').then((r) => r.data),
+  verifyUser: (id: string, isVerified: boolean) =>
+    api.patch<TelegramUser>(`/api/telegram/users/${id}/verify`, { isVerified }).then((r) => r.data),
+  blockUser: (id: string, isBlocked: boolean) =>
+    api.patch<TelegramUser>(`/api/telegram/users/${id}/block`, { isBlocked }).then((r) => r.data),
+  reloadBot: () => api.patch<{ success: boolean; message: string }>('/api/telegram/reload-bot').then((r) => r.data),
 };
 
 // ─── Default Export ─────────────────────────────────────────────────────────

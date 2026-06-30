@@ -11,6 +11,8 @@ export interface PrtgSettingDto {
   recoveryMessageTemplate: string;
   tvUIVersion: string;
   reportUIVersion: string;
+  telegramBotToken: string | null;
+  telegramSecretCode: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,6 +43,8 @@ export class PrtgSettingService {
       recoveryMessageTemplate: settings.recoveryMessageTemplate,
       tvUIVersion: settings.tvUIVersion,
       reportUIVersion: settings.reportUIVersion,
+      telegramBotToken: settings.telegramBotToken,
+      telegramSecretCode: settings.telegramSecretCode,
       createdAt: settings.createdAt.toISOString(),
       updatedAt: settings.updatedAt.toISOString(),
     };
@@ -67,6 +71,8 @@ export class PrtgSettingService {
       recoveryMessageTemplate: string;
       tvUIVersion?: string;
       reportUIVersion?: string;
+      telegramBotToken?: string | null;
+      telegramSecretCode?: string | null;
     } = {
       loginUrl,
       loginUsername: normalizeInput(dto.loginUsername) || null,
@@ -81,6 +87,14 @@ export class PrtgSettingService {
 
     if (dto.reportUIVersion !== undefined) {
       data.reportUIVersion = dto.reportUIVersion;
+    }
+
+    if (dto.telegramBotToken !== undefined) {
+      data.telegramBotToken = dto.telegramBotToken;
+    }
+
+    if (dto.telegramSecretCode !== undefined) {
+      data.telegramSecretCode = dto.telegramSecretCode;
     }
 
     if (dto.loginPassword !== undefined) {
@@ -104,6 +118,8 @@ export class PrtgSettingService {
       recoveryMessageTemplate: updated.recoveryMessageTemplate,
       tvUIVersion: updated.tvUIVersion,
       reportUIVersion: updated.reportUIVersion,
+      telegramBotToken: updated.telegramBotToken,
+      telegramSecretCode: updated.telegramSecretCode,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
     };

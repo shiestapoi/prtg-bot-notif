@@ -269,6 +269,14 @@ export class WhatsappService implements OnModuleInit, OnModuleDestroy {
     this.realtime.publish(this.getStatus());
   }
 
+  async requestPairingCode(phoneNumber: string): Promise<string> {
+    if (!this.socket) {
+      throw new Error('WhatsApp socket is not connected.');
+    }
+    const code = await this.socket.requestPairingCode(phoneNumber);
+    return code;
+  }
+
   async logout() {
     if (!this.socket) {
       throw new Error('WhatsApp socket is not connected.');

@@ -19,6 +19,7 @@ import PingMonitorsPage from '@/pages/monitoring/ping-monitors';
 import PingRecipientsPage from '@/pages/monitoring/ping-recipients';
 import PrtgSettingPage from '@/pages/settings/prtg-setting';
 import WhatsappPage from '@/pages/settings/whatsapp';
+import TelegramPage from '@/pages/settings/telegram';
 import AccountPage from '@/pages/settings/account';
 import AlarmSoundsPage from '@/pages/settings/sounds';
 
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
       // Settings section
       { path: 'settings/prtg', element: <PrtgSettingPage /> },
       { path: 'settings/whatsapp', element: <WhatsappPage /> },
+      { path: 'settings/telegram', element: <TelegramPage /> },
       { path: 'settings/account', element: <AccountPage /> },
       { path: 'settings/sounds', element: <AlarmSoundsPage /> },
       // Catch-all redirect
