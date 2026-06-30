@@ -400,6 +400,7 @@ export const telegramAdminApi = {
   blockUser: (id: string, isBlocked: boolean) =>
     api.patch<TelegramUser>(`/api/telegram/users/${id}/block`, { isBlocked }).then((r) => r.data),
   reloadBot: () => api.patch<{ success: boolean; message: string }>('/api/telegram/reload-bot').then((r) => r.data),
+  debugNotification: () => api.post<{ success: boolean; message: string }>('/api/telegram/debug-notification').then((r) => r.data),
 };
 
 // ─── Default Export ─────────────────────────────────────────────────────────

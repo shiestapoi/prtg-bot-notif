@@ -304,7 +304,11 @@ export class AlertDispatcherService {
   /**
    * Sends message to all eligible Telegram users.
    */
-  private async sendToTelegram(groupId: number, message: string, screenshot: Buffer | null): Promise<void> {
+  private async sendToTelegram(
+    groupId: number,
+    message: string,
+    screenshot: Buffer | null,
+  ): Promise<void> {
     const telegramUsers = await this.prisma.telegramUser.findMany({
       where: {
         isVerified: true,
@@ -312,12 +316,14 @@ export class AlertDispatcherService {
       },
       include: {
         mutes: {
-          where: { groupId }
-        }
-      }
+          where: { groupId },
+        },
+      },
     });
 
-    const eligibleUsers = telegramUsers.filter(user => user.mutes.length === 0);
+    const eligibleUsers = telegramUsers.filter(
+      (user) => user.mutes.length === 0,
+    );
 
     for (const user of eligibleUsers) {
       try {

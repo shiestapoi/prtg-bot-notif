@@ -9,11 +9,14 @@ import { ReceiptReportModule } from '../receipt-report/receipt-report.module';
 import { ScreenshotModule } from '../monitoring/dispatcher/screenshot.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, PrtgReportModule, ReceiptReportModule, ScreenshotModule],
-  providers: [
-    TelegramService,
-    TelegramSenderService
+  imports: [
+    PrismaModule,
+    AuthModule,
+    PrtgReportModule,
+    ReceiptReportModule,
+    ScreenshotModule,
   ],
+  providers: [TelegramService, TelegramSenderService],
   controllers: [TelegramAdminController],
   exports: [TelegramSenderService],
 })

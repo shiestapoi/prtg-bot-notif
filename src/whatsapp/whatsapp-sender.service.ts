@@ -112,17 +112,20 @@ export class WhatsappSenderService {
       throw new Error('Invalid target phone number or JID.');
     }
 
-    let messageObj: any = {};
+    const messageObj: any = {};
 
     if (payload.image) {
       // check if it's base64 or URL
-      if (payload.image.startsWith('http://') || payload.image.startsWith('https://')) {
+      if (
+        payload.image.startsWith('http://') ||
+        payload.image.startsWith('https://')
+      ) {
         messageObj.image = { url: payload.image };
       } else {
         // assume base64 string
         messageObj.image = Buffer.from(payload.image, 'base64');
       }
-      
+
       if (payload.text) {
         messageObj.caption = payload.text;
       }
@@ -133,7 +136,9 @@ export class WhatsappSenderService {
     }
 
     if (payload.mentions && Array.isArray(payload.mentions)) {
-      messageObj.mentions = payload.mentions.map((m) => this.toJid(m)).filter(Boolean);
+      messageObj.mentions = payload.mentions
+        .map((m) => this.toJid(m))
+        .filter(Boolean);
     }
 
     if (payload.contextInfo) {

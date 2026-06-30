@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-vars */
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsappSenderService } from '../whatsapp/whatsapp-sender.service';
@@ -365,18 +366,27 @@ export class ReceiptReportService {
       }
     }
 
-    if (schedule.groupId) {
-      const telegramUsers = await this.prisma.telegramUser.findMany({
-        where: { isVerified: true, isBlocked: false },
-        include: { mutes: { where: { groupId: schedule.groupId } } },
-      });
-      const eligibleUsers = telegramUsers.filter((u) => u.mutes.length === 0);
-      for (const user of eligibleUsers) {
-        try {
-          await this.telegramSenderService.sendTextToChatId(user.telegramId, fullMessage);
-        } catch (error) {
-          this.logger.error(`Failed to send receipt to Telegram ${user.telegramId}`);
-        }
+    const telegramUsers = await this.prisma.telegramUser.findMany({
+      where: { isVerified: true, isBlocked: false },
+      ...(schedule.groupId
+        ? { include: { mutes: { where: { groupId: schedule.groupId } } } }
+        : {}),
+    });
+
+    const eligibleUsers = schedule.groupId
+      ? telegramUsers.filter((u: any) => u.mutes.length === 0)
+      : telegramUsers;
+
+    for (const user of eligibleUsers) {
+      try {
+        await this.telegramSenderService.sendTextToChatId(
+          user.telegramId,
+          fullMessage,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to send receipt to Telegram ${user.telegramId}`,
+        );
       }
     }
 
@@ -711,5 +721,92 @@ export class ReceiptReportService {
     });
 
     return { groupName, configs: reportConfigs };
+  }
+
+  async generateManualReport(
+    chatId: number,
+    period: 'DAILY' | 'MONTHLY',
+    startDate: Date,
+  ) {
+    let snapshot = await this.prisma.receiptReportSnapshot.findFirst({
+      where: { period, startDate, scheduleId: null, groupName: null },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!snapshot) {
+      const crypto = require('crypto');
+      const snapshotId = crypto.randomBytes(5).toString('hex');
+      snapshot = await this.prisma.receiptReportSnapshot.create({
+        data: {
+          id: snapshotId,
+          scheduleId: null,
+          period,
+          groupName: null,
+          startDate,
+          endDate: new Date(),
+          reportData: [],
+        },
+      });
+    }
+
+    await this.updateSnapshot(snapshot.id);
+    snapshot = await this.prisma.receiptReportSnapshot.findUnique({
+      where: { id: snapshot.id },
+    });
+
+    const periodText = period === 'DAILY' ? 'HARIAN' : 'BULANAN';
+    let fullMessage = `*LAPORAN ${periodText} BW MANUAL*\n====================\n`;
+
+    const settings = await this.prisma.prtgSetting.findFirst();
+    const template =
+      settings?.receiptMessageTemplate ||
+      '*{title}*\nGROUP : {groupName}\n{details}';
+
+    const configMessages: string[] = [];
+    const reportData = (snapshot?.reportData as any[]) || [];
+
+    for (const data of reportData) {
+      const downCount = data.downCount;
+      const lowTrafficCount = data.lowTrafficCount;
+      if (downCount === 0 && lowTrafficCount === 0) continue;
+
+      let detailsStr = '';
+      if (downCount > 0) {
+        detailsStr += `DOWN : ${downCount}x\ndijam :\n`;
+        data.incidents
+          .filter((i: any) => i.status === 'DOWN')
+          .forEach((i: any) => {
+            detailsStr += `- ${i.formattedTime}\n`;
+          });
+      }
+      if (lowTrafficCount > 0) {
+        if (detailsStr) detailsStr += '\n';
+        detailsStr += `LOW TRAFFIC : ${lowTrafficCount}x\ndijam :\n`;
+        data.incidents
+          .filter((i: any) => i.status === 'LOW_TRAFFIC')
+          .forEach((i: any) => {
+            detailsStr += `- ${i.formattedTime}\n`;
+          });
+      }
+
+      const configMsg = template
+        .replace(/{title}/g, data.title)
+        .replace(/{groupName}/g, data.groupName)
+        .replace(/{details}/g, detailsStr.trim());
+
+      configMessages.push(configMsg);
+    }
+
+    const publicUrl = `http://prtg.harutaka.web.id/report/${snapshot!.id}`;
+
+    if (configMessages.length > 0) {
+      fullMessage += configMessages.join('\n\n');
+      fullMessage += `\n\nLihat detail laporan lengkap:\n${publicUrl}`;
+    } else {
+      fullMessage += `Semua koneksi terpantau Normal untuk periode ini.`;
+      fullMessage += `\n\nLihat detail laporan lengkap:\n${publicUrl}`;
+    }
+
+    await this.telegramSenderService.sendTextToChatId(chatId, fullMessage);
   }
 }

@@ -22,7 +22,9 @@ export class TelegramSenderService {
     try {
       await this.bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
     } catch (error) {
-      this.logger.error(`Failed to send text to ${chatId}: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to send text to ${chatId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -40,7 +42,9 @@ export class TelegramSenderService {
         parse_mode: 'Markdown',
       });
     } catch (error) {
-      this.logger.error(`Failed to send image to ${chatId}: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to send image to ${chatId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }

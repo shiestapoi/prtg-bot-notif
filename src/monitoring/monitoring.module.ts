@@ -28,7 +28,14 @@ import { PingRecipientService } from './service/ping-recipient.service';
 import { PingMonitorSchedulerService } from './scheduler/ping-monitor-scheduler.service';
 
 @Module({
-  imports: [PrismaModule, PrtgSettingModule, PrtgReportModule, WhatsappModule, TelegramModule, ScreenshotModule],
+  imports: [
+    PrismaModule,
+    PrtgSettingModule,
+    PrtgReportModule,
+    WhatsappModule,
+    TelegramModule,
+    ScreenshotModule,
+  ],
   controllers: [
     MonitoringHistoryController,
     MonitoringEventController,

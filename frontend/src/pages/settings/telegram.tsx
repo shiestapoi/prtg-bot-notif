@@ -20,6 +20,7 @@ export default function TelegramPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [sendingDebug, setSendingDebug] = useState(false);
   
   // Settings state
   const [botToken, setBotToken] = useState('');
@@ -88,6 +89,22 @@ export default function TelegramPage() {
     }
   }
 
+  async function handleSendDebug() {
+    setSendingDebug(true);
+    try {
+      const res = await telegramAdminApi.debugNotification();
+      if (res.success) {
+        toast.success(res.message);
+      } else {
+        toast.error(res.message);
+      }
+    } catch (err) {
+      toast.error('Gagal mengirim notifikasi debug');
+    } finally {
+      setSendingDebug(false);
+    }
+  }
+
   async function handleToggleVerify(id: string, currentStatus: boolean) {
     try {
       await telegramAdminApi.verifyUser(id, !currentStatus);
@@ -128,10 +145,16 @@ export default function TelegramPage() {
             Konfigurasi Bot Telegram dan kelola pengguna.
           </p>
         </div>
-        <Button variant="outline" onClick={handleReloadBot}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Reload Bot
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleSendDebug} disabled={sendingDebug}>
+            <ShieldAlert className={`mr-2 h-4 w-4 ${sendingDebug ? 'animate-pulse' : ''}`} />
+            Test Notifikasi Traffic (Debug)
+          </Button>
+          <Button variant="outline" onClick={handleReloadBot}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Reload Bot
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
