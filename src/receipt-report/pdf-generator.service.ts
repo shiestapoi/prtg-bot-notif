@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BrowserPoolService } from '../storage/browser-pool.service';
+import { BrowserPoolService } from '../monitoring/dispatcher/browser-pool.service';
 import { BrowserContext } from 'playwright';
 
 @Injectable()
@@ -15,6 +15,7 @@ export class PdfGeneratorService {
 
     try {
       context = await this.browserPool.createContext();
+      if (!context) throw new Error('Failed to create browser context');
       const page = await context.newPage();
       
       // Navigate to the frontend URL and wait for network to be idle
