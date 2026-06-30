@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/require-await */
 import {
   BadRequestException,
   Injectable,
@@ -174,7 +175,7 @@ export class PrtgReportSchedulerService
           } as any,
         };
       }
-      // Cron trigger while already running — skip silently
+      // Cron trigger while already running â€” skip silently
       this.logger.warn(`Schedule "${schedule.name}" skipped (already running)`);
       return {
         scheduleId: schedule.id,

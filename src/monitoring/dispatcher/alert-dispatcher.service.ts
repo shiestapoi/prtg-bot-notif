@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, Logger } from '@nestjs/common';
 import { NocStatus, type RecipientTargetType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -5,7 +6,7 @@ import { WhatsappSenderService } from '../../whatsapp/whatsapp-sender.service';
 import { TelegramSenderService } from '../../telegram/telegram-sender.service';
 import { ScreenshotService } from './screenshot.service';
 
-// ─── Interfaces ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Interfaces â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface DispatchDecision {
   shouldNotify: boolean;
@@ -35,17 +36,17 @@ interface ResolvedRecipient {
   targetType: RecipientTargetType;
 }
 
-// ─── Pure Function: Dispatch Decision Logic ──────────────────────────────────
+// â”€â”€â”€ Pure Function: Dispatch Decision Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Pure function that evaluates whether a notification should be dispatched.
- * No side effects — can be tested independently.
+ * No side effects â€” can be tested independently.
  *
  * Aturan utama:
- * - NORMAL → anomaly: KIRIM (new_anomaly)
- * - anomaly → NORMAL: KIRIM (recovered)
- * - anomaly A → anomaly B (berbeda): KIRIM (status_escalation)
- * - anomaly → anomaly SAMA: JANGAN KIRIM (sudah dinotifikasi sebelumnya)
+ * - NORMAL â†’ anomaly: KIRIM (new_anomaly)
+ * - anomaly â†’ NORMAL: KIRIM (recovered)
+ * - anomaly A â†’ anomaly B (berbeda): KIRIM (status_escalation)
+ * - anomaly â†’ anomaly SAMA: JANGAN KIRIM (sudah dinotifikasi sebelumnya)
  */
 export function evaluateDispatch(
   previousStatus: NocStatus,
@@ -53,7 +54,7 @@ export function evaluateDispatch(
   lastNotifiedAt: Date | null,
   cooldownInterval: number,
 ): DispatchDecision {
-  // Recovery: anomaly → NORMAL
+  // Recovery: anomaly â†’ NORMAL
   if (
     previousStatus !== NocStatus.NORMAL &&
     currentStatus === NocStatus.NORMAL
@@ -65,7 +66,7 @@ export function evaluateDispatch(
     };
   }
 
-  // New anomaly: NORMAL → anomaly
+  // New anomaly: NORMAL â†’ anomaly
   if (
     previousStatus === NocStatus.NORMAL &&
     currentStatus !== NocStatus.NORMAL
@@ -77,7 +78,7 @@ export function evaluateDispatch(
     };
   }
 
-  // Status escalation during anomaly (e.g., LOW_TRAFFIC → DOWN)
+  // Status escalation during anomaly (e.g., LOW_TRAFFIC â†’ DOWN)
   if (previousStatus !== currentStatus && currentStatus !== NocStatus.NORMAL) {
     return {
       shouldNotify: true,
@@ -86,7 +87,7 @@ export function evaluateDispatch(
     };
   }
 
-  // Same anomaly status (e.g., DOWN → DOWN) — NEVER re-notify
+  // Same anomaly status (e.g., DOWN â†’ DOWN) â€” NEVER re-notify
   return {
     shouldNotify: false,
     reason: 'same_status_suppressed',
@@ -94,7 +95,7 @@ export function evaluateDispatch(
   };
 }
 
-// ─── Template Rendering ──────────────────────────────────────────────────────
+// â”€â”€â”€ Template Rendering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Renders a template string by substituting placeholders with actual values.
@@ -137,7 +138,7 @@ function formatTime(date: Date): string {
   return `${hours}:${minutes}`;
 }
 
-// ─── Service ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @Injectable()
 export class AlertDispatcherService {
@@ -429,29 +430,29 @@ export class AlertDispatcherService {
   private getDefaultTemplate(type: 'anomaly' | 'recovery'): string {
     if (type === 'anomaly') {
       return [
-        '━━━━━━━━━━━━━━━━',
-        '⚠️ *ALERT: {status}*',
-        '━━━━━━━━━━━━━━━━',
-        '📍 *{title}*',
-        '🏢 _{groupName}_',
-        '⏰ {time}',
-        '📊 Total: ```{bitrate}```',
-        '📥 In: ```{trafficIn}```',
-        '📤 Out: ```{trafficOut}```',
-        '💬 {reason}',
-        '━━━━━━━━━━━━━━━━',
+        'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
+        'âš ï¸ *ALERT: {status}*',
+        'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
+        'ðŸ“ *{title}*',
+        'ðŸ¢ _{groupName}_',
+        'â° {time}',
+        'ðŸ“Š Total: ```{bitrate}```',
+        'ðŸ“¥ In: ```{trafficIn}```',
+        'ðŸ“¤ Out: ```{trafficOut}```',
+        'ðŸ’¬ {reason}',
+        'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
       ].join('\n');
     }
     return [
-      '━━━━━━━━━━━━━━━━',
-      '✅ *PULIH: {title}*',
-      '━━━━━━━━━━━━━━━━',
-      '🏢 _{groupName}_',
-      '⏰ {time}',
-      '📊 Total: ```{bitrate}```',
-      '📥 In: ```{trafficIn}```',
-      '📤 Out: ```{trafficOut}```',
-      '━━━━━━━━━━━━━━━━',
+      'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
+      'âœ… *PULIH: {title}*',
+      'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
+      'ðŸ¢ _{groupName}_',
+      'â° {time}',
+      'ðŸ“Š Total: ```{bitrate}```',
+      'ðŸ“¥ In: ```{trafficIn}```',
+      'ðŸ“¤ Out: ```{trafficOut}```',
+      'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
     ].join('\n');
   }
 }

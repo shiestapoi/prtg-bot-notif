@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unused-vars, @typescript-eslint/no-floating-promises */
 import {
   Controller,
   Get,

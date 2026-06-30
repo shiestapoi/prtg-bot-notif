@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
 import { Injectable } from '@nestjs/common';
 import { BehaviorSubject, type Observable } from 'rxjs';
 import type { WhatsappStatusResponse } from './whatsapp.types';

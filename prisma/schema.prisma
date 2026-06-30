@@ -297,6 +297,7 @@ model ReceiptReportSnapshot {
   startDate   DateTime
   endDate     DateTime
   reportData  Json             // Full structured data of configs and incidents
+  pdfUrl      String?          // URL publik file PDF laporan di R2
   createdAt   DateTime         @default(now())
 }
 

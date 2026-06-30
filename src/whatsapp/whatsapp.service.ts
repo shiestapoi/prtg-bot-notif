@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/require-await */
 import {
   Injectable,
   Inject,

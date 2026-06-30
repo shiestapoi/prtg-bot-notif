@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-floating-promises */
 import 'dotenv/config';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';

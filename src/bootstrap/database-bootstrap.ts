@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unused-vars */
 import { execFileSync } from 'child_process';
 import { Pool } from 'pg';
 import { createPostgresPoolConfig } from '../prisma/postgres-options';

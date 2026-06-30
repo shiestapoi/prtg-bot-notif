@@ -53,6 +53,21 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
           <div className="bg-slate-800 rounded-xl p-6 sm:p-8 border border-slate-700 shadow-xl">
             <div className="mb-6 border-b border-slate-700 pb-4">
               <h3 className="text-lg font-semibold text-slate-200">Executive Summary</h3>
+              <p className="text-[21px] font-normal text-[#e8e8ed] tracking-[-0.231px] opacity-80 mb-6">
+                Group: <span className="font-semibold text-white">{snapshot.groupName || 'Semua Grup'}</span>
+              </p>
+              
+              {snapshot.pdfUrl && (
+                <a 
+                  href={snapshot.pdfUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-[#ff9500] text-black px-6 py-3 rounded-full font-medium hover:bg-[#ffb040] transition-colors"
+                >
+                  <ArrowDownCircle className="w-5 h-5" />
+                  Download PDF Report
+                </a>
+              )}
               <div className="text-sm text-slate-400 mt-1">
                 Grup:{' '}
                 {snapshot.groupName ? (
@@ -243,8 +258,8 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
                                   onClick={() => setOpenLightbox({ configId: config.configId, index: idx })}
                                 >
                                   <img 
-                                    src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
-                                    alt="Chart preview" 
+                                    src={config.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                                    alt={`Chart for ${config.title}`} 
                                     className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all"
                                     loading="lazy"
                                   />
@@ -266,7 +281,7 @@ export default function ReceiptReportV2({ snapshot }: ReceiptReportProps) {
                   close={() => setOpenLightbox(null)}
                   index={openLightbox?.configId === config.configId ? openLightbox.index : 0}
                   slides={config.incidents.map((inc) => ({
-                    src: `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${inc.sdate}&edate=${inc.edate}`,
+                    src: config.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${inc.sdate}&edate=${inc.edate}`,
                     alt: `Chart for ${config.title} at ${inc.formattedTime}`,
                   }))}
                   plugins={[Zoom]}

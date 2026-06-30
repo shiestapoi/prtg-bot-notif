@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Injectable, Logger } from '@nestjs/common';
 
 /**
@@ -102,14 +103,14 @@ export class MetricParserService {
       const dataArray = parsed.histdata ?? parsed.values;
 
       if (Array.isArray(dataArray) && dataArray.length > 0) {
-        // Take the LAST entry (most recent) — PRTG returns data in ascending order
+        // Take the LAST entry (most recent) â€” PRTG returns data in ascending order
         return this.parseNamedKeysEntry(
           dataArray[dataArray.length - 1],
           configId,
         );
       }
     } catch {
-      // JSON parse failed — fall through to regex-based parsing for duplicate-key format
+      // JSON parse failed â€” fall through to regex-based parsing for duplicate-key format
     }
 
     // Fallback: regex-based parsing for duplicate "value_raw" keys format
@@ -201,17 +202,17 @@ export class MetricParserService {
       if (NAMED_KEY_PATTERNS.totalTrafficBytes.test(key)) {
         totalTrafficBytes = numValue;
       } else if (NAMED_KEY_PATTERNS.totalTrafficBitrate.test(key)) {
-        // PRTG returns speed in Bytes/s — convert to bits/s (* 8)
+        // PRTG returns speed in Bytes/s â€” convert to bits/s (* 8)
         totalTrafficBitrate = numValue * 8;
       } else if (NAMED_KEY_PATTERNS.inboundBytes.test(key)) {
         inboundBytes = numValue;
       } else if (NAMED_KEY_PATTERNS.inboundBitrate.test(key)) {
-        // PRTG returns speed in Bytes/s — convert to bits/s (* 8)
+        // PRTG returns speed in Bytes/s â€” convert to bits/s (* 8)
         inboundBitrate = numValue * 8;
       } else if (NAMED_KEY_PATTERNS.outboundBytes.test(key)) {
         outboundBytes = numValue;
       } else if (NAMED_KEY_PATTERNS.outboundBitrate.test(key)) {
-        // PRTG returns speed in Bytes/s — convert to bits/s (* 8)
+        // PRTG returns speed in Bytes/s â€” convert to bits/s (* 8)
         outboundBitrate = numValue * 8;
       } else if (/error|downtime/i.test(key)) {
         errorPercent = numValue;

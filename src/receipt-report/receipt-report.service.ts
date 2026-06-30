@@ -3,6 +3,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsappSenderService } from '../whatsapp/whatsapp-sender.service';
 import { TelegramSenderService } from '../telegram/telegram-sender.service';
+import { ScreenshotService } from '../monitoring/dispatcher/screenshot.service';
+import { R2StorageService } from '../storage/r2-storage.service';
+import { PdfGeneratorService } from './pdf-generator.service';
 import {
   ReceiptPeriod,
   NocStatus,
@@ -20,6 +23,9 @@ export class ReceiptReportService {
     private readonly prisma: PrismaService,
     private readonly whatsappSenderService: WhatsappSenderService,
     private readonly telegramSenderService: TelegramSenderService,
+    private readonly screenshotService: ScreenshotService,
+    private readonly r2StorageService: R2StorageService,
+    private readonly pdfGeneratorService: PdfGeneratorService,
   ) {}
 
   async dispatchSchedule(
@@ -336,6 +342,13 @@ export class ReceiptReportService {
         },
       });
     }
+
+    // Generate PDF and upload images
+    await this.generatePdfAndUploadImages(
+      snapshotId,
+      reportDataPayload,
+      schedule,
+    );
 
     const publicUrl = `http://prtg.harutaka.web.id/report/${snapshotId}`;
 
@@ -684,7 +697,89 @@ export class ReceiptReportService {
       },
     });
 
+    // Upload images and generate PDF
+    await this.generatePdfAndUploadImages(
+      snapshotId,
+      reportDataPayload,
+      schedule,
+    );
+
     return { success: true, updatedConfigs: reportDataPayload.length };
+  }
+
+  private async generatePdfAndUploadImages(
+    snapshotId: string,
+    reportDataPayload: any[],
+    schedule: any,
+  ) {
+    const settings = await this.prisma.prtgSetting.findFirst();
+    const baseUrl = settings?.loginUrl ? new URL(settings.loginUrl) : null;
+
+    if (!baseUrl || !settings) return;
+
+    for (const config of reportDataPayload) {
+      if (!config.incidents || config.incidents.length === 0) continue;
+
+      const lastIncident = config.incidents[config.incidents.length - 1];
+      const sdate = lastIncident.sdate;
+      const edate = lastIncident.edate;
+
+      const chartUrl = `${baseUrl.protocol}//${baseUrl.host}/chart.png?id=${config.sensorId}&avg=60&sdate=${sdate}&edate=${edate}&width=1200&height=600`;
+
+      const imageBuffer = await this.screenshotService.capture(chartUrl);
+      if (imageBuffer) {
+        const periodStr = schedule?.period || 'MANUAL';
+        const groupStr = schedule?.group?.name || 'N-A';
+        const dateStr = this.formatPrtgDate(new Date())
+          .split('-')
+          .slice(0, 3)
+          .join('-');
+        const path = `reports/image/${periodStr}/${groupStr}/${dateStr}/${config.sensorId}_${snapshotId}.png`;
+
+        const r2Url = await this.r2StorageService.uploadImage(
+          imageBuffer,
+          path,
+        );
+        if (r2Url) {
+          config.r2ImageUrl = r2Url;
+        }
+      }
+    }
+
+    // Update payload with image URLs
+    await this.prisma.receiptReportSnapshot.update({
+      where: { id: snapshotId },
+      data: { reportData: reportDataPayload },
+    });
+
+    // Generate PDF
+    const updatedSnapshot = await this.prisma.receiptReportSnapshot.findUnique({
+      where: { id: snapshotId },
+    });
+    if (updatedSnapshot) {
+      const pdfBuffer =
+        await this.pdfGeneratorService.generatePdf(updatedSnapshot);
+      if (pdfBuffer) {
+        const periodStr = schedule?.period || 'MANUAL';
+        const groupStr = schedule?.group?.name || 'N-A';
+        const dateStr = this.formatPrtgDate(new Date())
+          .split('-')
+          .slice(0, 3)
+          .join('-');
+        const pdfPath = `reports/pdf/${periodStr}/${groupStr}/${dateStr}/${snapshotId}.pdf`;
+
+        const pdfUrl = await this.r2StorageService.uploadPdf(
+          pdfBuffer,
+          pdfPath,
+        );
+        if (pdfUrl) {
+          await this.prisma.receiptReportSnapshot.update({
+            where: { id: snapshotId },
+            data: { pdfUrl },
+          });
+        }
+      }
+    }
   }
 
   async getReportData(

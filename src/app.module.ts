@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { StorageModule } from './storage/storage.module';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { CookieVaultModule } from './cookie-vault/cookie-vault.module';
@@ -37,6 +38,7 @@ import { TelegramModule } from './telegram/telegram.module';
       rootPath: join(process.cwd(), 'public', 'app'),
       renderPath: /^(?!\/api\/).*/,
     }),
+    StorageModule,
   ],
   controllers: [AppController],
 })

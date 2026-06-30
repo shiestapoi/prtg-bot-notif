@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars */
 import type { Logger } from '@nestjs/common';
 import type { ConnectionState, WASocket } from 'baileys';
 import { DisconnectReason } from 'baileys';

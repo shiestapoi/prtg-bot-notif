@@ -25,6 +25,7 @@ interface ConfigReport {
   groupName: string;
   downCount: number;
   lowTrafficCount: number;
+  r2ImageUrl?: string;
   incidents: Incident[];
 }
 
@@ -36,6 +37,7 @@ export interface Snapshot {
   endDate: string;
   reportData: ConfigReport[];
   createdAt: string;
+  pdfUrl?: string | null;
 }
 
 interface ReceiptReportProps {
@@ -86,9 +88,21 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
           <h1 className="text-[36px] sm:text-[40px] md:text-[56px] font-semibold tracking-[-0.28px] leading-[1.07] text-[#1d1d1f] mb-4 sm:mb-6">
             Bandwidth <br className="sm:hidden" /> Report.
           </h1>
-          <p className="text-[28px] font-normal text-[#86868b] tracking-[0.196px] leading-[1.14] max-w-2xl mx-auto">
+          <p className="text-[28px] font-normal text-[#86868b] tracking-[0.196px] leading-[1.14] max-w-2xl mx-auto mb-6">
             Group: <span className="text-[#1d1d1f]">{snapshot.groupName || 'Semua Grup'}</span>
           </p>
+          
+          {snapshot.pdfUrl && (
+            <a 
+              href={snapshot.pdfUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#0066cc] text-white px-6 py-3 rounded-full font-medium hover:bg-[#0055aa] transition-colors"
+            >
+              <ArrowDownCircle className="w-5 h-5" />
+              Download PDF Report
+            </a>
+          )}
         </section>
 
         {/* Store Utility Grid (Stats) */}
@@ -199,7 +213,7 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
                                <Activity className="h-8 w-8 text-[#0066cc] animate-pulse" />
                             </div>
                             <img 
-                              src={`/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
+                              src={config.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${incident.sdate}&edate=${incident.edate}`} 
                               alt={`Chart for ${config.title}`} 
                               className="w-[92%] sm:w-[90%] h-auto block relative z-10 my-4 sm:my-6 bg-[#ffffff] rounded-md shadow-sm transition-transform duration-500 group-hover:scale-105"
                               loading="lazy"
@@ -224,7 +238,7 @@ export default function ReceiptReportV1({ snapshot }: ReceiptReportProps) {
                     close={() => setOpenLightbox(null)}
                     index={openLightbox?.configId === config.configId ? openLightbox.index : 0}
                     slides={config.incidents.map((inc) => ({
-                      src: `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${inc.sdate}&edate=${inc.edate}`,
+                      src: config.r2ImageUrl || `/api/public/receipt-reports/chart/${snapshot.id}/${config.sensorId}?sdate=${inc.sdate}&edate=${inc.edate}`,
                       alt: `Chart for ${config.title} at ${inc.formattedTime}`,
                     }))}
                     plugins={[Zoom]}

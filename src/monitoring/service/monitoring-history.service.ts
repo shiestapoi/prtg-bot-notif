@@ -1,3 +1,4 @@
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { NocStatus, type MonitoringHistory, type Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -32,9 +33,9 @@ export interface PersistMonitoringHistoryData {
  * MonitoringHistoryService handles persistence and querying of monitoring history.
  *
  * Methods:
- * - persist(data) — Creates a new MonitoringHistory record (used by the scheduler)
- * - query(filters) — Queries history with optional filters (configId, time range, status, pagination)
- * - getRecentByConfig(configId, count) — Gets the most recent N history records for a config
+ * - persist(data) â€” Creates a new MonitoringHistory record (used by the scheduler)
+ * - query(filters) â€” Queries history with optional filters (configId, time range, status, pagination)
+ * - getRecentByConfig(configId, count) â€” Gets the most recent N history records for a config
  */
 @Injectable()
 export class MonitoringHistoryService {

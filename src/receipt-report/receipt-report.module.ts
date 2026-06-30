@@ -11,9 +11,10 @@ import { ReceiptRecipientController } from './receipt-recipient.controller';
 import { ReceiptRecipientService } from './receipt-recipient.service';
 import { ReceiptReportHistoryController } from './receipt-report-history.controller';
 import { MonitoringModule } from '../monitoring/monitoring.module';
-
 import { TelegramModule } from '../telegram/telegram.module';
-
+import { StorageModule } from '../storage/storage.module';
+import { PdfGeneratorService } from './pdf-generator.service';
+import { ScreenshotModule } from '../monitoring/dispatcher/screenshot.module';
 @Module({
   imports: [
     PrismaModule,
@@ -21,6 +22,8 @@ import { TelegramModule } from '../telegram/telegram.module';
     forwardRef(() => WhatsappModule),
     forwardRef(() => MonitoringModule),
     forwardRef(() => TelegramModule),
+    StorageModule,
+    ScreenshotModule,
   ],
   controllers: [
     ReceiptReportController,
@@ -33,12 +36,14 @@ import { TelegramModule } from '../telegram/telegram.module';
     ReceiptReportService,
     ReceiptSchedulerService,
     ReceiptRecipientService,
+    PdfGeneratorService,
   ],
   exports: [
     ReceiptScheduleService,
     ReceiptReportService,
     ReceiptSchedulerService,
     ReceiptRecipientService,
+    PdfGeneratorService,
   ],
 })
 export class ReceiptReportModule {}
