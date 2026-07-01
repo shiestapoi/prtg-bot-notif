@@ -252,7 +252,7 @@ export class ReceiptReportService {
         lowTrafficCount,
         incidents: incidents.map((i) => {
           const sdateObj = new Date(i.time.getTime() - 30 * 60 * 1000); // 30 minutes before
-          const recoveryObj = i.recoveryTime || new Date();
+          const recoveryObj = i.recoveryTime || new Date(i.time.getTime() + 60 * 60 * 1000); // fallback: 1 hour after incident
           const edateObj = new Date(recoveryObj.getTime() + 30 * 60 * 1000); // 30 minutes after recovery
 
           return {
@@ -418,7 +418,9 @@ export class ReceiptReportService {
 
   private formatPrtgDate(date: Date): string {
     const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+    // Use WIB timezone (Asia/Jakarta, UTC+7) to match PRTG server timezone
+    const wib = new Date(date.getTime() + (7 * 60 + date.getTimezoneOffset()) * 60 * 1000);
+    return `${wib.getFullYear()}-${pad(wib.getMonth() + 1)}-${pad(wib.getDate())}-${pad(wib.getHours())}-${pad(wib.getMinutes())}-${pad(wib.getSeconds())}`;
   }
 
   private getStartDate(period: ReceiptPeriod): Date {
@@ -666,7 +668,7 @@ export class ReceiptReportService {
         lowTrafficCount,
         incidents: incidents.map((i) => {
           const sdateObj = new Date(i.time.getTime() - 30 * 60 * 1000);
-          const recoveryObj = i.recoveryTime || new Date();
+          const recoveryObj = i.recoveryTime || new Date(i.time.getTime() + 60 * 60 * 1000); // fallback: 1 hour after incident
           const edateObj = new Date(recoveryObj.getTime() + 30 * 60 * 1000);
 
           return {
