@@ -257,7 +257,7 @@ async function main() {
     meId,
     lidId,
     noiseRecoveryToken
-  } = extractionResult;
+  } = extractionResult as any;
 
   const adv = signalMeta.adv_signed_identity?.value;
   const account = adv ? {
