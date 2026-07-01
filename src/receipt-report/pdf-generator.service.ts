@@ -94,10 +94,11 @@ export class PdfGeneratorService {
       for (const config of configs) {
         const incidents: any[] = config.incidents || [];
 
-        // Incident rows
-        let incidentRows = '';
+        // Build per-incident detail blocks (each with its own chart)
+        let incidentBlocks = '';
         if (incidents.length > 0) {
-          for (const inc of incidents) {
+          for (let idx = 0; idx < incidents.length; idx++) {
+            const inc = incidents[idx];
             const t1 = new Date(inc.time);
             const t2 = inc.recoveryTime ? new Date(inc.recoveryTime) : null;
             const timeStr = t1.toLocaleTimeString('id-ID', {
@@ -147,35 +148,46 @@ export class PdfGeneratorService {
                 ? (inc.outboundDuring / 1000 / 1000).toFixed(2)
                 : '—';
 
-            incidentRows += `
-              <tr>
-                <td><span class="badge ${statusClass}">${statusLabel}</span></td>
-                <td class="mono">${timeStr}</td>
-                <td class="mono">${recovStr}</td>
-                <td class="mono">${duration}</td>
-                <td class="traffic-cell">
-                  <span class="traffic-good">${inBefore}</span>
-                  <span class="arrow">→</span>
-                  <span class="traffic-bad">${inDuring}</span>
-                </td>
-                <td class="traffic-cell">
-                  <span class="traffic-good">${outBefore}</span>
-                  <span class="arrow">→</span>
-                  <span class="traffic-bad">${outDuring}</span>
-                </td>
-              </tr>`;
+            const chartHtml = inc.r2ImageUrl
+              ? `<div class="chart-container">
+                   <img src="${inc.r2ImageUrl}" alt="Traffic Chart" />
+                 </div>`
+              : '';
+
+            incidentBlocks += `
+              <div class="incident-block">
+                <div class="incident-header">
+                  <div class="incident-left">
+                    <span class="badge ${statusClass}">${statusLabel}</span>
+                    <span class="incident-time">${timeStr} WIB</span>
+                    ${t2 ? `<span class="incident-recovery">→ Pulih ${recovStr} WIB</span>` : ''}
+                    <span class="incident-duration">(${duration})</span>
+                  </div>
+                </div>
+                <div class="traffic-grid">
+                  <div class="traffic-item">
+                    <div class="traffic-label">Traffic In ${inc.status === 'LOW_TRAFFIC' ? '(Avg)' : ''}</div>
+                    <div class="traffic-values">
+                      <span class="traffic-good">${inBefore}</span>
+                      <span class="arrow">→</span>
+                      <span class="traffic-bad">${inDuring}</span>
+                      <span class="traffic-unit">Mbps</span>
+                    </div>
+                  </div>
+                  <div class="traffic-item">
+                    <div class="traffic-label">Traffic Out ${inc.status === 'LOW_TRAFFIC' ? '(Avg)' : ''}</div>
+                    <div class="traffic-values">
+                      <span class="traffic-good">${outBefore}</span>
+                      <span class="arrow">→</span>
+                      <span class="traffic-bad">${outDuring}</span>
+                      <span class="traffic-unit">Mbps</span>
+                    </div>
+                  </div>
+                </div>
+                ${chartHtml}
+              </div>`;
           }
         }
-
-        // Chart image (use first incident's r2ImageUrl or skip)
-        const firstIncidentWithImage = incidents.find(
-          (i: any) => i.r2ImageUrl,
-        );
-        const chartHtml = firstIncidentWithImage
-          ? `<div class="chart-container">
-               <img src="${firstIncidentWithImage.r2ImageUrl}" alt="Traffic Chart" />
-             </div>`
-          : '';
 
         configsHtml += `
           <div class="config-card">
@@ -188,22 +200,9 @@ export class PdfGeneratorService {
             </div>
             ${
               incidents.length > 0
-                ? `<table class="incident-table">
-                     <thead>
-                       <tr>
-                         <th>Status</th>
-                         <th>Waktu</th>
-                         <th>Pulih</th>
-                         <th>Durasi</th>
-                         <th>Traffic In (Mbps)</th>
-                         <th>Traffic Out (Mbps)</th>
-                       </tr>
-                     </thead>
-                     <tbody>${incidentRows}</tbody>
-                   </table>`
+                ? incidentBlocks
                 : `<p class="no-incident">Tidak ada insiden tercatat</p>`
             }
-            ${chartHtml}
           </div>`;
       }
       configsHtml += '</div>';
@@ -369,34 +368,67 @@ export class PdfGeneratorService {
       border-radius: 99px;
     }
 
-    /* ── Incident Table ── */
-    .incident-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 9px;
+    /* ── Incident Block ── */
+    .incident-block {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f1f5f9;
     }
-    .incident-table th {
-      text-align: left;
-      padding: 7px 10px;
+    .incident-block:last-child {
+      border-bottom: none;
+    }
+    .incident-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .incident-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .incident-time {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0f172a;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    .incident-recovery {
+      font-size: 10px;
+      color: #16a34a;
+      font-weight: 500;
+    }
+    .incident-duration {
+      font-size: 9px;
+      color: #64748b;
+    }
+
+    /* ── Traffic Grid ── */
+    .traffic-grid {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    .traffic-item {
+      flex: 1;
+    }
+    .traffic-label {
       font-size: 8px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: #64748b;
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
-      font-weight: 600;
+      margin-bottom: 2px;
     }
-    .incident-table td {
-      padding: 7px 10px;
-      border-bottom: 1px solid #f1f5f9;
-      vertical-align: middle;
+    .traffic-values {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
     }
-    .incident-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-    .mono {
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 9px;
+    .traffic-unit {
+      font-size: 8px;
+      color: #94a3b8;
+      margin-left: 2px;
     }
 
     /* ── Status Badge ── */
@@ -418,20 +450,17 @@ export class PdfGeneratorService {
     }
 
     /* ── Traffic Values ── */
-    .traffic-cell {
-      white-space: nowrap;
-    }
     .traffic-good {
       color: #16a34a;
       font-weight: 600;
       font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 9px;
+      font-size: 10px;
     }
     .traffic-bad {
       color: #dc2626;
       font-weight: 600;
       font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 9px;
+      font-size: 10px;
     }
     .arrow {
       color: #94a3b8;
@@ -441,9 +470,9 @@ export class PdfGeneratorService {
 
     /* ── Chart ── */
     .chart-container {
-      padding: 8px 14px 12px;
+      padding: 4px 0 8px;
       background: #f8fafc;
-      border-top: 1px solid #e2e8f0;
+      border-radius: 4px;
     }
     .chart-container img {
       width: 100%;
