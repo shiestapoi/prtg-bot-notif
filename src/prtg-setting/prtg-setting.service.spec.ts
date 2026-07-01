@@ -20,9 +20,9 @@ describe('PrtgSettingService', () => {
     loginPassword: null,
     messageTemplate: '{title}\nGroup: {groupname}',
     alertMessageTemplate:
-      'âš ï¸ {status} â€” {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}',
+      'âš ï¸ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}',
     recoveryMessageTemplate:
-      'âœ… Pulih â€” {title}\nGroup: {groupName}\nWaktu: {time}',
+      'âœ… Pulih — {title}\nGroup: {groupName}\nWaktu: {time}',
     createdAt: now,
     updatedAt: now,
   };
@@ -54,10 +54,10 @@ describe('PrtgSettingService', () => {
       expect(result.hasLoginPassword).toBe(false);
       expect(result.messageTemplate).toBe('{title}\nGroup: {groupname}');
       expect(result.alertMessageTemplate).toBe(
-        'âš ï¸ {status} â€” {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}',
+        'âš ï¸ {status} — {title}\nGroup: {groupName}\nWaktu: {time}\nAlasan: {reason}',
       );
       expect(result.recoveryMessageTemplate).toBe(
-        'âœ… Pulih â€” {title}\nGroup: {groupName}\nWaktu: {time}',
+        'âœ… Pulih — {title}\nGroup: {groupName}\nWaktu: {time}',
       );
       expect(result.createdAt).toBe(now.toISOString());
       expect(result.updatedAt).toBe(now.toISOString());

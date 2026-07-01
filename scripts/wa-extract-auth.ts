@@ -228,7 +228,7 @@ async function main() {
     const lidId = lidRaw ? JSON.parse(lidRaw) : '';
     
     return {
-      noiseCandidate,
+      noiseCandidates,
       signedIdentityPrivateB64,
       signedIdentityPublicB64,
       signalMeta,
@@ -243,11 +243,6 @@ async function main() {
   })();`);
 
   console.log('Extraction complete. Processing credentials...');
-  if (!extractionResult.signalMeta.adv_signed_identity) {
-     console.warn('WARNING: adv_signed_identity is MISSING from signal-meta-store!');
-     console.warn('Available keys in meta store are:', extractionResult.allMetaKeys);
-  }
-  
   function keyPairFromWeb(webKeyPair: any) {
     return {
       private: Buffer.from(webKeyPair.privKey.__ab, 'base64'),
@@ -260,17 +255,51 @@ async function main() {
   }
 
   const {
-    noiseCandidate,
+    noiseCandidates,
     signedIdentityPrivateB64,
     signedIdentityPublicB64,
     signalMeta,
     preKeys,
     signedPreKeys,
     identities,
-    meId,
-    lidId,
+    meId: rawMeId,
+    lidId: rawLidId,
     noiseRecoveryToken
   } = extractionResult as any;
+
+  if (!extractionResult.signalMeta.adv_signed_identity) {
+     console.warn('WARNING: adv_signed_identity is MISSING from signal-meta-store!');
+     console.warn('Available keys in meta store are:', extractionResult.allMetaKeys);
+  }
+
+  // Verify the correct Noise key pair! AES-CBC does not authenticate, so we must find the valid pair.
+  // We use Diffie-Hellman to verify: sharedKey(priv, dummyPub) === sharedKey(dummyPriv, pub)
+  let correctNoise = null;
+  const dummy = Curve.generateKeyPair();
+  for (const candidate of noiseCandidates) {
+    try {
+      const priv = Buffer.from(candidate.privateB64, 'base64');
+      const pub = Buffer.from(candidate.publicB64, 'base64');
+      
+      const dh1 = Curve.sharedKey(priv, dummy.public);
+      const dh2 = Curve.sharedKey(dummy.private, pub);
+      
+      if (Buffer.from(dh1).equals(Buffer.from(dh2))) {
+        correctNoise = candidate;
+        break;
+      }
+    } catch (err) {
+      // Ignore if sharedKey throws (e.g., invalid curve point from garbage decryption)
+    }
+  }
+
+  if (!correctNoise) {
+    throw new Error('Could not find a valid Noise Key pair that decrypts correctly!');
+  }
+
+  // Format IDs correctly for Baileys
+  const meId = rawMeId ? rawMeId.replace('@c.us', '@s.whatsapp.net') : '';
+  const lidId = rawLidId ? rawLidId.replace('@c.us', '@lid') : '';
 
   const adv = signalMeta.adv_signed_identity?.value;
   const account = adv ? {
@@ -308,8 +337,8 @@ async function main() {
 
   const creds = {
     noiseKey: {
-      private: Buffer.from(noiseCandidate.privateB64, 'base64'),
-      public: Buffer.from(noiseCandidate.publicB64, 'base64'),
+      private: Buffer.from(correctNoise.privateB64, 'base64'),
+      public: Buffer.from(correctNoise.publicB64, 'base64'),
     },
     pairingEphemeralKeyPair: Curve.generateKeyPair(),
     signedIdentityKey,
@@ -371,8 +400,20 @@ async function main() {
   }
 
   console.log(`Success! Extracted credentials saved to ${DUMP_DIR}`);
-  console.log('You can now upload this folder to your VPS and run the import script.');
   
+  console.log('Zipping the folder for easy upload to VPS...');
+  try {
+    const { execSync } = require('child_process');
+    const zipPath = path.join(process.cwd(), 'temp', 'baileys_auth_dump.zip');
+    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath); // delete old zip
+    // Use powershell Compress-Archive
+    execSync(`powershell -Command "Compress-Archive -Path '${DUMP_DIR}\\*' -DestinationPath '${zipPath}' -Force"`);
+    console.log(`Zip created successfully at: ${zipPath}`);
+    console.log('You can now upload "temp/baileys_auth_dump.zip" to your VPS and run "unzip baileys_auth_dump.zip -d temp/baileys_auth_dump" before running the import script.');
+  } catch (err) {
+    console.error('Failed to create zip automatically. You can zip the folder manually.', err);
+  }
+
   await browser.close();
 }
 

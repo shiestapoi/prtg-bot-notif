@@ -20,7 +20,7 @@ import { MonitoringSchedulerService } from '../scheduler/monitoring-scheduler.se
 import { AlertDispatcherService } from '../dispatcher/alert-dispatcher.service';
 import { ScreenshotService } from '../dispatcher/screenshot.service';
 import { MetricParserService } from '../parser/metric-parser.service';
-// Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params
+// Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
 // import { CookieVaultService } from '../../cookie-vault/cookie-vault.service';
 import { PrtgSettingService } from '../../prtg-setting/prtg-setting.service';
 import { PrtgReportService } from '../../prtg-report/prtg-report.service';
@@ -47,7 +47,7 @@ export class MonitoringController {
     private readonly screenshotService: ScreenshotService,
     private readonly metricParser: MetricParserService,
     private readonly prtgReportService: PrtgReportService,
-    // Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params
+    // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
     // private readonly cookieVault: CookieVaultService,
     private readonly prtgSetting: PrtgSettingService,
     private readonly monitoringHistory: MonitoringHistoryService,
@@ -219,7 +219,7 @@ export class MonitoringController {
       throw new BadRequestException(`Config ${id} is not monitoring-enabled`);
     }
 
-    // Use the same dispatch logic as schedule â€” captures Playwright screenshot + sends
+    // Use the same dispatch logic as schedule — captures Playwright screenshot + sends
     const result = await this.prtgReportService.dispatchConfig(id);
 
     return {

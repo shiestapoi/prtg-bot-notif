@@ -11,7 +11,7 @@ import cron from 'node-cron';
 import { chromium } from 'playwright';
 import type { Page, Browser, BrowserContext } from 'playwright';
 import sharp from 'sharp';
-// Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params
+// Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
 // import { CookieVaultService } from '../cookie-vault/cookie-vault.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MonitoringEventService } from '../monitoring/scheduler/monitoring-event.service';
@@ -29,7 +29,7 @@ function normalizeInput(value: string | undefined | null) {
   return value?.trim() ?? '';
 }
 
-// Cookie tidak dipakai lagi â€” normalizeCookieValue tidak diperlukan
+// Cookie tidak dipakai lagi — normalizeCookieValue tidak diperlukan
 // function normalizeCookieValue(value: string | undefined | null) {
 //   const input = normalizeInput(value);
 //   if (!input) {
@@ -161,7 +161,7 @@ type ConfigWithGroup = {
   maintenanceLabel: string | null;
 };
 
-// Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params
+// Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
 // type ActiveCookie = {
 //   id: number;
 //   value: string;
@@ -177,7 +177,7 @@ export class PrtgReportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly whatsappSender: WhatsappSenderService,
-    // Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params
+    // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
     // private readonly cookieVault: CookieVaultService,
     private readonly prtgSetting: PrtgSettingService,
     private readonly monitoringEventService: MonitoringEventService,
@@ -324,7 +324,7 @@ export class PrtgReportService {
     return { enabled: result.count };
   }
 
-  /** Returns names of all enabled groups â€” used by the WhatsApp plugin. */
+  /** Returns names of all enabled groups — used by the WhatsApp plugin. */
   async listGroupNames(): Promise<string[]> {
     const groups = await this.prisma.prtgGroup.findMany({
       where: { enabled: true },
@@ -707,7 +707,7 @@ export class PrtgReportService {
   }
 
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Cookies â€” DEPRECATED: Cookie tidak dipakai lagi, auth via username/passhash query params
+  // Cookies — DEPRECATED: Cookie tidak dipakai lagi, auth via username/passhash query params
   // Fungsi-fungsi ini tetap ada untuk backward compatibility (WhatsApp plugin, controller)
   // tapi secara internal tidak lagi digunakan untuk auth ke PRTG.
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1271,7 +1271,7 @@ export class PrtgReportService {
   }
 
   /**
-   * Convenience method used by the WhatsApp plugin â€” looks up the group by
+   * Convenience method used by the WhatsApp plugin — looks up the group by
    * name and then delegates to dispatchGroup(group.id).
    */
   async dispatchGroupByName(name: string): Promise<DispatchSummary> {
@@ -1352,9 +1352,9 @@ export class PrtgReportService {
           });
 
           // Fetch latest monitoring data for traffic info
-          let bitrateStr = 'â€”';
-          let trafficInStr = 'â€”';
-          let trafficOutStr = 'â€”';
+          let bitrateStr = '—';
+          let trafficInStr = '—';
+          let trafficOutStr = '—';
           let reasonStr = '';
           const latestHistory = await this.prisma.monitoringHistory.findFirst({
             where: { configId: config.id },
@@ -1378,10 +1378,10 @@ export class PrtgReportService {
 
           let caption: string;
           if (isAnomalyWithNotify) {
-            // Use alert template â€” config is in anomaly state and notify is enabled for that status
+            // Use alert template — config is in anomaly state and notify is enabled for that status
             const alertTemplate =
               settings.alertMessageTemplate ??
-              'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nâš ï¸ *ALERT: {status}*\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nðŸ“ {title}\nðŸ¢ {groupName}\nâ° {time} WIB\nðŸ“Š Traffic Total: {bitrate}\nðŸ“¥ Traffic In: {trafficIn}\nðŸ“¤ Traffic Out: {trafficOut}\nðŸ’¬ {reason}\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”';
+              'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nâš ï¸ *ALERT: {status}*\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\nðŸ“ {title}\nðŸ¢ {groupName}\nâ° {time} WIB\n📊 Traffic Total: {bitrate}\n📥 Traffic In: {trafficIn}\n📤 Traffic Out: {trafficOut}\n💬 {reason}\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”';
             caption = alertTemplate
               .replace(/\{title\}/g, config.title)
               .replace(/\{groupName\}/g, config.group.name)
@@ -1417,7 +1417,7 @@ export class PrtgReportService {
           // Prepend maintenance label if config is in maintenance mode
           if (config.maintenance) {
             const label = config.maintenanceLabel || 'Maintenance';
-            caption = `ðŸ”§ *[${label}]* â€” Notifikasi monitoring dinonaktifkan\n\n${caption}`;
+            caption = `🔧 *[${label}]* — Notifikasi monitoring dinonaktifkan\n\n${caption}`;
           }
 
           const recipients = this.getRecipientsForConfig(
@@ -1535,7 +1535,7 @@ export class PrtgReportService {
     }
   }
 
-  // Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params
+  // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
   // private async getActiveCookie(): Promise<ActiveCookie | null> {
   //   return this.prisma.prtgCookie.findFirst({
   //     where: { isActive: true },
@@ -1553,7 +1553,7 @@ export class PrtgReportService {
     });
   }
 
-  // Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params
+  // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
   // private async saveSingleActiveCookie(cookie: string, labelHint: string) {
   //   const value = normalizeCookieValue(cookie);
   //   if (!value) {
@@ -1608,7 +1608,7 @@ export class PrtgReportService {
       responseType: 'arraybuffer',
       maxRedirects: 5,
       headers: {
-        // Cookie tidak dipakai lagi â€” auth via username/passhash query params
+        // Cookie tidak dipakai lagi — auth via username/passhash query params
         Accept: 'image/svg+xml, text/plain, */*',
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
@@ -1730,7 +1730,7 @@ export class PrtgReportService {
     }
   }
 
-  // Cookie tidak dipakai lagi â€” loginAndRefreshCookie tidak diperlukan
+  // Cookie tidak dipakai lagi — loginAndRefreshCookie tidak diperlukan
   // Auth sekarang menggunakan username/passhash query params
   // private async loginAndRefreshCookie(
   //   page: Page,

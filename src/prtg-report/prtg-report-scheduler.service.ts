@@ -175,7 +175,7 @@ export class PrtgReportSchedulerService
           } as any,
         };
       }
-      // Cron trigger while already running â€” skip silently
+      // Cron trigger while already running — skip silently
       this.logger.warn(`Schedule "${schedule.name}" skipped (already running)`);
       return {
         scheduleId: schedule.id,

@@ -43,7 +43,7 @@ export class BrowserPoolService implements OnModuleInit, OnModuleDestroy {
    * Each context is isolated (separate cookies, storage).
    * Caller is responsible for closing the context when done.
    *
-   * Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params.
+   * Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params.
    * Parameter cookie tetap ada untuk backward compatibility tapi tidak digunakan.
    */
   async createContext(_cookie?: string): Promise<BrowserContext> {
@@ -53,7 +53,7 @@ export class BrowserPoolService implements OnModuleInit, OnModuleDestroy {
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
     };
-    // Cookie tidak dipakai lagi â€” auth via username/passhash query params
+    // Cookie tidak dipakai lagi — auth via username/passhash query params
     // if (cookie) {
     //   headers.Cookie = cookie;
     // }
@@ -88,7 +88,7 @@ export class BrowserPoolService implements OnModuleInit, OnModuleDestroy {
       return this.browser;
     }
 
-    // Browser is null or disconnected â€” relaunch
+    // Browser is null or disconnected — relaunch
     if (this.browser) {
       try {
         await this.browser.close();

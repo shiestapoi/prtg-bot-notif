@@ -59,7 +59,7 @@ export class MonitoringSchedulerService
   /** Prevents concurrent polls for the same config (race condition guard) */
   private readonly pollInProgress: Set<number> = new Set();
 
-  /** Recovery grace period in ms â€” must be NORMAL for this long before sending recovery notif */
+  /** Recovery grace period in ms — must be NORMAL for this long before sending recovery notif */
   private readonly RECOVERY_GRACE_MS = 60 * 60 * 1000; // 1 hour
 
   /** Cooldown for anomalyâ†”anomaly transitions (e.g., DOWNâ†”LOW_TRAFFIC): 1 hour */
@@ -303,7 +303,7 @@ export class MonitoringSchedulerService
 
   /**
    * Triggers a single immediate poll for a specific config by ID.
-   * Does not affect the scheduled interval â€” this is a one-off manual trigger.
+   * Does not affect the scheduled interval — this is a one-off manual trigger.
    * Returns true if the poll was executed, false if the config is not eligible.
    */
   async pollNow(configId: number): Promise<boolean> {
@@ -542,7 +542,7 @@ export class MonitoringSchedulerService
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Validate content type â€” reject HTML responses (e.g. login pages returned as 200)
+      // Validate content type — reject HTML responses (e.g. login pages returned as 200)
       const contentType = String(
         response.headers?.['content-type'] ?? '',
       ).toLowerCase();
@@ -658,7 +658,7 @@ export class MonitoringSchedulerService
     // Skip all notifications if config is in maintenance mode
     if (config.maintenance) {
       this.logger.debug(
-        `Config ${configId} (${config.title}): Maintenance mode â€” notifications suppressed`,
+        `Config ${configId} (${config.title}): Maintenance mode — notifications suppressed`,
       );
       // Still clear recovery state if needed
       if (isRecovering && classification.status !== NocStatus.NORMAL) {
@@ -669,17 +669,17 @@ export class MonitoringSchedulerService
       classification.status === NocStatus.NORMAL &&
       !isRecovering
     ) {
-      // Just became NORMAL â€” start grace period
+      // Just became NORMAL — start grace period
       this.recoveryStartedAt.set(configId, now);
       this.logger.debug(
         `Config ${configId}: Recovery grace period started (10 min)`,
       );
       // Don't dispatch anything yet
     } else if (isRecovering && classification.status === NocStatus.NORMAL) {
-      // Still NORMAL during grace period â€” check if 5 minutes passed
+      // Still NORMAL during grace period — check if 5 minutes passed
       const recoveryStart = this.recoveryStartedAt.get(configId)!;
       if (now.getTime() - recoveryStart.getTime() >= this.RECOVERY_GRACE_MS) {
-        // Grace period passed â€” send recovery notification (if enabled)
+        // Grace period passed — send recovery notification (if enabled)
         this.recoveryStartedAt.delete(configId);
         this.lastNotifiedAt.delete(configId);
         this.lastNotifiedStatus.delete(configId);
@@ -711,10 +711,10 @@ export class MonitoringSchedulerService
         }
       }
     } else if (isRecovering && classification.status !== NocStatus.NORMAL) {
-      // Went back to anomaly during grace period â€” cancel recovery
+      // Went back to anomaly during grace period — cancel recovery
       this.recoveryStartedAt.delete(configId);
       this.logger.log(
-        `Config ${configId}: Recovery cancelled â€” back to ${classification.status}`,
+        `Config ${configId}: Recovery cancelled — back to ${classification.status}`,
       );
 
       if (this.isNotifyEnabledForStatus(classification.status, config)) {
@@ -839,14 +839,14 @@ export class MonitoringSchedulerService
             }
           }
         } else if (isPartialRecovery) {
-          // Partial recovery (DOWN -> LOW_TRAFFIC) â€” suppress notification
+          // Partial recovery (DOWN -> LOW_TRAFFIC) — suppress notification
           // We update lastNotifiedStatus, but keep lastNotifiedAt so DOWN 1-hour cooldown persists
           this.logger.debug(
             `Config ${configId} (${config.title}): Partial recovery ${previousStatus}â†’${classification.status} suppressed`,
           );
           this.lastNotifiedStatus.set(configId, classification.status);
         } else if (isOtherEscalation) {
-          // Other status escalation â€” apply 1-hour cooldown
+          // Other status escalation — apply 1-hour cooldown
           const lastNotified = this.lastNotifiedAt.get(configId);
           const cooldownElapsed =
             !lastNotified ||
@@ -941,12 +941,12 @@ export class MonitoringSchedulerService
 
   /**
    * Sends HTTP error notification to the static admin number.
-   * This is NOT a DOWN classification â€” just an info that PRTG is unreachable.
-   * Logs the error for now â€” actual WhatsApp send is handled via the dispatcher.
+   * This is NOT a DOWN classification — just an info that PRTG is unreachable.
+   * Logs the error for now — actual WhatsApp send is handled via the dispatcher.
    */
   private notifyHttpError(configTitle: string, errorMessage: string): void {
     this.logger.warn(
-      `[HTTP ERROR] Config "${configTitle}" â€” PRTG unreachable: ${errorMessage}. ` +
+      `[HTTP ERROR] Config "${configTitle}" — PRTG unreachable: ${errorMessage}. ` +
         `Notifikasi akan dikirim ke admin jika berlanjut.`,
     );
   }
@@ -961,7 +961,7 @@ export class MonitoringSchedulerService
     const settings = await this.prtgSetting.getSettingRaw();
     const baseUrl = new URL(settings.loginUrl);
 
-    // Request last 5 minutes of data â€” PRTG has ~2 min processing delay
+    // Request last 5 minutes of data — PRTG has ~2 min processing delay
     // so the most recent entry will be ~2-3 min old, which is acceptable
     const now = new Date();
     const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);

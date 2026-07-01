@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { BrowserContext } from 'playwright';
 import axios from 'axios';
 import sharp from 'sharp';
-// Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params
+// Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
 // import { CookieVaultService } from '../../cookie-vault/cookie-vault.service';
 import { PrtgSettingService } from '../../prtg-setting/prtg-setting.service';
 import { BrowserPoolService } from './browser-pool.service';
@@ -13,7 +13,7 @@ export class ScreenshotService {
   private readonly logger = new Logger(ScreenshotService.name);
 
   constructor(
-    // Cookie tidak dipakai lagi â€” auth sekarang menggunakan username/passhash query params
+    // Cookie tidak dipakai lagi — auth sekarang menggunakan username/passhash query params
     // private readonly cookieVault: CookieVaultService,
     private readonly prtgSetting: PrtgSettingService,
     private readonly browserPool: BrowserPoolService,
@@ -53,7 +53,7 @@ export class ScreenshotService {
         return null;
       }
 
-      // Cookie tidak dipakai lagi â€” context tanpa cookie
+      // Cookie tidak dipakai lagi — context tanpa cookie
       context = await this.browserPool.createContext();
 
       const page = await context.newPage();

@@ -40,7 +40,7 @@ interface ResolvedRecipient {
 
 /**
  * Pure function that evaluates whether a notification should be dispatched.
- * No side effects â€” can be tested independently.
+ * No side effects — can be tested independently.
  *
  * Aturan utama:
  * - NORMAL â†’ anomaly: KIRIM (new_anomaly)
@@ -87,7 +87,7 @@ export function evaluateDispatch(
     };
   }
 
-  // Same anomaly status (e.g., DOWN â†’ DOWN) â€” NEVER re-notify
+  // Same anomaly status (e.g., DOWN â†’ DOWN) — NEVER re-notify
   return {
     shouldNotify: false,
     reason: 'same_status_suppressed',
@@ -436,10 +436,10 @@ export class AlertDispatcherService {
         'ðŸ“ *{title}*',
         'ðŸ¢ _{groupName}_',
         'â° {time}',
-        'ðŸ“Š Total: ```{bitrate}```',
-        'ðŸ“¥ In: ```{trafficIn}```',
-        'ðŸ“¤ Out: ```{trafficOut}```',
-        'ðŸ’¬ {reason}',
+        '📊 Total: ```{bitrate}```',
+        '📥 In: ```{trafficIn}```',
+        '📤 Out: ```{trafficOut}```',
+        '💬 {reason}',
         'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
       ].join('\n');
     }
@@ -449,9 +449,9 @@ export class AlertDispatcherService {
       'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
       'ðŸ¢ _{groupName}_',
       'â° {time}',
-      'ðŸ“Š Total: ```{bitrate}```',
-      'ðŸ“¥ In: ```{trafficIn}```',
-      'ðŸ“¤ Out: ```{trafficOut}```',
+      '📊 Total: ```{bitrate}```',
+      '📥 In: ```{trafficIn}```',
+      '📤 Out: ```{trafficOut}```',
       'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”',
     ].join('\n');
   }

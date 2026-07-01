@@ -117,10 +117,10 @@ export class TelegramAdminController {
         'ðŸ“ *{title}*\n' +
         'ðŸ¢ _{groupName}_\n' +
         'â° {time}\n' +
-        'ðŸ“Š Total: ```{bitrate}```\n' +
-        'ðŸ“¥ In: ```{trafficIn}```\n' +
-        'ðŸ“¤ Out: ```{trafficOut}```\n' +
-        'ðŸ’¬ {reason}\n' +
+        '📊 Total: ```{bitrate}```\n' +
+        '📥 In: ```{trafficIn}```\n' +
+        '📤 Out: ```{trafficOut}```\n' +
+        '💬 {reason}\n' +
         'â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”';
 
     const message = renderTemplate(templateBody, {
