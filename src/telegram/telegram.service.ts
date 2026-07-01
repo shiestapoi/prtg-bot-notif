@@ -226,15 +226,41 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       } else if (data.startsWith('lap_2jam_')) {
         const groupId = Number(data.split('_')[2]);
         await this.bot.answerCallbackQuery(query.id, {
-          text: 'Sedang mengambil data 2 jam terakhir...',
+          text: '⏳ Sedang memproses...',
         });
-        await this.sendChartReport(chatId, groupId, 2);
+        await this.bot.editMessageText(
+          '⏳ *Sedang mengambil data 2 jam terakhir...*\n\nMohon tunggu, proses ini memerlukan waktu.',
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'Markdown',
+          },
+        );
+        const typingInterval = this.startTypingIndicator(chatId);
+        try {
+          await this.sendChartReport(chatId, groupId, 2);
+        } finally {
+          clearInterval(typingInterval);
+        }
       } else if (data.startsWith('lap_2hari_')) {
         const groupId = Number(data.split('_')[2]);
         await this.bot.answerCallbackQuery(query.id, {
-          text: 'Sedang mengambil data 2 hari terakhir...',
+          text: '⏳ Sedang memproses...',
         });
-        await this.sendChartReport(chatId, groupId, 48);
+        await this.bot.editMessageText(
+          '⏳ *Sedang mengambil data 2 hari terakhir...*\n\nMohon tunggu, proses ini memerlukan waktu.',
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'Markdown',
+          },
+        );
+        const typingInterval = this.startTypingIndicator(chatId);
+        try {
+          await this.sendChartReport(chatId, groupId, 48);
+        } finally {
+          clearInterval(typingInterval);
+        }
       } else if (data === 'menu_laporan_manual') {
         const buttons = [
           [{ text: 'Laporan Harian', callback_data: 'manual_harian' }],
@@ -286,9 +312,25 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         data.startsWith('manual_bulanan_')
       ) {
         await this.bot.answerCallbackQuery(query.id, {
-          text: 'Sedang mengambil laporan manual...',
+          text: '⏳ Sedang memproses laporan...',
         });
-        await this.handleManualReportRequest(chatId, data);
+        const periodText = data.startsWith('manual_harian_')
+          ? 'Harian'
+          : 'Bulanan';
+        await this.bot.editMessageText(
+          `⏳ *Sedang menghasilkan Laporan ${periodText}...*\n\nProses ini mencakup pengambilan data, chart, dan pembuatan PDF. Mohon tunggu.`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'Markdown',
+          },
+        );
+        const typingInterval = this.startTypingIndicator(chatId);
+        try {
+          await this.handleManualReportRequest(chatId, data);
+        } finally {
+          clearInterval(typingInterval);
+        }
       } else if (data === 'menu_notifikasi') {
         const groups = await this.prisma.prtgGroup.findMany({
           where: { enabled: true },
@@ -411,6 +453,20 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       });
     }
     return user;
+  }
+
+  /**
+   * Start a repeating 'typing' chat action indicator.
+   * Telegram typing status auto-expires after ~5s, so we re-send every 4s.
+   * Returns the interval ID — caller MUST clearInterval() when done.
+   */
+  private startTypingIndicator(chatId: number | string): ReturnType<typeof setInterval> {
+    // Send immediately
+    this.bot?.sendChatAction(chatId, 'typing').catch(() => {});
+    // Then repeat every 4 seconds
+    return setInterval(() => {
+      this.bot?.sendChatAction(chatId, 'typing').catch(() => {});
+    }, 4000);
   }
 
   private async sendChartReport(
