@@ -23,12 +23,17 @@ async function main() {
   console.log('Please scan the QR code or complete the Passkey login in the browser window.');
   console.log('Waiting for login to complete...');
 
-  // Set timeout to 0 (infinite) so it won't crash after 30 seconds
-  page.setDefaultTimeout(0);
+  const readline = require('readline');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
 
-  // Wait for a successful login indicator. 'last-wid-md' only appears AFTER a successful scan/login.
-  await page.waitForFunction(() => {
-    return localStorage.getItem('last-wid-md') !== null;
+  await new Promise<void>((resolve) => {
+    rl.question('When your WhatsApp Web has FULLY LOADED the chat dashboard, press ENTER here to extract... ', () => {
+      rl.close();
+      resolve();
+    });
   });
 
   console.log('Login detected! Wait a few seconds for databases to sync...');
@@ -198,6 +203,9 @@ async function main() {
     const signedIdentityPublicB64 = await decryptSignalStaticRecord('signal_static_pubkey');
 
     // 3. Read Signal Stores
+    const allMetaRows = await readAll('signal-storage', 'signal-meta-store');
+    const allMetaKeys = allMetaRows.map(r => r.key);
+
     const signalMeta = Object.fromEntries(
       await Promise.all(
         [
@@ -229,11 +237,16 @@ async function main() {
       identities,
       meId,
       lidId,
-      noiseRecoveryToken: noise.recoveryToken
+      noiseRecoveryToken: noise.recoveryToken,
+      allMetaKeys
     };
   })();`);
 
   console.log('Extraction complete. Processing credentials...');
+  if (!extractionResult.signalMeta.adv_signed_identity) {
+     console.warn('WARNING: adv_signed_identity is MISSING from signal-meta-store!');
+     console.warn('Available keys in meta store are:', extractionResult.allMetaKeys);
+  }
   
   function keyPairFromWeb(webKeyPair: any) {
     return {
